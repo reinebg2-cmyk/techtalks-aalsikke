@@ -1,0 +1,391 @@
+/* ===== Aal Sikke — Auth pages shared styles ===== */
+
+:root {
+  --trust-blue: #2C6E9E;
+  --navy: #0F4C75;
+  --bg-mist: #F4F7FA;
+  --card-mist: #E8EEF3;
+  --white: #FFFFFF;
+  --slate: #2D3748;
+  --slate-light: #64748B;
+  --border: #D8E1E8;
+  --success: #2F9E6E;
+  --success-bg: #EAF7F1;
+  --amber: #F0A202;
+  --amber-bg: #FEF6E6;
+  --coral: #E4572E;
+  --coral-bg: #FCEDE8;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg-mist);
+  color: var(--slate);
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.screen {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Header */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 16px;
+}
+
+.topbar .back-btn {
+  background: none;
+  border: none;
+  color: var(--slate-light);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.topbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 16px;
+}
+
+.topbar .brand .logo-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--trust-blue);
+}
+
+.topbar .help-link {
+  color: var(--slate-light);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+/* Intro block (registration) */
+.intro {
+  padding: 4px 4px 20px;
+}
+
+.intro h1 {
+  font-size: 22px;
+  margin: 0 0 6px;
+  color: var(--slate);
+}
+
+.intro p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--slate-light);
+  line-height: 1.5;
+}
+
+/* Center brand block (login) */
+.center-brand {
+  text-align: center;
+  padding: 12px 0 20px;
+}
+
+.center-brand .logo-dot {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--trust-blue);
+  margin: 0 auto 12px;
+}
+
+.center-brand h1 {
+  font-size: 20px;
+  margin: 0 0 2px;
+  color: var(--navy);
+}
+
+.center-brand p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--slate-light);
+}
+
+/* Card */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.card h2 {
+  font-size: 17px;
+  margin: 0 0 4px;
+}
+
+.card > p.subtitle {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--slate-light);
+  line-height: 1.5;
+}
+
+/* Segmented control (Student / Work / Hybrid) */
+.field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 8px;
+}
+
+.segmented {
+  display: flex;
+  background: var(--card-mist);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 18px;
+}
+
+.segmented input {
+  display: none;
+}
+
+.segmented label {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--slate-light);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.segmented input:checked + label {
+  background: var(--trust-blue);
+  color: var(--white);
+}
+
+/* Form fields */
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap input,
+.input-wrap select {
+  width: 100%;
+  padding: 11px 40px 11px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--slate);
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.input-wrap input:focus,
+.input-wrap select:focus {
+  border-color: var(--trust-blue);
+}
+
+.input-wrap .icon-status {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  display: none;
+}
+
+.input-wrap .icon-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--slate-light);
+  font-size: 15px;
+}
+
+/* Validation states, toggled via JS by adding a class to .field */
+.field.is-success .input-wrap input { border-color: var(--success); background: var(--success-bg); }
+.field.is-success .icon-status.success { display: inline; color: var(--success); }
+
+.field.is-warning .input-wrap input { border-color: var(--amber); background: var(--amber-bg); }
+.field.is-warning .icon-status.warning { display: inline; color: var(--amber); }
+
+.field.is-error .input-wrap input { border-color: var(--coral); background: var(--coral-bg); }
+.field.is-error .icon-status.error { display: inline; color: var(--coral); }
+
+.hint {
+  display: none;
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.field.is-error .hint.error-text { display: block; color: var(--coral); }
+.field.is-warning .hint.warning-text { display: block; color: var(--amber); }
+
+/* Phone row */
+.phone-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 8px;
+}
+
+/* Password strength meter */
+.strength-meter {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.strength-meter span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+/* JS toggles strength-1/2/3 classes on .strength-meter */
+.strength-meter.strength-1 span:nth-child(1) { background: var(--coral); }
+.strength-meter.strength-2 span:nth-child(1),
+.strength-meter.strength-2 span:nth-child(2) { background: var(--amber); }
+.strength-meter.strength-3 span:nth-child(1),
+.strength-meter.strength-3 span:nth-child(2),
+.strength-meter.strength-3 span:nth-child(3) { background: var(--success); }
+
+/* Buttons */
+.btn-primary {
+  width: 100%;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--trust-blue);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-primary:hover { background: var(--navy); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-secondary {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate);
+  background: var(--card-mist);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.link-row {
+  text-align: center;
+  font-size: 13px;
+  color: var(--slate-light);
+  margin-top: 14px;
+}
+
+.link-row a {
+  color: var(--trust-blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Row helpers */
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--slate);
+  margin: 14px 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--slate-light);
+  margin: 16px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Footer / legal text */
+.legal {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--slate-light);
+  line-height: 1.5;
+  margin-top: 16px;
+  padding: 0 8px;
+}
+
+.legal a { color: var(--slate); font-weight: 600; text-decoration: underline; }
+
+.tag {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--slate-light);
+  background: var(--card-mist);
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-top: 16px;
+}
+
+.tag-row { text-align: center; }
+
+.footnote {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--slate-light);
+  margin-top: 14px;
+}
