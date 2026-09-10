@@ -26,4 +26,19 @@ public class ScheduleItemController {
     public ResponseEntity<ScheduleItem> createItem(@RequestBody ScheduleItem item) {
         return ResponseEntity.ok(scheduleItemService.createItem(item));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ScheduleItem> updateItem(@PathVariable UUID id, @RequestBody ScheduleItem item) {
+        return scheduleItemService.updateItem(id, item)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteItem(@PathVariable UUID id) {
+        if (scheduleItemService.deleteItem(id)) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
 }
