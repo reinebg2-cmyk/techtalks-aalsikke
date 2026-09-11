@@ -1,4 +1,9 @@
-/* ===== Aal Sikke — Auth pages shared styles ===== */
+/*
+ * Aal Sikke — Unified style.css
+ * Shared authentication + dashboard styles
+ */
+
+/* ===== Global + Authentication styles ===== */
 
 :root {
   --trust-blue: #2C6E9E;
@@ -15,7 +20,7 @@
   --amber-bg: #FEF6E6;
   --coral: #E4572E;
   --coral-bg: #FCEDE8;
-  --radius: 12px;
+  --radius: 0.75rem;
 }
 
 * { box-sizing: border-box; }
@@ -27,12 +32,12 @@ body {
   color: var(--slate);
   display: flex;
   justify-content: center;
-  padding: 24px 16px;
+  padding: 1.5rem 1rem;
 }
 
 .screen {
   width: 100%;
-  max-width: 400px;
+  max-width: 25rem;
 }
 
 /* Header */
@@ -40,14 +45,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 4px 16px;
+  padding: 0.5rem 0.25rem 1rem;
 }
 
 .topbar .back-btn {
   background: none;
   border: none;
   color: var(--slate-light);
-  font-size: 20px;
+  font-size: 1.25rem;
   cursor: pointer;
   line-height: 1;
 }
@@ -55,39 +60,39 @@ body {
 .topbar .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   font-weight: 700;
   color: var(--navy);
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .topbar .brand .logo-dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.375rem;
   background: var(--trust-blue);
 }
 
 .topbar .help-link {
   color: var(--slate-light);
-  font-size: 14px;
+  font-size: 0.875rem;
   text-decoration: none;
 }
 
 /* Intro block (registration) */
 .intro {
-  padding: 4px 4px 20px;
+  padding: 0.25rem 0.25rem 1.25rem;
 }
 
 .intro h1 {
-  font-size: 22px;
-  margin: 0 0 6px;
+  font-size: 1.375rem;
+  margin: 0 0 0.375rem;
   color: var(--slate);
 }
 
 .intro p {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--slate-light);
   line-height: 1.5;
 }
@@ -95,45 +100,45 @@ body {
 /* Center brand block (login) */
 .center-brand {
   text-align: center;
-  padding: 12px 0 20px;
+  padding: 0.75rem 0 1.25rem;
 }
 
 .center-brand .logo-dot {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
   background: var(--trust-blue);
-  margin: 0 auto 12px;
+  margin: 0 auto 0.75rem;
 }
 
 .center-brand h1 {
-  font-size: 20px;
-  margin: 0 0 2px;
+  font-size: 1.25rem;
+  margin: 0 0 0.125rem;
   color: var(--navy);
 }
 
 .center-brand p {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--slate-light);
 }
 
 /* Card */
 .card {
   background: var(--white);
-  border: 1px solid var(--border);
+  border: 0.0625rem solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 1.25rem;
 }
 
 .card h2 {
-  font-size: 17px;
-  margin: 0 0 4px;
+  font-size: 1.0625rem;
+  margin: 0 0 0.25rem;
 }
 
 .card > p.subtitle {
-  margin: 0 0 18px;
-  font-size: 13px;
+  margin: 0 0 1.125rem;
+  font-size: 0.8125rem;
   color: var(--slate-light);
   line-height: 1.5;
 }
@@ -141,18 +146,18 @@ body {
 /* Segmented control (Student / Work / Hybrid) */
 .field-label {
   display: block;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--slate);
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .segmented {
   display: flex;
   background: var(--card-mist);
-  border-radius: 10px;
-  padding: 4px;
-  margin-bottom: 18px;
+  border-radius: 0.625rem;
+  padding: 0.25rem;
+  margin-bottom: 1.125rem;
 }
 
 .segmented input {
@@ -162,10 +167,10 @@ body {
 .segmented label {
   flex: 1;
   text-align: center;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
-  padding: 8px 0;
-  border-radius: 8px;
+  padding: 0.5rem 0;
+  border-radius: 0.5rem;
   cursor: pointer;
   color: var(--slate-light);
   transition: background 0.15s ease, color 0.15s ease;
@@ -178,14 +183,14 @@ body {
 
 /* Form fields */
 .field {
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .field label {
   display: block;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 0.375rem;
 }
 
 .input-wrap {
@@ -195,10 +200,10 @@ body {
 .input-wrap input,
 .input-wrap select {
   width: 100%;
-  padding: 11px 40px 11px 12px;
-  font-size: 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  padding: 0.6875rem 2.5rem 0.6875rem 0.75rem;
+  font-size: 0.875rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.625rem;
   background: var(--white);
   color: var(--slate);
   outline: none;
@@ -212,23 +217,23 @@ body {
 
 .input-wrap .icon-status {
   position: absolute;
-  right: 12px;
+  right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 14px;
+  font-size: 0.875rem;
   display: none;
 }
 
 .input-wrap .icon-toggle {
   position: absolute;
-  right: 12px;
+  right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
   color: var(--slate-light);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 /* Validation states, toggled via JS by adding a class to .field */
@@ -243,8 +248,8 @@ body {
 
 .hint {
   display: none;
-  font-size: 12px;
-  margin-top: 6px;
+  font-size: 0.75rem;
+  margin-top: 0.375rem;
   line-height: 1.4;
 }
 
@@ -254,21 +259,21 @@ body {
 /* Phone row */
 .phone-row {
   display: grid;
-  grid-template-columns: 88px 1fr;
-  gap: 8px;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.5rem;
 }
 
 /* Password strength meter */
 .strength-meter {
   display: flex;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
 }
 
 .strength-meter span {
   flex: 1;
-  height: 4px;
-  border-radius: 2px;
+  height: 0.25rem;
+  border-radius: 0.125rem;
   background: var(--border);
 }
 
@@ -283,13 +288,13 @@ body {
 /* Buttons */
 .btn-primary {
   width: 100%;
-  padding: 13px;
-  font-size: 15px;
+  padding: 0.8125rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--white);
   background: var(--trust-blue);
   border: none;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -299,25 +304,25 @@ body {
 
 .btn-secondary {
   width: 100%;
-  padding: 12px;
-  font-size: 14px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--slate);
   background: var(--card-mist);
   border: none;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .link-row {
   text-align: center;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--slate-light);
-  margin-top: 14px;
+  margin-top: 0.875rem;
 }
 
 .link-row a {
@@ -336,56 +341,531 @@ body {
 .checkbox-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
   color: var(--slate);
-  margin: 14px 0;
+  margin: 0.875rem 0;
 }
 
 .divider {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12px;
+  gap: 0.625rem;
+  font-size: 0.75rem;
   color: var(--slate-light);
-  margin: 16px 0;
+  margin: 1rem 0;
 }
 
 .divider::before,
 .divider::after {
   content: "";
   flex: 1;
-  height: 1px;
+  height: 0.0625rem;
   background: var(--border);
 }
 
 /* Footer / legal text */
 .legal {
   text-align: center;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: var(--slate-light);
   line-height: 1.5;
-  margin-top: 16px;
-  padding: 0 8px;
+  margin-top: 1rem;
+  padding: 0 0.5rem;
 }
 
 .legal a { color: var(--slate); font-weight: 600; text-decoration: underline; }
 
 .tag {
   display: inline-block;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--slate-light);
   background: var(--card-mist);
-  padding: 6px 12px;
-  border-radius: 999px;
-  margin-top: 16px;
+  padding: 0.375rem 0.75rem;
+  border-radius: 62.4375rem;
+  margin-top: 1rem;
 }
 
 .tag-row { text-align: center; }
 
 .footnote {
   text-align: center;
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   color: var(--slate-light);
-  margin-top: 14px;
+  margin-top: 0.875rem;
+}
+
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
+/* ===== Aal Sikke — Dashboard layout (KAN-36/37/38) ===== */
+/* All sizing uses rem/em, never px, so the layout scales with the user's
+   root/base font size for accessibility. */
+
+.dashboard-body {
+  display: block;
+  padding: 0;
+  align-items: initial;
+  justify-content: initial;
+}
+
+.app-shell {
+  max-width: 75rem;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Top bar ---- */
+.dash-topbar {
+  padding: 0.875rem 1.5rem;
+  background: var(--white);
+  border-bottom: 0.0625rem solid var(--border);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icon-btn {
+  position: relative;
+  background: none;
+  border: none;
+  font-size: 1.125rem;
+  cursor: pointer;
+  color: var(--slate-light);
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.badge-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 0.0938rem solid var(--white);
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.avatar-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--trust-blue);
+  color: var(--white);
+  border: none;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.profile-dropdown {
+  position: absolute;
+  right: 0;
+  top: 2.75rem;
+  background: var(--white);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.625rem;
+  box-shadow: 0 0.25rem 0.75rem rgba(15, 76, 117, 0.12);
+  min-width: 9rem;
+  overflow: hidden;
+  z-index: 20;
+}
+
+.profile-dropdown a {
+  display: block;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: var(--slate);
+  text-decoration: none;
+}
+
+.profile-dropdown a:hover { background: var(--card-mist); }
+
+/* ---- Body layout: sidebar + main ---- */
+.app-body {
+  display: flex;
+  flex: 1;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.sidebar {
+  width: 15.5rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.profile-card {
+  background: var(--white);
+  border: 0.0625rem solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.avatar-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 0.625rem;
+  border-radius: 50%;
+  background: var(--trust-blue);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.profile-name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.role-tag {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--trust-blue);
+  background: var(--card-mist);
+  padding: 0.125rem 0.5rem;
+  border-radius: 62.4375rem;
+}
+
+.profile-meta {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--slate-light);
+  line-height: 1.4;
+}
+
+.side-nav {
+  background: var(--white);
+  border: 0.0625rem solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate-light);
+  text-decoration: none;
+}
+
+.nav-link .nav-icon { font-size: 1rem; width: 1.25rem; text-align: center; }
+
+.nav-link:hover { background: var(--card-mist); }
+
+.nav-link.active {
+  background: var(--trust-blue);
+  color: var(--white);
+}
+
+/* ---- Main content ---- */
+.main-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.greeting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.greeting-row h1 {
+  font-size: 1.375rem;
+  margin: 0 0 0.125rem;
+}
+
+.greeting-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.greeting-summary {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--card-mist);
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+/* ---- Task creation card (KAN-37) ---- */
+.task-create-card h2,
+.task-list-card h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--trust-blue);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.task-form { margin-top: 1rem; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.form-actions .btn-secondary,
+.form-actions .btn-primary { width: auto; flex: 1; }
+
+/* ---- Task list card (KAN-38) ---- */
+.filter-tabs {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.filter-tab {
+  border: none;
+  background: var(--card-mist);
+  color: var(--slate-light);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.375rem 0.75rem;
+  border-radius: 62.4375rem;
+  cursor: pointer;
+}
+
+.filter-tab.active {
+  background: var(--trust-blue);
+  color: var(--white);
+}
+
+.task-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.task-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--white);
+}
+
+.task-card.is-complete { opacity: 0.55; }
+.task-card.is-complete .task-title { text-decoration: line-through; }
+
+.task-checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  accent-color: var(--trust-blue);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.task-body { flex: 1; min-width: 0; }
+
+.task-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--slate-light);
+  flex-wrap: wrap;
+}
+
+.priority-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.priority-dot.low { background: var(--success); }
+.priority-dot.medium { background: var(--amber); }
+.priority-dot.high { background: var(--coral); }
+
+.task-menu-btn {
+  background: none;
+  border: none;
+  color: var(--slate-light);
+  font-size: 1.125rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.empty-state {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--slate-light);
+  padding: 2rem 1rem;
+  margin: 1rem 0 0;
+}
+
+/* ---- Mobile bottom nav (hidden on desktop) ---- */
+.bottom-nav {
+  display: none;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 48rem) {
+  .app-body {
+    flex-direction: column;
+    padding: 1rem;
+    padding-bottom: 5rem;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .profile-card { flex: 1; }
+  .side-nav { display: none; }
+
+  .form-grid { grid-template-columns: 1fr; }
+
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-top: 0.0625rem solid var(--border);
+    padding: 0.5rem 0 0.75rem;
+  }
+
+  .bottom-nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+    font-size: 0.6875rem;
+    color: var(--slate-light);
+    text-decoration: none;
+  }
+
+  .bottom-nav a span { font-size: 1.125rem; }
+
+  .bottom-nav a.active { color: var(--trust-blue); }
+}
+
+
+/* =========================================================
+   SHARED ACCESSIBILITY / SMALL IMPROVEMENTS
+   ========================================================= */
+
+button,
+input,
+select {
+  font-family: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 0.125rem solid var(--trust-blue);
+  outline-offset: 0.125rem;
+}
+
+/* The task form also supports an URGENT priority. */
+.priority-dot.urgent {
+  background: var(--coral);
+}
+
+/* Prevent long task titles from overflowing their cards. */
+.task-title {
+  overflow-wrap: anywhere;
+}
+
+/* Extra protection for very small screens. */
+@media (max-width: 30rem) {
+  .dash-topbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .app-body {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .sidebar {
+    flex-direction: column;
+  }
+
+  .greeting-row {
+    align-items: flex-start;
+  }
+
+  .filter-tabs {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.125rem;
+  }
+
+  .filter-tab {
+    white-space: nowrap;
+  }
+
+  .task-card {
+    padding: 0.75rem;
+  }
 }

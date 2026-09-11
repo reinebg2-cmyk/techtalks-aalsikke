@@ -1,6 +1,8 @@
 // Aal Sikke — Registration page logic
-// Front-end only validation for now. Replace `mockRegisterUser` with a real
-// fetch/axios call to Developer 1's /api/auth/register endpoint later.
+// Client-side validation stays the same; submission is wired to the real
+// backend: POST /api/auth/register (see AuthController.java).
+
+const API_BASE = window.location.origin; // same-origin, served from Spring Boot static/
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('register-form');
@@ -9,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const dobInput = document.getElementById('dob');
   const emailField = document.getElementById('field-email');
   const emailInput = document.getElementById('email');
+  const phoneInput = document.getElementById('phone');
   const passwordField = document.getElementById('field-password');
   const passwordInput = document.getElementById('password');
   const confirmField = document.getElementById('field-confirm');
@@ -17,9 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordHint = document.getElementById('password-hint');
   const submitBtn = document.getElementById('submit-btn');
   const togglePassword = document.getElementById('toggle-password');
-
-  // Fake "already registered" list — replace with a live duplicate check call.
-  const takenEmails = ['alex.chen@university.edu'];
+  const emailHint = emailField.querySelector('.error-text');
+  const defaultEmailHint = emailHint ? emailHint.textContent : '';
 
   togglePassword.addEventListener('click', () => {
     const isHidden = passwordInput.type === 'password';
@@ -50,9 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function validateEmail() {
     const value = emailInput.value.trim().toLowerCase();
     const isValidFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    if (emailHint) emailHint.textContent = defaultEmailHint;
     if (!value) return setState(emailField, null);
     if (!isValidFormat) return setState(emailField, 'is-error');
-    setState(emailField, takenEmails.includes(value) ? 'is-error' : 'is-success');
+    setState(emailField, 'is-success');
   }
 
   function scorePassword(value) {
@@ -101,17 +104,20 @@ document.addEventListener('DOMContentLoaded', () => {
   passwordInput.addEventListener('input', validatePassword);
   confirmInput.addEventListener('input', validateConfirm);
 
-  // Mock submit — swap for a real API call in Task 3.3 (Endpoint Wiring).
-  function mockRegisterUser(payload) {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (takenEmails.includes(payload.email.toLowerCase())) {
-          reject({ field: 'email', message: 'This email is already registered. Try logging in.' });
-        } else {
-          resolve({ id: 'usr_mock_123', ...payload });
-        }
-      }, 700);
+  async function registerUser(payload) {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
+
+    let body = null;
+    try { body = await res.json(); } catch (_) { /* empty body */ }
+
+    if (!res.ok) {
+      throw { field: body && body.field, message: (body && body.message) || 'Registration failed. Please try again.' };
+    }
+    return body; // AuthResponse: { id, fullName, email, phoneNumber, profileMode }
   }
 
   form.addEventListener('submit', (e) => {
@@ -128,20 +134,26 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creating account…';
 
-    mockRegisterUser({
+    registerUser({
       fullname: document.getElementById('fullname').value.trim(),
       dob: dobInput.value,
       email: emailInput.value.trim(),
-      phone: document.getElementById('phone').value.trim(),
+      phone: phoneInput.value.trim(),
       role: document.querySelector('input[name="role"]:checked').value,
+      password: passwordInput.value,
     }).then(() => {
       submitBtn.textContent = 'Account created ✓';
-      // window.location.href = 'login.html';
+      window.location.href = 'login.html';
     }).catch((err) => {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Create account →';
       if (err.field === 'email') {
+        if (emailHint) emailHint.textContent = err.message;
         setState(emailField, 'is-error');
+      } else if (err.field === 'phone') {
+        window.alert(err.message);
+      } else {
+        window.alert(err.message);
       }
     });
   });

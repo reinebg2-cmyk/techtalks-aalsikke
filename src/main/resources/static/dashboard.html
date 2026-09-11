@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aal Sikke — Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard-body">
+
+<div class="app-shell">
+
+  <!-- Top bar -->
+  <header class="topbar dash-topbar">
+    <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="notif-btn" aria-label="Notifications">
+        &#128276;
+        <span class="badge-dot" id="notif-badge" hidden></span>
+      </button>
+      <div class="profile-menu">
+        <button class="avatar-btn" id="avatar-btn" aria-label="Open profile menu">AC</button>
+        <div class="profile-dropdown" id="profile-dropdown" hidden>
+          <a href="#">Settings</a>
+          <a href="login.html" id="logout-link">Log out</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-body">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="profile-card">
+        <div class="avatar-lg" id="profile-avatar">AC</div>
+        <div class="profile-info">
+          <p class="profile-name" id="profile-name">Alex Chen</p>
+          <span class="role-tag" id="profile-role">Student</span>
+        </div>
+        <p class="profile-meta" id="profile-meta">3 tasks due today &middot; 1 overdue</p>
+      </div>
+
+      <nav class="side-nav">
+        <a href="dashboard.html" class="nav-link active">
+          <span class="nav-icon">&#9635;</span> Dashboard
+        </a>
+        <a href="#" class="nav-link">
+          <span class="nav-icon">&#128197;</span> Calendar
+        </a>
+        <a href="#" class="nav-link">
+          <span class="nav-icon">&#9745;</span> Tasks
+        </a>
+        <a href="#" class="nav-link">
+          <span class="nav-icon">&#9881;</span> Settings
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main-content">
+
+      <!-- Greeting header -->
+      <section class="greeting-row">
+        <div>
+          <h1 id="greeting-text">Welcome back, Alex</h1>
+          <p class="greeting-sub" id="greeting-date">Tuesday, Oct 24</p>
+        </div>
+        <p class="greeting-summary" id="greeting-summary">3 tasks due today, 1 overdue</p>
+      </section>
+
+      <!-- Task creation panel (KAN-37) -->
+      <section class="card task-create-card">
+        <div class="row-between">
+          <h2>Quick capture</h2>
+          <button type="button" class="link-btn" id="toggle-form-btn">+ New task</button>
+        </div>
+
+        <form id="task-form" class="task-form" hidden>
+          <div class="field">
+            <label for="task-title">Task title</label>
+            <div class="input-wrap">
+              <input type="text" id="task-title" name="title" placeholder="e.g. Submit CS301 Problem Set" required>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="task-due">Due date &amp; time</label>
+              <div class="input-wrap">
+                <input type="datetime-local" id="task-due" name="due" required>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="task-priority">Priority</label>
+              <div class="input-wrap">
+                <select id="task-priority" name="priority">
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM" selected>Medium</option>
+                  <option value="HIGH">High</option>
+                  <option value="URGENT">Urgent</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="task-category">Category</label>
+            <div class="input-wrap">
+              <select id="task-category" name="category">
+                <option value="ASSIGNMENT">Assignment</option>
+                <option value="EXAM">Exam</option>
+                <option value="CLASS">Class</option>
+                <option value="STUDY">Study</option>
+                <option value="SHIFT">Shift</option>
+                <option value="PERSONAL">Personal</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" id="cancel-task-btn">Cancel</button>
+            <button type="submit" class="btn-primary" id="save-task-btn">+ Add task</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Task list panel (KAN-38) -->
+      <section class="card task-list-card">
+        <div class="row-between">
+          <h2 id="task-list-heading">Your tasks</h2>
+          <div class="filter-tabs" role="tablist">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="today">Due Today</button>
+            <button class="filter-tab" data-filter="upcoming">Upcoming</button>
+          </div>
+        </div>
+
+        <ul class="task-list" id="task-list">
+          <!-- Task cards injected here by dashboard.js -->
+        </ul>
+
+        <p class="empty-state" id="empty-state" hidden>
+          No tasks yet — add your first one above.
+        </p>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html" class="active"><span>&#9635;</span>Dashboard</a>
+    <a href="#"><span>&#128197;</span>Calendar</a>
+    <a href="#"><span>&#9745;</span>Tasks</a>
+    <a href="#"><span>&#9881;</span>Settings</a>
+  </nav>
+
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
