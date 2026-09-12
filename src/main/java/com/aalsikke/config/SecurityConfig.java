@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/register.html",
                                 "/login.html",
+                                "/dashboard.html",
                                 "/css/**",
                                 "/js/**",
                                 "/*.js",

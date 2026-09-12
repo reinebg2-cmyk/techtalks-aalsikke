@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.aalsikke.dto.UserProfileResponse;
 
 @Service
 public class AuthService {
@@ -44,6 +45,12 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setProfileMode(request.getProfileMode() != null ? request.getProfileMode() : "STUDENT");
+        if (request.getDateOfBirth() != null && !request.getDateOfBirth().isBlank()) {
+            user.setDateOfBirth(java.time.LocalDate.parse(request.getDateOfBirth()));
+        }
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
 
         userRepository.save(user);
 
@@ -64,5 +71,17 @@ public class AuthService {
 
         String jwtToken = jwtService.generateToken(user.getEmail());
         return new AuthResponse(jwtToken, "User authenticated successfully");
+    }
+
+    public UserProfileResponse getCurrentUserProfile(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return new UserProfileResponse(
+                user.getFullName(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getProfileMode()
+        );
     }
 }

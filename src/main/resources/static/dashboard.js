@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       allTasks = await res.json();
       renderTasks();
+      updateSummary();
     } catch (err) {
       console.error('Failed to load tasks:', err);
       taskList.innerHTML = `<li class="empty-state">Couldn't load tasks. Is the backend running on ${API_BASE}?</li>`;
@@ -201,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const created = await res.json();
       allTasks.push(created);
       renderTasks();
+      updateSummary();
       taskForm.reset();
       taskForm.hidden = true;
     } catch (err) {
@@ -227,11 +229,89 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok && res.status !== 204) throw new Error(`Server responded ${res.status}`);
       allTasks = allTasks.filter((t) => t.id !== id);
       renderTasks();
+      updateSummary();
     } catch (err) {
       console.error('Failed to delete task:', err);
       alert('Could not delete the task — check the console.');
     }
   }
 
+
+  function updateCategoryOptions(profileMode) {
+    const categorySelect = document.getElementById('task-category');
+    if (!categorySelect) return;
+
+    const studentOptions = ['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY'];
+    const workOptions = ['SHIFT'];
+    const sharedOptions = ['PERSONAL'];
+
+    let visibleValues;
+    if (profileMode === 'STUDENT') {
+      visibleValues = [...studentOptions, ...sharedOptions];
+    } else if (profileMode === 'WORK') {
+      visibleValues = [...workOptions, ...sharedOptions];
+    } else {
+      // HYBRID or unknown — show everything
+      visibleValues = [...studentOptions, ...workOptions, ...sharedOptions];
+    }
+
+    Array.from(categorySelect.options).forEach(option => {
+      option.hidden = !visibleValues.includes(option.value);
+    });
+
+    // If the currently selected option got hidden, pick the first visible one
+    if (categorySelect.selectedOptions[0]?.hidden) {
+      const firstVisible = Array.from(categorySelect.options).find(o => !o.hidden);
+      if (firstVisible) categorySelect.value = firstVisible.value;
+    }
+  }
+
+  async function loadProfile() {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/me`, {
+        headers: authHeaders,
+      });
+      if (res.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = 'login.html';
+        return;
+      }
+      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      const profile = await res.json();
+
+      const initials = profile.fullName
+          ? profile.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+          : '??';
+
+      document.getElementById('profile-avatar').textContent = initials;
+      document.getElementById('profile-name').textContent = profile.fullName || profile.username;
+      document.getElementById('profile-role').textContent =
+          profile.profileMode ? profile.profileMode.charAt(0) + profile.profileMode.slice(1).toLowerCase() : '';
+
+      updateCategoryOptions(profile.profileMode);
+
+      document.getElementById('greeting-text').textContent = `Welcome back, ${(profile.fullName || profile.username || '').split(' ')[0]}`;
+
+      const avatarBtn = document.getElementById('avatar-btn');
+      if (avatarBtn) avatarBtn.textContent = initials;
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+    }
+  }
+  function updateSummary() {
+    const now = new Date();
+    document.getElementById('greeting-date').textContent = now.toLocaleDateString(undefined, {
+      weekday: 'long', month: 'short', day: 'numeric',
+    });
+
+    const dueToday = allTasks.filter(t => isToday(t.startTime)).length;
+    const overdue = allTasks.filter(t => new Date(t.startTime) < now).length;
+
+    const summaryText = `${dueToday} task${dueToday === 1 ? '' : 's'} due today, ${overdue} overdue`;
+    document.getElementById('greeting-summary').textContent = summaryText;
+    document.getElementById('profile-meta').textContent = summaryText;
+  }
+
+  loadProfile();
   loadTasks();
 });

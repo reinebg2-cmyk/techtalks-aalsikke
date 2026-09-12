@@ -2,10 +2,7 @@
 // Client-side validation stays the same; submission is wired to the real
 // backend: POST /api/auth/register (see AuthController.java).
 //
-// KNOWN GAP: dob and phone are captured and validated here but are NOT sent —
-// RegisterRequest has no fields for them yet, even though User.java has
-// dateOfBirth/phoneNumber columns. Flagged for a follow-up task rather than
-// silently dropped without a trace.
+
 
 const API_BASE = window.location.origin;
 
@@ -41,7 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function validateFullname() {
     setState(fullnameField, document.getElementById('fullname').value.trim().length > 1 ? 'is-success' : null);
   }
-
+  function validateUsername() {
+    const usernameField = document.getElementById('field-username');
+    setState(usernameField, document.getElementById('username').value.trim().length > 2 ? 'is-success' : null);
+  }
   function calculateAge(dobValue) {
     const dob = new Date(dobValue);
     const diff = Date.now() - dob.getTime();
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.getElementById('fullname').addEventListener('input', validateFullname);
-  dobInput.addEventListener('input', validateDob);
+  document.getElementById('username').addEventListener('input', validateUsername);
   emailInput.addEventListener('input', validateEmail);
   passwordInput.addEventListener('input', validatePassword);
   confirmInput.addEventListener('input', validateConfirm);
@@ -128,6 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     validateFullname();
+    validateUsername()
     validateDob();
     validateEmail();
     validatePassword();
@@ -142,11 +143,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedRole = document.querySelector('input[name="role"]:checked').value; // 'student' | 'work' | 'hybrid'
 
     registerUser({
-      fullName: document.getElementById('fullname').value.trim(), // fixed casing
+      username: document.getElementById('username').value.trim(),
+      fullName: document.getElementById('fullname').value.trim(),
       email: emailInput.value.trim(),
       password: passwordInput.value,
-      profileMode: selectedRole.toUpperCase(), // 'student' -> 'STUDENT', matches DB CHECK constraint
-      // dob and phone intentionally omitted — see file header comment.
+      profileMode: selectedRole.toUpperCase(),
+      dateOfBirth: dobInput.value || null,
+      phoneNumber: phoneInput.value.trim() || null,
+
     }).then(() => {
       submitBtn.textContent = 'Account created ✓';
       window.location.href = 'login.html';
