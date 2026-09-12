@@ -1,37 +1,29 @@
 // Aal Sikke — Dashboard logic (KAN-36 / KAN-37 / KAN-38)
 //
 // This talks to the REAL backend endpoint ScheduleItemController exposes:
-//   GET    /api/schedule-items/user/{userId}
+//   GET    /api/schedule-items/me
 //   POST   /api/schedule-items
 //   PUT    /api/schedule-items/{id}
 //   DELETE /api/schedule-items/{id}
 //
-// IMPORTANT GAPS TO KNOW ABOUT:
-// 1. Auth is now wired up (AuthController: /api/auth/register, /api/auth/login).
-//    login.js stores the real logged-in user's id under localStorage key
-//    "aalsikke_user_id" on successful login, which is what this page reads
-//    below. If that key is missing, the user hasn't logged in — send them
-//    to the login page instead of prompting for a raw UUID.
-// 2. ScheduleItem has NO "completed"/"status" column in the DB (see
-//    V3__create_schedule_items_and_recurrence.sql). So the checkbox below only
-//    toggles a CSS class locally — it does NOT persist "done" state to the
-//    backend. To make that real, add a `status` or `completed` column via a
-//    new Flyway migration + expose it in the model/controller.
-// 3. item_type and priority are constrained by DB CHECK constraints
-//    (ASSIGNMENT/EXAM/CLASS/STUDY/SHIFT/PERSONAL and LOW/MEDIUM/HIGH/URGENT).
-//    The category select below has been matched to these exactly — do not
-//    add new option values without also updating the DB migration.
+// All requests now authenticate via a Bearer JWT stored by login.js, since
+// the backend derives "whose data is this" from the token — never from a
+// client-supplied user id.
 
-const API_BASE = window.location.origin; // same-origin since served from Spring Boot static/
+const API_BASE = window.location.origin;
+const TOKEN_KEY = 'aalsikke_token';
 
 document.addEventListener('DOMContentLoaded', () => {
-  const DEMO_USER_ID_KEY = 'aalsikke_user_id';
-  let userId = localStorage.getItem(DEMO_USER_ID_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
 
-  if (!userId) {
+  if (!token) {
     window.location.href = 'login.html';
     return;
   }
+
+  const authHeaders = {
+    'Authorization': `Bearer ${token}`,
+  };
 
   const taskList = document.getElementById('task-list');
   const emptyState = document.getElementById('empty-state');
@@ -75,9 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- Fetch tasks from the real backend ----
   async function loadTasks() {
-    if (!userId) return;
     try {
-      const res = await fetch(`${API_BASE}/api/schedule-items/user/${userId}`);
+      const res = await fetch(`${API_BASE}/api/schedule-items/me`, {
+        headers: authHeaders,
+      });
+      if (res.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = 'login.html';
+        return;
+      }
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       allTasks = await res.json();
       renderTasks();
@@ -118,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeFilter === 'today') visible = allTasks.filter((t) => isToday(t.startTime));
     if (activeFilter === 'upcoming') visible = allTasks.filter((t) => isUpcoming(t.startTime));
 
-    // Overdue/high-priority tasks surface first, matching the "calm but noticeable" spec.
     visible = [...visible].sort((a, b) => {
       const overdueA = new Date(a.startTime) < new Date() ? 0 : 1;
       const overdueB = new Date(b.startTime) < new Date() ? 0 : 1;
@@ -146,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="task-menu-btn" aria-label="Task options">&#8942;</button>
       `;
 
-      // Local-only "complete" toggle — see gap #2 in the header comment above.
       li.querySelector('.task-checkbox').addEventListener('change', (e) => {
         li.classList.toggle('is-complete', e.target.checked);
       });
@@ -166,25 +162,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Create task (real POST to backend) ----
   taskForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!userId) {
-      alert('No user id set — reload the page and paste a valid user UUID.');
-      return;
-    }
 
     const title = document.getElementById('task-title').value.trim();
-    const due = document.getElementById('task-due').value; // "YYYY-MM-DDTHH:mm"
+    const due = document.getElementById('task-due').value;
     const priority = document.getElementById('task-priority').value;
     const itemType = document.getElementById('task-category').value;
 
     if (!title || !due) return;
 
-    // The backend requires both startTime and endTime. The form only asks
-    // for a single due date/time, so we default the duration to 30 minutes.
     const startTime = new Date(due).toISOString();
     const endTime = new Date(new Date(due).getTime() + 30 * 60 * 1000).toISOString();
 
+    // No "user" field needed — the backend assigns ownership from the JWT.
     const payload = {
-      user: { id: userId },
       title,
       itemType,
       priority,
@@ -199,9 +189,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(`${API_BASE}/api/schedule-items`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify(payload),
       });
+      if (res.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = 'login.html';
+        return;
+      }
       if (!res.ok) throw new Error(`Server responded ${res.status}`);
       const created = await res.json();
       allTasks.push(created);
@@ -221,7 +216,14 @@ document.addEventListener('DOMContentLoaded', () => {
   async function deleteTask(id) {
     if (!window.confirm('Delete this task?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/schedule-items/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/schedule-items/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders,
+      });
+      if (res.status === 401 || res.status === 403) {
+        alert('You do not have permission to delete this task.');
+        return;
+      }
       if (!res.ok && res.status !== 204) throw new Error(`Server responded ${res.status}`);
       allTasks = allTasks.filter((t) => t.id !== id);
       renderTasks();

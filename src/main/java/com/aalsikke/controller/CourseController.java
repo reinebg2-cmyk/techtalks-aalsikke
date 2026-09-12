@@ -3,10 +3,10 @@ package com.aalsikke.controller;
 import com.aalsikke.model.Course;
 import com.aalsikke.service.CourseService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -17,13 +17,13 @@ public class CourseController {
         this.courseService = courseService;
     }
 
-    @GetMapping("/user/{userId}")
-    public List<Course> getCoursesByUser(@PathVariable UUID userId) {
-        return courseService.getCoursesByUser(userId);
+    @GetMapping("/me")
+    public List<Course> getMyCourses(Authentication authentication) {
+        return courseService.getCoursesForCurrentUser(authentication.getName());
     }
 
     @PostMapping
-    public ResponseEntity<Course> createCourse(@RequestBody Course course) {
-        return ResponseEntity.ok(courseService.createCourse(course));
+    public ResponseEntity<Course> createCourse(@RequestBody Course course, Authentication authentication) {
+        return ResponseEntity.ok(courseService.createCourse(course, authentication.getName()));
     }
 }

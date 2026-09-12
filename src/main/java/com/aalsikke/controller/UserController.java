@@ -1,30 +1,37 @@
 package com.aalsikke.controller;
 
+import com.aalsikke.dto.UserProfileResponse;
 import com.aalsikke.model.User;
-import com.aalsikke.service.UserService;
+import com.aalsikke.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final UserService userService;
+    private final UserRepository userRepository;
 
-    public UserController(UserService userService) {
-        this.userService = userService;
+    public UserController(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
-    }
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getCurrentUserProfile(Authentication authentication) {
 
-    @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        User savedUser = userService.createUser(user);
-        return ResponseEntity.ok(savedUser);
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserProfileResponse response = new UserProfileResponse(
+                user.getFullName(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getProfileMode()
+        );
+
+        return ResponseEntity.ok(response);
     }
 }

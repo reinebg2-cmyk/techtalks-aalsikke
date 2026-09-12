@@ -1,8 +1,13 @@
 // Aal Sikke — Registration page logic
 // Client-side validation stays the same; submission is wired to the real
 // backend: POST /api/auth/register (see AuthController.java).
+//
+// KNOWN GAP: dob and phone are captured and validated here but are NOT sent —
+// RegisterRequest has no fields for them yet, even though User.java has
+// dateOfBirth/phoneNumber columns. Flagged for a follow-up task rather than
+// silently dropped without a trace.
 
-const API_BASE = window.location.origin; // same-origin, served from Spring Boot static/
+const API_BASE = window.location.origin;
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('register-form');
@@ -115,9 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
     try { body = await res.json(); } catch (_) { /* empty body */ }
 
     if (!res.ok) {
-      throw { field: body && body.field, message: (body && body.message) || 'Registration failed. Please try again.' };
+      throw { message: (body && body.message) || (body && body.error) || 'Registration failed. Please try again.' };
     }
-    return body; // AuthResponse: { id, fullName, email, phoneNumber, profileMode }
+    return body; // real AuthResponse: { token, message }
   }
 
   form.addEventListener('submit', (e) => {
@@ -134,24 +139,23 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creating account…';
 
+    const selectedRole = document.querySelector('input[name="role"]:checked').value; // 'student' | 'work' | 'hybrid'
+
     registerUser({
-      fullname: document.getElementById('fullname').value.trim(),
-      dob: dobInput.value,
+      fullName: document.getElementById('fullname').value.trim(), // fixed casing
       email: emailInput.value.trim(),
-      phone: phoneInput.value.trim(),
-      role: document.querySelector('input[name="role"]:checked').value,
       password: passwordInput.value,
+      profileMode: selectedRole.toUpperCase(), // 'student' -> 'STUDENT', matches DB CHECK constraint
+      // dob and phone intentionally omitted — see file header comment.
     }).then(() => {
       submitBtn.textContent = 'Account created ✓';
       window.location.href = 'login.html';
     }).catch((err) => {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Create account →';
-      if (err.field === 'email') {
+      if (err.message && err.message.toLowerCase().includes('email')) {
         if (emailHint) emailHint.textContent = err.message;
         setState(emailField, 'is-error');
-      } else if (err.field === 'phone') {
-        window.alert(err.message);
       } else {
         window.alert(err.message);
       }

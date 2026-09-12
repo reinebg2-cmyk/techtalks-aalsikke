@@ -3,6 +3,7 @@ package com.aalsikke.controller;
 import com.aalsikke.model.Reminder;
 import com.aalsikke.service.ReminderService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,7 +16,7 @@ public class ReminderController {
     }
 
     @PostMapping
-    public ResponseEntity<Reminder> createReminder(@RequestBody Reminder reminder) {
-        return ResponseEntity.ok(reminderService.createReminder(reminder));
+    public ResponseEntity<Reminder> createReminder(@RequestBody Reminder reminder, Authentication authentication) {
+        return ResponseEntity.ok(reminderService.createReminder(reminder, authentication.getName()));
     }
 }

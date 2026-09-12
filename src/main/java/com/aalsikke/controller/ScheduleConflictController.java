@@ -3,10 +3,10 @@ package com.aalsikke.controller;
 import com.aalsikke.model.ScheduleConflict;
 import com.aalsikke.service.ScheduleConflictService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/schedule-conflicts")
@@ -17,13 +17,13 @@ public class ScheduleConflictController {
         this.scheduleConflictService = scheduleConflictService;
     }
 
-    @GetMapping("/user/{userId}")
-    public List<ScheduleConflict> getConflictsByUser(@PathVariable UUID userId) {
-        return scheduleConflictService.getConflictsByUser(userId);
+    @GetMapping("/me")
+    public List<ScheduleConflict> getMyConflicts(Authentication authentication) {
+        return scheduleConflictService.getConflictsForCurrentUser(authentication.getName());
     }
 
     @PostMapping
-    public ResponseEntity<ScheduleConflict> createConflict(@RequestBody ScheduleConflict conflict) {
-        return ResponseEntity.ok(scheduleConflictService.createConflict(conflict));
+    public ResponseEntity<ScheduleConflict> createConflict(@RequestBody ScheduleConflict conflict, Authentication authentication) {
+        return ResponseEntity.ok(scheduleConflictService.createConflict(conflict, authentication.getName()));
     }
 }

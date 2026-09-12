@@ -3,10 +3,10 @@ package com.aalsikke.controller;
 import com.aalsikke.model.Workplace;
 import com.aalsikke.service.WorkplaceService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/workplaces")
@@ -17,13 +17,13 @@ public class WorkplaceController {
         this.workplaceService = workplaceService;
     }
 
-    @GetMapping("/user/{userId}")
-    public List<Workplace> getWorkplacesByUser(@PathVariable UUID userId) {
-        return workplaceService.getWorkplacesByUser(userId);
+    @GetMapping("/me")
+    public List<Workplace> getMyWorkplaces(Authentication authentication) {
+        return workplaceService.getWorkplacesForCurrentUser(authentication.getName());
     }
 
     @PostMapping
-    public ResponseEntity<Workplace> createWorkplace(@RequestBody Workplace workplace) {
-        return ResponseEntity.ok(workplaceService.createWorkplace(workplace));
+    public ResponseEntity<Workplace> createWorkplace(@RequestBody Workplace workplace, Authentication authentication) {
+        return ResponseEntity.ok(workplaceService.createWorkplace(workplace, authentication.getName()));
     }
 }

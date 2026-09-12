@@ -1,8 +1,8 @@
 // Aal Sikke — Login page logic
 // Wired to the real backend: POST /api/auth/login (see AuthController.java).
 
-const API_BASE = window.location.origin; // same-origin, served from Spring Boot static/
-const USER_ID_KEY = 'aalsikke_user_id'; // same key dashboard.js reads on load
+const API_BASE = window.location.origin;
+const TOKEN_KEY = 'aalsikke_token'; // dashboard.js will read this to authenticate requests
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('login-form');
@@ -23,20 +23,20 @@ document.addEventListener('DOMContentLoaded', () => {
     identifierField.classList.toggle('is-success', identifierInput.value.trim().length > 3);
   });
 
-  async function loginUser(identifier, password) {
+  async function loginUser(email, password) {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, password }),
+      body: JSON.stringify({ email, password }), // matches real LoginRequest DTO
     });
 
     let body = null;
     try { body = await res.json(); } catch (_) { /* empty body */ }
 
     if (!res.ok) {
-      throw { message: (body && body.message) || 'Login failed. Please try again.' };
+      throw { message: (body && body.message) || (body && body.error) || 'Login failed. Please try again.' };
     }
-    return body; // AuthResponse: { id, fullName, email, phoneNumber, profileMode }
+    return body; // real AuthResponse: { token, message }
   }
 
   form.addEventListener('submit', (e) => {
@@ -44,11 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
     passwordField.classList.remove('is-error');
     loginError.textContent = '';
 
-    const identifier = identifierInput.value.trim();
+    const email = identifierInput.value.trim();
     const password = passwordInput.value;
 
-    if (!identifier || !password) {
-      loginError.textContent = 'Please enter your email/phone and password.';
+    if (!email || !password) {
+      loginError.textContent = 'Please enter your email and password.';
       passwordField.classList.add('is-error');
       return;
     }
@@ -56,10 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.disabled = true;
     loginBtn.textContent = 'Logging in…';
 
-    loginUser(identifier, password)
-        .then((user) => {
+    loginUser(email, password)
+        .then((auth) => {
           loginBtn.textContent = 'Welcome back ✓';
-          localStorage.setItem(USER_ID_KEY, user.id);
+          localStorage.setItem(TOKEN_KEY, auth.token); // store the REAL JWT
           window.location.href = 'dashboard.html';
         })
         .catch((err) => {
