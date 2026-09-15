@@ -1,0 +1,15 @@
+# Server Configuration
+server.port=8080
+
+# Database Configuration (PostgreSQL/MySQL)
+spring.datasource.url=jdbc:postgresql://localhost:5432/aalsikke_db
+spring.datasource.username=YOUR_LOCAL_DB_USER
+spring.datasource.password=YOUR_LOCAL_DB_PASSWORD
+
+# JPA / Hibernate Settings
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# Security & JWT Configuration
+app.jwt.secret=YOUR_64_CHARACTER_BASE64_SECRET_KEY_HERE
+app.jwt.expiration-ms=86400000
