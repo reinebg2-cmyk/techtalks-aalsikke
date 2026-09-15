@@ -38,6 +38,9 @@ public class ScheduleItem {
     @Column(length = 20)
     private String priority = "MEDIUM";
 
+    @Column(length = 20)
+    private String status = "PENDING";
+
     @Column(name = "start_time", nullable = false)
     private OffsetDateTime startTime;
 
@@ -76,6 +79,9 @@ public class ScheduleItem {
 
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public OffsetDateTime getStartTime() { return startTime; }
     public void setStartTime(OffsetDateTime startTime) { this.startTime = startTime; }
