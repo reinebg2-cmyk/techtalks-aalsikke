@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.aalsikke.dto.UpdateProfileRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,5 +34,11 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getCurrentUser(Authentication authentication) {
         return ResponseEntity.ok(authService.getCurrentUserProfile(authentication.getName()));
+    }
+    @PutMapping("/profile")
+    public ResponseEntity<UserProfileResponse> updateProfile(
+            @Valid @RequestBody UpdateProfileRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(authService.updateProfile(authentication.getName(), request));
     }
 }

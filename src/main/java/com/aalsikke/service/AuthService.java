@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.aalsikke.dto.UserProfileResponse;
 import com.aalsikke.exception.EmailAlreadyExistsException;
+import com.aalsikke.dto.UpdateProfileRequest;
 
 @Service
 public class AuthService {
@@ -77,6 +78,32 @@ public class AuthService {
     public UserProfileResponse getCurrentUserProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return new UserProfileResponse(
+                user.getFullName(),
+                user.getEmail(),
+                user.getUsername(),
+                user.getProfileMode()
+        );
+    }
+    public UserProfileResponse updateProfile(String currentEmail, UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Email uniqueness check — only flag it if the new email belongs to someone else (KAN-131, KAN-132)
+        if (!request.getEmail().equalsIgnoreCase(user.getEmail())
+                && userRepository.existsByEmail(request.getEmail())) {
+            throw new EmailAlreadyExistsException("This email is already registered to another account.");
+        }
+
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+        user.setProfileMode(request.getProfileMode());
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        userRepository.save(user);
 
         return new UserProfileResponse(
                 user.getFullName(),
