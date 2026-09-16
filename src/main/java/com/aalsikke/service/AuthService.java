@@ -11,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.aalsikke.dto.UserProfileResponse;
+import com.aalsikke.exception.EmailAlreadyExistsException;
 
 @Service
 public class AuthService {
@@ -32,11 +33,11 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already in use");
+            throw new EmailAlreadyExistsException("This email is already registered.");
         }
 
         if (request.getUsername() != null && userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username is already taken");
+            throw new RuntimeException("This username is already taken.");
         }
 
         User user = new User();
