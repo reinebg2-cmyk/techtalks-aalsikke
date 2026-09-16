@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import com.aalsikke.model.Priority;
 
 @Getter
 @Setter
@@ -20,7 +21,7 @@ public class ScheduleItemRequest {
     @NotBlank(message = "Item type is required.")
     private String itemType;
 
-    private String priority;
+    private Priority priority;
 
     @NotNull(message = "Start time is required.")
     private OffsetDateTime startTime;

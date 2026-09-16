@@ -35,8 +35,9 @@ public class ScheduleItem {
     @Column(name = "item_type", nullable = false, length = 30)
     private String itemType;
 
+    @Enumerated(EnumType.STRING)
     @Column(length = 20)
-    private String priority = "MEDIUM";
+    private Priority priority = Priority.MEDIUM;
 
     @Column(length = 20)
     private String status = "PENDING";
@@ -77,8 +78,8 @@ public class ScheduleItem {
     public String getItemType() { return itemType; }
     public void setItemType(String itemType) { this.itemType = itemType; }
 
-    public String getPriority() { return priority; }
-    public void setPriority(String priority) { this.priority = priority; }
+    public Priority getPriority() { return priority; }
+    public void setPriority(Priority priority) { this.priority = priority; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

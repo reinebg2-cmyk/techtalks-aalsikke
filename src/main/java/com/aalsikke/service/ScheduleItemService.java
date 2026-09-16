@@ -10,6 +10,7 @@ import com.aalsikke.repository.ScheduleItemRepository;
 import com.aalsikke.repository.UserRepository;
 import com.aalsikke.repository.WorkplaceRepository;
 import org.springframework.stereotype.Service;
+import com.aalsikke.model.Priority;
 
 import java.util.List;
 import java.util.Optional;
@@ -71,7 +72,7 @@ public class ScheduleItemService {
         item.setTitle(request.getTitle());
         item.setDescription(request.getDescription());
         item.setItemType(request.getItemType());
-        item.setPriority(request.getPriority() != null ? request.getPriority() : "MEDIUM");
+        item.setPriority(request.getPriority() != null ? request.getPriority() : Priority.MEDIUM);
         item.setStartTime(request.getStartTime());
         item.setEndTime(request.getEndTime());
         item.setRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
