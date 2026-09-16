@@ -75,6 +75,7 @@ public class ScheduleItemService {
         item.setPriority(request.getPriority() != null ? request.getPriority() : Priority.MEDIUM);
         item.setStartTime(request.getStartTime());
         item.setEndTime(request.getEndTime());
+        item.setDeadline(request.getDeadline());
         item.setRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
 
         if (request.getCourseId() != null) {

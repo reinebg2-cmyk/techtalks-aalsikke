@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import com.aalsikke.model.Priority;
+import jakarta.validation.constraints.Future;
 
 @Getter
 @Setter
@@ -28,6 +29,9 @@ public class ScheduleItemRequest {
 
     @NotNull(message = "End time is required.")
     private OffsetDateTime endTime;
+
+    @Future(message = "Deadline must be in the future.")
+    private OffsetDateTime deadline;
 
     private Boolean isRecurring;
 

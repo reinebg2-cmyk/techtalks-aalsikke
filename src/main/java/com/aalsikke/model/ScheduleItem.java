@@ -48,6 +48,9 @@ public class ScheduleItem {
     @Column(name = "end_time", nullable = false)
     private OffsetDateTime endTime;
 
+    @Column(name = "deadline")
+    private OffsetDateTime deadline;
+
     @Column(name = "is_recurring")
     private boolean isRecurring = false;
 
@@ -89,6 +92,9 @@ public class ScheduleItem {
 
     public OffsetDateTime getEndTime() { return endTime; }
     public void setEndTime(OffsetDateTime endTime) { this.endTime = endTime; }
+
+    public OffsetDateTime getDeadline() { return deadline; }
+    public void setDeadline(OffsetDateTime deadline) { this.deadline = deadline; }
 
     public boolean isRecurring() { return isRecurring; }
     public void setRecurring(boolean recurring) { isRecurring = recurring; }
