@@ -68,7 +68,7 @@
           <span class="greeting-sub" id="current-date">Today</span>
         </div>
         <p class="greeting-summary" id="greeting-summary">Loading...</p>
-        <button type="button" class="btn-secondary profile-open-btn" id="sidebar-profile-btn">View profile</button>
+        <button type="button" class="btn-secondary profile-open-btn" id="sidebar-profile-btn">Edit profile</button>
       </section>
 
       <!-- Task creation panel (KAN-37) -->
@@ -146,6 +146,40 @@
           </div>
         </div>
 
+        <!-- Filter + sort controls. Everything here works on the tasks already
+             loaded in the browser, so changing a dropdown never calls the API. -->
+        <div class="task-toolbar" role="group" aria-label="Filter and sort tasks">
+          <div class="toolbar-field">
+            <label for="role-filter">Role</label>
+            <select id="role-filter" autocomplete="off">
+              <option value="ALL" selected>All roles</option>
+              <option value="STUDENT">Student</option>
+              <option value="WORK">Work</option>
+            </select>
+          </div>
+
+          <div class="toolbar-field">
+            <label for="status-filter">Status</label>
+            <select id="status-filter" autocomplete="off">
+              <option value="ALL" selected>All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="OVERDUE">Overdue</option>
+            </select>
+          </div>
+
+          <div class="toolbar-field">
+            <label for="sort-select">Sort by</label>
+            <select id="sort-select" autocomplete="off">
+              <option value="DEFAULT" selected>Default (overdue first)</option>
+              <option value="DEADLINE">Deadline (soonest first)</option>
+              <option value="PRIORITY">Priority (highest first)</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="task-count" id="task-count" role="status" aria-live="polite"></p>
+
         <ul class="task-list" id="task-list">
           <!-- Task cards injected here by dashboard.js -->
         </ul>
@@ -167,29 +201,77 @@
   </nav>
 
 </div>
+<!-- Profile edit modal -->
 <div class="modal-backdrop" id="profile-modal" hidden>
   <div class="modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
     <div class="modal-header">
-      <div><h2 id="profile-modal-title">My profile</h2><p id="profile-modal-subtitle">Your Aal Sikke workspace profile.</p></div>
+      <div>
+        <h2 id="profile-modal-title">Edit profile</h2>
+        <p id="profile-modal-subtitle">Update your details and how you use Aal Sikke.</p>
+      </div>
       <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close">&#10005;</button>
     </div>
-    <form id="profile-form">
-      <div class="profile-modal-avatar" id="modal-profile-avatar">AC</div>
+
+    <form id="profile-form" novalidate>
+      <div class="profile-modal-avatar" id="modal-profile-avatar" aria-hidden="true">AC</div>
+
+      <!-- Role selection: Student / Work / Dual (Dual is stored as HYBRID by the API) -->
+      <fieldset class="role-field" id="field-profile-mode">
+        <legend class="field-label">I use Aal Sikke primarily for</legend>
+        <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role">
+          <input type="radio" name="profile-role" id="profile-role-student" value="STUDENT">
+          <label for="profile-role-student">Student</label>
+          <input type="radio" name="profile-role" id="profile-role-work" value="WORK">
+          <label for="profile-role-work">Work</label>
+          <input type="radio" name="profile-role" id="profile-role-dual" value="HYBRID">
+          <label for="profile-role-dual">Dual</label>
+        </div>
+        <p class="role-hint" id="profile-role-hint"></p>
+        <p class="hint error-text" role="alert"></p>
+      </fieldset>
+
       <div class="form-grid">
-        <div class="field"><label for="profile-fullname">Full name</label><div class="input-wrap"><input id="profile-fullname" required></div></div>
-        <div class="field"><label for="profile-username">Username</label><div class="input-wrap"><input id="profile-username" readonly></div></div>
+        <div class="field" id="field-profile-fullname">
+          <label for="profile-fullname">Full name</label>
+          <div class="input-wrap"><input id="profile-fullname" type="text" autocomplete="name" maxlength="255"></div>
+          <p class="hint error-text" role="alert"></p>
+        </div>
+        <div class="field">
+          <label for="profile-username">Username</label>
+          <div class="input-wrap"><input id="profile-username" type="text" readonly aria-readonly="true"></div>
+        </div>
       </div>
-      <div class="field"><label for="profile-email">Email</label><div class="input-wrap"><input id="profile-email" type="email" readonly></div></div>
+
+      <div class="field" id="field-profile-email">
+        <label for="profile-email">Email</label>
+        <div class="input-wrap"><input id="profile-email" type="email" autocomplete="email" maxlength="255"></div>
+        <p class="hint error-text" role="alert"></p>
+      </div>
+
       <div class="form-grid">
-        <div class="field"><label for="profile-dob">Date of birth</label><div class="input-wrap"><input id="profile-dob" type="date" readonly></div></div>
-        <div class="field"><label for="profile-phone">Phone number</label><div class="input-wrap"><input id="profile-phone" type="tel"></div></div>
+        <div class="field">
+          <label for="profile-dob">Date of birth</label>
+          <div class="input-wrap"><input id="profile-dob" type="date" readonly aria-readonly="true"></div>
+        </div>
+        <div class="field" id="field-profile-phone">
+          <label for="profile-phone">Phone number</label>
+          <div class="input-wrap"><input id="profile-phone" type="tel" autocomplete="tel" maxlength="50"></div>
+          <p class="hint error-text" role="alert"></p>
+        </div>
       </div>
-      <div class="field"><label for="profile-mode">Workspace mode</label><div class="input-wrap"><select id="profile-mode"><option value="STUDENT">Student</option><option value="WORK">Work</option><option value="HYBRID">Hybrid</option></select></div></div>
-      <p class="modal-message" id="profile-message"></p>
-      <div class="form-actions"><button type="button" class="btn-secondary" id="cancel-profile-btn">Cancel</button><button type="submit" class="btn-primary" id="save-profile-btn">Save profile</button></div>
+
+      <p class="modal-message" id="profile-message" role="status" aria-live="polite"></p>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="cancel-profile-btn">Cancel</button>
+        <button type="submit" class="btn-primary" id="save-profile-btn">Save profile</button>
+      </div>
     </form>
   </div>
 </div>
+
+<!-- Toast for success feedback -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- Task edit modal -->
 <div class="modal-backdrop" id="task-modal" hidden>

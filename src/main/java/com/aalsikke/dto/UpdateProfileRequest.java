@@ -3,13 +3,14 @@ package com.aalsikke.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 public class UpdateProfileRequest {
-
+    @Size(max = 100, message = "Full name must not exceed 100 characters")
     @NotBlank(message = "Full name is required.")
     private String fullName;
 
@@ -20,6 +21,7 @@ public class UpdateProfileRequest {
     @NotBlank(message = "Profile mode is required.")
     @Pattern(regexp = "STUDENT|WORK|HYBRID", message = "Profile mode must be STUDENT, WORK, or HYBRID.")
     private String profileMode;
+    @Size(max = 50, message = "Phone number must be 50 characters or fewer.")
 
     private String phoneNumber;
 }

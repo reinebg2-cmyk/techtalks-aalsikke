@@ -11,13 +11,10 @@
 // GET    /api/auth/me
 // PUT    /api/auth/profile
 
-const API_BASE =
-    (window.location.protocol === 'http:' ||
-        window.location.protocol === 'https:') &&
-    window.location.port === '8080'
-        ? window.location.origin
-        : 'http://localhost:8080';
-const API_BASE= 'http://localhost:5500';
+// Same origin as the page (like login.js and register.js). The dashboard is
+// served by Spring Boot, so this is also where the API lives.
+const API_BASE = window.location.origin;
+const API_BASE= "http://localhost:8080";
 
 const TOKEN_KEY = 'aalsikke_token';
 
@@ -34,9 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  const authHeaders = {
-    Authorization: `Bearer ${token}`
-  };
+  // Read the token on every request: when the user changes their email the
+  // backend issues a new JWT and it is stored under the same key.
+  function authHeaders() {
+    return { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` };
+  }
 
   function redirectToLogin() {
     localStorage.removeItem(TOKEN_KEY);
@@ -45,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function apiFetch(url, options = {}) {
     const headers = {
-      ...authHeaders,
+      ...authHeaders(),
       ...(options.headers || {})
     };
 
@@ -56,7 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (response.status === 401) {
       redirectToLogin();
-      throw new Error('Your session has expired.');
+      const expired = new Error('Your session has expired.');
+      expired.sessionExpired = true;
+      throw expired;
     }
 
     return response;
@@ -75,6 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveTaskBtn = document.getElementById('save-task-btn');
 
   const filterTabs = document.querySelectorAll('.filter-tab');
+
+  // Role / status filter dropdowns, sort dropdown and result count
+  const roleFilterSelect = document.getElementById('role-filter');
+  const statusFilterSelect = document.getElementById('status-filter');
+  const sortSelect = document.getElementById('sort-select');
+  const taskCount = document.getElementById('task-count');
 
   const avatarBtn = document.getElementById('avatar-btn');
   const profileDropdown = document.getElementById('profile-dropdown');
@@ -100,8 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const profileEmail = document.getElementById('profile-email');
   const profileDob = document.getElementById('profile-dob');
   const profilePhone = document.getElementById('profile-phone');
-  const profileMode =
-      document.getElementById('profile-mode');
+  const profileRoleRadios =
+      document.querySelectorAll('input[name="profile-role"]');
+  const profileRoleHint =
+      document.getElementById('profile-role-hint');
   const profileMessage =
       document.getElementById('profile-message');
 
@@ -141,7 +150,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let allTasks = [];
   let activeFilter = 'all';
+  let activeRoleFilter = 'ALL';      // ALL | STUDENT | WORK
+  let activeStatusFilter = 'ALL';    // ALL | PENDING | COMPLETED | OVERDUE
+  let activeSort = 'DEFAULT';        // DEFAULT | DEADLINE | PRIORITY
   let currentProfile = null;
+
+  // Loading state of the two things the summary cards depend on.
+  // 'loading' -> skeletons, 'ready' -> real numbers, 'error' -> message.
+  let tasksState = 'loading';
+  let profileState = 'loading';
 
   const studentTypes = new Set([
     'ASSIGNMENT',
@@ -184,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (mode === 'HYBRID') {
-      return 'Hybrid';
+      return 'Dual';
     }
 
     return mode.charAt(0) +
@@ -278,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function isOverdue(task) {
-    if (!task || task.status === 'COMPLETED') {
+    if (!task || String(task.status || '').toUpperCase() === 'COMPLETED') {
       return false;
     }
 
@@ -308,6 +325,114 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     return 'PERSONAL';
+  }
+
+  // ============================================================
+  // FILTERING + SORTING (all local — no API calls)
+  // ============================================================
+
+  const ROLE_FILTERS = new Set(['ALL', 'STUDENT', 'WORK']);
+  const STATUS_FILTERS = new Set(['ALL', 'PENDING', 'COMPLETED', 'OVERDUE']);
+  const SORT_MODES = new Set(['DEFAULT', 'DEADLINE', 'PRIORITY']);
+
+  // Higher number = more important. A missing/unknown priority is treated as
+  // MEDIUM, which is the backend's default (ScheduleItem.priority).
+  const PRIORITY_RANK = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
+
+  /*
+   * The backend only stores PENDING and COMPLETED. "Overdue" is derived:
+   * a task that is not completed and whose deadline has passed. Every task
+   * therefore falls into exactly one of the three buckets, so
+   * Pending + Completed + Overdue always adds up to the total.
+   */
+  function taskStatus(task) {
+    if (String(task.status || '').toUpperCase() === 'COMPLETED') {
+      return 'COMPLETED';
+    }
+
+    return isOverdue(task) ? 'OVERDUE' : 'PENDING';
+  }
+
+  function matchesRole(task, role) {
+    return role === 'ALL' || roleForTask(task) === role;
+  }
+
+  function matchesStatus(task, status) {
+    return status === 'ALL' || taskStatus(task) === status;
+  }
+
+  function priorityRank(task) {
+    return PRIORITY_RANK[String(task.priority || '').toUpperCase()]
+        || PRIORITY_RANK.MEDIUM;
+  }
+
+  // Milliseconds since epoch, or Infinity when there is no usable date so that
+  // undated tasks sort last.
+  function deadlineTime(task) {
+    const time = new Date(getTaskDate(task) || '').getTime();
+    return Number.isNaN(time) ? Infinity : time;
+  }
+
+  // Plain comparison (a - b would give NaN for Infinity - Infinity).
+  function compareNumbers(a, b) {
+    if (a === b) {
+      return 0;
+    }
+
+    return a < b ? -1 : 1;
+  }
+
+  function compareByDeadline(a, b) {
+    return compareNumbers(deadlineTime(a), deadlineTime(b));
+  }
+
+  function compareByPriority(a, b) {
+    // Highest priority first; ties fall back to the soonest deadline.
+    return compareNumbers(priorityRank(b), priorityRank(a))
+        || compareByDeadline(a, b);
+  }
+
+  // The dashboard's original ordering: overdue first, then by date.
+  function compareByDefault(a, b) {
+    const aGroup = isOverdue(a) ? 0 : 1;
+    const bGroup = isOverdue(b) ? 0 : 1;
+
+    return compareNumbers(aGroup, bGroup) || compareByDeadline(a, b);
+  }
+
+  function sortComparator(mode) {
+    if (mode === 'DEADLINE') {
+      return compareByDeadline;
+    }
+
+    if (mode === 'PRIORITY') {
+      return compareByPriority;
+    }
+
+    return compareByDefault;
+  }
+
+  /*
+   * Builds the list that is shown: tab filter -> role filter -> status filter
+   * -> sort. Works on a copy, so allTasks (the data loaded from the server)
+   * is never reordered or trimmed. Array.prototype.sort is stable, so tasks
+   * that compare equal keep the order the server returned them in.
+   */
+  function getVisibleTasks() {
+    let tasks = [...allTasks];
+
+    if (activeFilter === 'today') {
+      tasks = tasks.filter(task => isToday(getTaskDate(task)));
+    } else if (activeFilter === 'upcoming') {
+      tasks = tasks.filter(task => isUpcoming(getTaskDate(task)));
+    }
+
+    tasks = tasks.filter(task =>
+        matchesRole(task, activeRoleFilter) &&
+        matchesStatus(task, activeStatusFilter)
+    );
+
+    return tasks.sort(sortComparator(activeSort));
   }
 
   // ============================================================
@@ -410,6 +535,37 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ============================================================
+  // ROLE / STATUS FILTERS + SORT DROPDOWNS
+  // ============================================================
+
+  // Ties a <select> to a piece of state. An unexpected value falls back to the
+  // default option instead of silently hiding every task.
+  function bindDropdown(select, allowedValues, fallback, onChange) {
+    if (!select) {
+      return;
+    }
+
+    select.addEventListener('change', () => {
+      const value = allowedValues.has(select.value) ? select.value : fallback;
+      select.classList.toggle('is-active', value !== fallback);
+      onChange(value);
+      renderTasks();
+    });
+  }
+
+  bindDropdown(roleFilterSelect, ROLE_FILTERS, 'ALL', value => {
+    activeRoleFilter = value;
+  });
+
+  bindDropdown(statusFilterSelect, STATUS_FILTERS, 'ALL', value => {
+    activeStatusFilter = value;
+  });
+
+  bindDropdown(sortSelect, SORT_MODES, 'DEFAULT', value => {
+    activeSort = value;
+  });
+
+  // ============================================================
   // CATEGORY OPTIONS
   // ============================================================
 
@@ -487,117 +643,170 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ============================================================
-  // LOAD PROFILE
+  // PROFILE — CONSTANTS + HELPERS
   // ============================================================
+
+  // "Dual" is the label users see; the API and database store it as HYBRID.
+  const VALID_PROFILE_MODES = ['STUDENT', 'WORK', 'HYBRID'];
+
+  const ROLE_DESCRIPTIONS = {
+    STUDENT: 'Assignments, exams, classes and study sessions.',
+    WORK: 'Shifts and work deadlines.',
+    HYBRID: 'Student and work items together in one dashboard.'
+  };
+
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  // Field name used by the API (ApiError.field) -> wrapper element id.
+  const PROFILE_FIELD_IDS = {
+    fullName: 'field-profile-fullname',
+    email: 'field-profile-email',
+    phoneNumber: 'field-profile-phone',
+    profileMode: 'field-profile-mode'
+  };
+
+  // Order used when deciding which invalid field to focus first.
+  const PROFILE_FIELD_ORDER = ['fullName', 'email', 'phoneNumber', 'profileMode'];
+
+  let lastFocusedBeforeProfileModal = null;
+  let profileCloseTimer = null;
+  let toastTimer = null;
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+
+    if (!toast) {
+      return;
+    }
+
+    toast.textContent = message;
+    toast.classList.add('is-visible');
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('is-visible');
+    }, 4000);
+  }
+
+  async function readJsonSafely(response) {
+    try {
+      return await response.json();
+    } catch (_) {
+      return null; // empty or non-JSON body
+    }
+  }
+
+  // ============================================================
+  // PROFILE — RENDER + LOAD
+  // ============================================================
+
+  function renderProfile(profile) {
+
+    const fullName =
+        profile.fullName ||
+        profile.username ||
+        'User';
+
+    const initials = getInitials(fullName);
+
+    const profileAvatar = document.getElementById('profile-avatar');
+    const profileName = document.getElementById('profile-name');
+    const profileRole = document.getElementById('profile-role');
+    const greetingText = document.getElementById('greeting-text');
+
+    if (profileAvatar) {
+      profileAvatar.textContent = initials;
+    }
+
+    if (profileName) {
+      profileName.textContent = fullName;
+    }
+
+    if (profileRole) {
+      profileRole.textContent = formatProfileMode(profile.profileMode);
+    }
+
+    if (greetingText) {
+      greetingText.textContent = `Welcome back, ${fullName.split(' ')[0]}`;
+    }
+
+    if (avatarBtn) {
+      avatarBtn.textContent = initials;
+    }
+
+    // Quick-capture categories follow the selected role.
+    updateCategoryOptions(profile.profileMode);
+
+    // The profile mode decides which role cards are shown.
+    renderSummaryCards();
+  }
 
   async function loadProfile() {
 
     try {
 
-      const response = await apiFetch(
-          `${API_BASE}/api/auth/me`
-      );
+      const response = await apiFetch(`${API_BASE}/api/auth/me`);
 
       if (!response.ok) {
-        throw new Error(
-            `Server responded ${response.status}`
-        );
+        throw new Error(`Server responded ${response.status}`);
       }
 
-      currentProfile =
-          await response.json();
-
-      const fullName =
-          currentProfile.fullName ||
-          currentProfile.username ||
-          'User';
-
-      const initials =
-          getInitials(fullName);
-
-      // Sidebar
-      const profileAvatar =
-          document.getElementById('profile-avatar');
-
-      const profileName =
-          document.getElementById('profile-name');
-
-      const profileRole =
-          document.getElementById('profile-role');
-
-      const greetingText =
-          document.getElementById('greeting-text');
-
-      if (profileAvatar) {
-        profileAvatar.textContent = initials;
-      }
-
-      if (profileName) {
-        profileName.textContent = fullName;
-      }
-
-      if (profileRole) {
-        profileRole.textContent =
-            formatProfileMode(
-                currentProfile.profileMode
-            );
-      }
-
-      if (greetingText) {
-
-        const firstName =
-            fullName.split(' ')[0];
-
-        greetingText.textContent =
-            `Welcome back, ${firstName}`;
-      }
-
-      // Top avatar
-      if (avatarBtn) {
-        avatarBtn.textContent = initials;
-      }
-
-      // Task categories
-      updateCategoryOptions(
-          currentProfile.profileMode
-      );
+      currentProfile = await response.json();
+      profileState = 'ready';
+      renderProfile(currentProfile);
 
     } catch (error) {
 
-      console.error(
-          'Failed to load profile:',
-          error
-      );
+      if (error.sessionExpired) {
+        return;
+      }
+
+      console.error('Failed to load profile:', error);
+
+      // Without a profile mode the role cards fall back to showing both.
+      profileState = 'error';
+      renderSummaryCards();
     }
   }
 
   // ============================================================
-  // PROFILE MODAL
+  // PROFILE MODAL — FORM STATE
   // ============================================================
 
-  function clearProfileMessage() {
-
-    if (!profileMessage) {
-      return;
-    }
-
-    profileMessage.textContent = '';
-    profileMessage.className =
-        'modal-message';
+  function getSelectedRole() {
+    const checked = Array.from(profileRoleRadios).find(radio => radio.checked);
+    return checked ? checked.value : '';
   }
 
-  function showProfileMessage(message, isError = false) {
+  function setSelectedRole(mode) {
+    profileRoleRadios.forEach(radio => {
+      radio.checked = radio.value === mode;
+    });
+    updateRoleHint();
+  }
 
-    if (!profileMessage) {
-      return;
+  function updateRoleHint() {
+    if (profileRoleHint) {
+      profileRoleHint.textContent = ROLE_DESCRIPTIONS[getSelectedRole()] || '';
     }
+  }
 
-    profileMessage.textContent = message;
+  function readProfileForm() {
+    return {
+      fullName: profileFullname ? profileFullname.value.trim() : '',
+      email: profileEmail ? profileEmail.value.trim() : '',
+      profileMode: getSelectedRole(),
+      phoneNumber: profilePhone ? profilePhone.value.trim() : ''
+    };
+  }
 
-    profileMessage.className =
-        isError
-            ? 'modal-message error-text'
-            : 'modal-message';
+  function hasProfileChanges(values) {
+    return (
+        values.fullName !== (currentProfile.fullName || '') ||
+        values.email !== (currentProfile.email || '') ||
+        values.profileMode !== (currentProfile.profileMode || '') ||
+        values.phoneNumber !== (currentProfile.phoneNumber || '')
+    );
   }
 
   function populateProfileForm() {
@@ -607,32 +816,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (profileFullname) {
-      profileFullname.value =
-          currentProfile.fullName || '';
+      profileFullname.value = currentProfile.fullName || '';
     }
 
     if (profileUsername) {
-      profileUsername.value =
-          currentProfile.username || '';
-
-      // Username is not accepted by
-      // UpdateProfileRequest.
-      profileUsername.readOnly = true;
+      profileUsername.value = currentProfile.username || '';
     }
 
     if (profileEmail) {
-      profileEmail.value =
-          currentProfile.email || '';
-    }
-
-    if (profileMode) {
-      profileMode.value =
-          currentProfile.profileMode || 'STUDENT';
+      profileEmail.value = currentProfile.email || '';
     }
 
     if (profileDob) {
       profileDob.value = currentProfile.dateOfBirth || '';
-      profileDob.readOnly = true;
     }
 
     if (profilePhone) {
@@ -640,22 +836,249 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (modalProfileAvatar) {
-
-      modalProfileAvatar.textContent =
-          getInitials(
-              currentProfile.fullName ||
-              currentProfile.username
-          );
+      modalProfileAvatar.textContent = getInitials(
+          currentProfile.fullName || currentProfile.username
+      );
     }
 
+    setSelectedRole(currentProfile.profileMode || '');
+
     clearProfileMessage();
+    clearFieldErrors();
   }
+
+  // ============================================================
+  // PROFILE MODAL — MESSAGES + FIELD ERRORS
+  // ============================================================
+
+  function clearProfileMessage() {
+
+    if (!profileMessage) {
+      return;
+    }
+
+    profileMessage.textContent = '';
+    profileMessage.className = 'modal-message';
+  }
+
+  // type: 'success' | 'error' | 'info'
+  function showProfileMessage(message, type = 'info') {
+
+    if (!profileMessage) {
+      return;
+    }
+
+    profileMessage.textContent = message;
+    profileMessage.className = `modal-message is-${type}`;
+  }
+
+  function getFieldInput(name) {
+    const wrapper = document.getElementById(PROFILE_FIELD_IDS[name]);
+    return wrapper ? wrapper.querySelector('input') : null;
+  }
+
+  function setFieldError(name, message) {
+
+    const wrapper = document.getElementById(PROFILE_FIELD_IDS[name]);
+
+    if (!wrapper) {
+      return;
+    }
+
+    wrapper.classList.add('is-error');
+
+    const hint = wrapper.querySelector('.hint.error-text');
+
+    if (hint) {
+      hint.textContent = message;
+    }
+
+    const input = getFieldInput(name);
+
+    if (input) {
+      input.setAttribute('aria-invalid', 'true');
+    }
+  }
+
+  function clearFieldError(name) {
+
+    const wrapper = document.getElementById(PROFILE_FIELD_IDS[name]);
+
+    if (!wrapper) {
+      return;
+    }
+
+    wrapper.classList.remove('is-error');
+
+    const hint = wrapper.querySelector('.hint.error-text');
+
+    if (hint) {
+      hint.textContent = '';
+    }
+
+    const input = getFieldInput(name);
+
+    if (input) {
+      input.removeAttribute('aria-invalid');
+    }
+  }
+
+  function clearFieldErrors() {
+    Object.keys(PROFILE_FIELD_IDS).forEach(clearFieldError);
+  }
+
+  // Shows every error and moves focus to the first invalid field.
+  function showFieldErrors(errors) {
+
+    Object.entries(errors).forEach(([name, message]) => {
+      setFieldError(name, message);
+    });
+
+    const firstInvalid = PROFILE_FIELD_ORDER.find(name => errors[name]);
+
+    if (!firstInvalid) {
+      return;
+    }
+
+    if (firstInvalid === 'profileMode') {
+      const firstRadio = profileRoleRadios[0];
+      const target = Array.from(profileRoleRadios).find(radio => radio.checked) || firstRadio;
+      if (target) {
+        target.focus();
+      }
+      return;
+    }
+
+    const input = getFieldInput(firstInvalid);
+
+    if (input) {
+      input.focus();
+    }
+  }
+
+  // ============================================================
+  // PROFILE MODAL — VALIDATION (client side)
+  // ============================================================
+
+  function isPlausiblePhone(value) {
+    const digits = value.replace(/\D/g, '');
+
+    return (
+        /^[+\d][\d\s().-]*$/.test(value) &&
+        digits.length >= 7 &&
+        digits.length <= 15
+    );
+  }
+
+  function validateProfileValues(values) {
+
+    const errors = {};
+
+    if (!values.fullName) {
+      errors.fullName = 'Full name is required.';
+    } else if (values.fullName.length > 255) {
+      errors.fullName = 'Full name must be 255 characters or fewer.';
+    }
+
+    if (!values.email) {
+      errors.email = 'Email is required.';
+    } else if (!EMAIL_PATTERN.test(values.email)) {
+      errors.email = 'Please enter a valid email address.';
+    } else if (values.email.length > 255) {
+      errors.email = 'Email must be 255 characters or fewer.';
+    }
+
+    if (!VALID_PROFILE_MODES.includes(values.profileMode)) {
+      errors.profileMode = 'Please choose Student, Work or Dual.';
+    }
+
+    // Phone is optional. Registration accepts free-form numbers, so only
+    // check the format when the user actually changed it — that way an
+    // older, oddly formatted number never blocks saving other changes.
+    const phoneChanged = values.phoneNumber !== (currentProfile.phoneNumber || '');
+
+    if (values.phoneNumber && phoneChanged && !isPlausiblePhone(values.phoneNumber)) {
+      errors.phoneNumber = 'Please enter a valid phone number (7–15 digits).';
+    }
+
+    return errors;
+  }
+
+  // ============================================================
+  // PROFILE MODAL — BACKEND ERRORS
+  // ============================================================
+
+  // The backend answers with either
+  //   409 -> { field, message }            (duplicate email / phone)
+  //   400 -> [ { field, message }, ... ]   (bean validation)
+  //   4xx -> { message } or { error }      (everything else)
+  function parseApiErrors(body) {
+
+    const fieldErrors = {};
+    let general = '';
+
+    const items = Array.isArray(body) ? body : (body ? [body] : []);
+
+    items.forEach(item => {
+
+      if (!item || typeof item !== 'object') {
+        return;
+      }
+
+      const message = item.message || item.error;
+
+      if (!message) {
+        return;
+      }
+
+      if (item.field && PROFILE_FIELD_IDS[item.field]) {
+        if (!fieldErrors[item.field]) {
+          fieldErrors[item.field] = message;
+        }
+      } else if (!general) {
+        general = message;
+      }
+    });
+
+    return { fieldErrors, general };
+  }
+
+  function handleProfileError(status, body) {
+
+    const { fieldErrors, general } = parseApiErrors(body);
+
+    if (Object.keys(fieldErrors).length > 0) {
+      showFieldErrors(fieldErrors);
+    }
+
+    if (general) {
+      showProfileMessage(general, 'error');
+    } else if (Object.keys(fieldErrors).length === 0) {
+      showProfileMessage(
+          `Could not update your profile (error ${status}). Please try again.`,
+          'error'
+      );
+    }
+  }
+
+  // ============================================================
+  // PROFILE MODAL — OPEN / CLOSE
+  // ============================================================
 
   function openProfileModal() {
 
     if (!profileModal) {
       return;
     }
+
+    if (!currentProfile) {
+      showToast('Your profile is still loading. Please try again in a moment.');
+      return;
+    }
+
+    clearTimeout(profileCloseTimer); // cancel a pending auto-close from a previous save
+
+    lastFocusedBeforeProfileModal = document.activeElement;
 
     populateProfileForm();
 
@@ -664,16 +1087,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileDropdown) {
       profileDropdown.hidden = true;
     }
+
+    if (profileFullname) {
+      profileFullname.focus();
+    }
   }
 
   function closeProfileModal() {
 
-    if (!profileModal) {
+    if (!profileModal || profileModal.hidden) {
       return;
     }
 
     profileModal.hidden = true;
+
     clearProfileMessage();
+    clearFieldErrors();
+
+    if (
+        lastFocusedBeforeProfileModal &&
+        typeof lastFocusedBeforeProfileModal.focus === 'function'
+    ) {
+      lastFocusedBeforeProfileModal.focus();
+    }
   }
 
   if (editProfileLink) {
@@ -684,184 +1120,133 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (sidebarProfileBtn) {
-    sidebarProfileBtn.addEventListener(
-        'click',
-        openProfileModal
-    );
+    sidebarProfileBtn.addEventListener('click', openProfileModal);
   }
 
   if (closeProfileBtn) {
-    closeProfileBtn.addEventListener(
-        'click',
-        closeProfileModal
-    );
+    closeProfileBtn.addEventListener('click', closeProfileModal);
   }
 
   if (cancelProfileBtn) {
-    cancelProfileBtn.addEventListener(
-        'click',
-        closeProfileModal
-    );
+    cancelProfileBtn.addEventListener('click', closeProfileModal);
   }
 
+  // Role toggle: update the hint and clear any role error.
+  profileRoleRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      updateRoleHint();
+      clearFieldError('profileMode');
+      clearProfileMessage();
+    });
+  });
+
+  // Clear a field's error as soon as the user edits it.
+  [
+    ['fullName', profileFullname],
+    ['email', profileEmail],
+    ['phoneNumber', profilePhone]
+  ].forEach(([name, input]) => {
+    if (input) {
+      input.addEventListener('input', () => {
+        clearFieldError(name);
+        clearProfileMessage();
+      });
+    }
+  });
+
   // ============================================================
-  // SAVE PROFILE
+  // SAVE PROFILE  (PUT /api/auth/profile)
   // ============================================================
+
+  function setProfileSaving(isSaving) {
+
+    if (!saveProfileBtn) {
+      return;
+    }
+
+    saveProfileBtn.disabled = isSaving;
+    saveProfileBtn.textContent = isSaving ? 'Saving…' : 'Save profile';
+  }
 
   if (profileForm) {
 
-    profileForm.addEventListener(
-        'submit',
-        async (event) => {
+    profileForm.addEventListener('submit', async event => {
 
-          event.preventDefault();
+      event.preventDefault();
 
-          const fullName =
-              profileFullname?.value.trim() || '';
+      if (saveProfileBtn && saveProfileBtn.disabled) {
+        return; // a save is already in flight
+      }
 
-          const email =
-              profileEmail?.value.trim() || '';
+      clearProfileMessage();
+      clearFieldErrors();
 
-          const selectedMode =
-              profileMode?.value || '';
+      const values = readProfileForm();
+      const errors = validateProfileValues(values);
 
-          const phoneNumber =
-              profilePhone?.value.trim() || '';
+      if (Object.keys(errors).length > 0) {
+        showFieldErrors(errors);
+        return;
+      }
 
-          // Frontend validation
-          if (!fullName) {
-            showProfileMessage(
-                'Full name is required.',
-                true
-            );
-            profileFullname?.focus();
-            return;
-          }
+      if (!hasProfileChanges(values)) {
+        showProfileMessage('No changes to save.', 'info');
+        return;
+      }
 
-          if (!email) {
-            showProfileMessage(
-                'Email is required.',
-                true
-            );
-            return;
-          }
+      setProfileSaving(true);
 
-          const emailPattern =
-              /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      try {
 
-          if (!emailPattern.test(email)) {
-            showProfileMessage(
-                'Please enter a valid email address.',
-                true
-            );
-            return;
-          }
+        const response = await apiFetch(`${API_BASE}/api/auth/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values)
+        });
 
-          if (
-              !['STUDENT', 'WORK', 'HYBRID']
-                  .includes(selectedMode)
-          ) {
-            showProfileMessage(
-                'Please select a valid workspace mode.',
-                true
-            );
-            return;
-          }
+        const body = await readJsonSafely(response);
 
-          const payload = {
-            fullName,
-            email,
-            profileMode: selectedMode,
-            phoneNumber
-          };
-
-          saveProfileBtn.disabled = true;
-          saveProfileBtn.textContent =
-              'Saving…';
-
-          clearProfileMessage();
-
-          try {
-
-            const response = await apiFetch(
-                `${API_BASE}/api/auth/profile`,
-                {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type':
-                        'application/json'
-                  },
-                  body: JSON.stringify(payload)
-                }
-            );
-
-            if (!response.ok) {
-
-              let errorMessage =
-                  `Server responded ${response.status}`;
-
-              try {
-
-                const errorData =
-                    await response.json();
-
-                if (errorData.message) {
-                  errorMessage =
-                      errorData.message;
-                } else if (errorData.error) {
-                  errorMessage =
-                      errorData.error;
-                }
-
-              } catch (_) {
-                // Response was not JSON.
-              }
-
-              showProfileMessage(
-                  errorMessage,
-                  true
-              );
-
-              return;
-            }
-
-            const updatedProfile =
-                await response.json();
-
-            currentProfile =
-                updatedProfile;
-
-            // Refresh visible profile information
-            await loadProfile();
-
-            showProfileMessage(
-                'Profile updated successfully.'
-            );
-
-            setTimeout(() => {
-              closeProfileModal();
-            }, 800);
-
-          } catch (error) {
-
-            console.error(
-                'Failed to update profile:',
-                error
-            );
-
-            showProfileMessage(
-                'Could not update your profile. Please check the backend.',
-                true
-            );
-
-          } finally {
-
-            saveProfileBtn.disabled = false;
-            saveProfileBtn.textContent =
-                'Save profile';
-          }
+        if (!response.ok) {
+          handleProfileError(response.status, body);
+          return;
         }
-    );
+
+        // The JWT subject is the user's email, so when the email changes the
+        // backend issues a fresh token. Swap it in before any further request.
+        if (body && body.token) {
+          localStorage.setItem(TOKEN_KEY, body.token);
+        }
+
+        const { token: _ignored, ...updatedProfile } = body || {};
+
+        currentProfile = updatedProfile;
+
+        renderProfile(currentProfile);
+        populateProfileForm();
+
+        showProfileMessage('Profile updated successfully.', 'success');
+        showToast('Profile updated successfully.');
+
+        profileCloseTimer = setTimeout(closeProfileModal, 900);
+
+      } catch (error) {
+
+        if (error.sessionExpired) {
+          return; // apiFetch is already redirecting to the login page
+        }
+
+        console.error('Failed to update profile:', error);
+
+        showProfileMessage(
+            'Could not reach the server. Please check your connection and try again.',
+            'error'
+        );
+
+      } finally {
+
+        setProfileSaving(false);
+      }
+    });
   }
 
   // ============================================================
@@ -869,6 +1254,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================
 
   async function loadTasks() {
+
+    tasksState = 'loading';
+    renderSummaryCards();
 
     try {
 
@@ -885,15 +1273,36 @@ document.addEventListener('DOMContentLoaded', () => {
       allTasks =
           await response.json();
 
+      tasksState = 'ready';
+
       renderTasks();
       updateSummary();
 
     } catch (error) {
 
+      if (error.sessionExpired) {
+        return;
+      }
+
       console.error(
           'Failed to load tasks:',
           error
       );
+
+      tasksState = 'error';
+      renderSummaryCards();
+
+      const failedText = 'Tasks unavailable';
+      const greetingSummary = document.getElementById('greeting-summary');
+      const profileMeta = document.getElementById('profile-meta');
+
+      if (greetingSummary) {
+        greetingSummary.textContent = failedText;
+      }
+
+      if (profileMeta) {
+        profileMeta.textContent = failedText;
+      }
 
       if (taskList) {
 
@@ -917,51 +1326,25 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    let visibleTasks = [...allTasks];
-
-    // Existing dashboard filters
-    if (activeFilter === 'today') {
-
-      visibleTasks =
-          visibleTasks.filter(task =>
-              isToday(getTaskDate(task))
-          );
-
-    } else if (activeFilter === 'upcoming') {
-
-      visibleTasks =
-          visibleTasks.filter(task =>
-              isUpcoming(getTaskDate(task))
-          );
-    }
-
-    // Sort overdue first, then by date
-    visibleTasks.sort((a, b) => {
-
-      const aOverdue =
-          isOverdue(a) ? 0 : 1;
-
-      const bOverdue =
-          isOverdue(b) ? 0 : 1;
-
-      if (aOverdue !== bOverdue) {
-        return aOverdue - bOverdue;
-      }
-
-      const aDate =
-          new Date(getTaskDate(a) || 0);
-
-      const bDate =
-          new Date(getTaskDate(b) || 0);
-
-      return aDate - bDate;
-    });
+    const visibleTasks = getVisibleTasks();
 
     taskList.innerHTML = '';
 
     if (emptyState) {
       emptyState.hidden =
           visibleTasks.length !== 0;
+
+      // Tell "you have no tasks" apart from "your filters hide every task".
+      emptyState.textContent = allTasks.length === 0
+          ? 'No tasks yet — add your first one above.'
+          : 'No tasks match these filters. Change the role, status or view to see more.';
+    }
+
+    if (taskCount) {
+      taskCount.textContent = allTasks.length === 0
+          ? ''
+          : `Showing ${visibleTasks.length} of ${allTasks.length} ` +
+          `task${allTasks.length === 1 ? '' : 's'}`;
     }
 
     visibleTasks.forEach(task => {
@@ -1101,6 +1484,227 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ============================================================
+  // SUMMARY CARDS (overall totals + Student / Work)
+  // ============================================================
+
+  const ROLE_CARDS = {
+    STUDENT: {
+      title: 'Student',
+      blurb: 'Assignments, exams, classes and study',
+      icon: '&#127891;'
+    },
+    WORK: {
+      title: 'Work',
+      blurb: 'Shifts and work tasks',
+      icon: '&#128188;'
+    }
+  };
+
+  /*
+   * Counts a list of tasks into the same three buckets the Status filter
+   * uses, so pending + completed + overdue always equals total.
+   */
+  function summarizeTasks(tasks) {
+    const summary = { total: tasks.length, pending: 0, completed: 0, overdue: 0 };
+
+    tasks.forEach(task => {
+      summary[taskStatus(task).toLowerCase()] += 1;
+    });
+
+    return summary;
+  }
+
+  function completionPercent(summary) {
+    return summary.total === 0
+        ? 0
+        : Math.round((summary.completed / summary.total) * 100);
+  }
+
+  /*
+   * Which role cards to show. The profile mode decides (Student, Work, or both
+   * for Dual), but a role that already has tasks is never hidden - otherwise
+   * switching from Dual to Student would make the user's work tasks vanish
+   * from the summary while they still appear in the list.
+   */
+  function rolesToShow() {
+    const mode = currentProfile && currentProfile.profileMode;
+    const roles = new Set(
+        mode === 'STUDENT' ? ['STUDENT']
+            : mode === 'WORK' ? ['WORK']
+                : ['STUDENT', 'WORK']
+    );
+
+    Object.keys(ROLE_CARDS).forEach(role => {
+      if (allTasks.some(task => roleForTask(task) === role)) {
+        roles.add(role);
+      }
+    });
+
+    return Object.keys(ROLE_CARDS).filter(role => roles.has(role));
+  }
+
+  function metricHtml(key, label, value) {
+    const alert = key === 'overdue' && value > 0 ? ' is-alert' : '';
+
+    return `
+      <div class="metric metric--${key}${alert}" data-metric="${key}">
+        <dt>${label}</dt>
+        <dd>${value}</dd>
+      </div>`;
+  }
+
+  function roleCardHtml(role) {
+    const meta = ROLE_CARDS[role];
+    const summary = summarizeTasks(
+        allTasks.filter(task => roleForTask(task) === role)
+    );
+    const percent = completionPercent(summary);
+    const titleId = `role-card-${role.toLowerCase()}-title`;
+    const progressText = `${summary.completed} of ${summary.total} completed`;
+
+    return `
+      <article class="card role-card role-card--${role.toLowerCase()}"
+               data-role="${role}" aria-labelledby="${titleId}">
+        <header class="role-card-head">
+          <span class="role-card-icon" aria-hidden="true">${meta.icon}</span>
+          <div class="role-card-heading">
+            <h2 id="${titleId}">${meta.title}</h2>
+            <p>${meta.blurb}</p>
+          </div>
+          <p class="role-card-total">
+            <strong data-metric="total">${summary.total}</strong>
+            <span>${summary.total === 1 ? 'task' : 'tasks'}</span>
+          </p>
+        </header>
+
+        <dl class="metric-list">
+          ${metricHtml('pending', 'Pending', summary.pending)}
+          ${metricHtml('overdue', 'Overdue', summary.overdue)}
+          ${metricHtml('completed', 'Completed', summary.completed)}
+        </dl>
+
+        <div class="progress" role="progressbar"
+             aria-label="${meta.title} tasks completed"
+             aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="${percent}" aria-valuetext="${progressText}">
+          <span style="width: ${percent}%"></span>
+        </div>
+        <p class="role-card-foot">${
+        summary.total === 0
+            ? `No ${meta.title.toLowerCase()} tasks yet`
+            : `${progressText} (${percent}%)`
+    }</p>
+      </article>`;
+  }
+
+  function overallSkeletonHtml() {
+    return Array.from({ length: 4 }, () => `
+      <div class="dashboard-stat-card is-skeleton" aria-hidden="true">
+        <span class="skeleton skeleton-line"></span>
+        <strong class="skeleton skeleton-number"></strong>
+      </div>`).join('');
+  }
+
+  function roleSkeletonHtml(count) {
+    return Array.from({ length: count }, () => `
+      <div class="card role-card is-skeleton" aria-hidden="true">
+        <div class="role-card-head">
+          <span class="skeleton skeleton-icon"></span>
+          <div class="role-card-heading">
+            <span class="skeleton skeleton-line skeleton-title"></span>
+            <span class="skeleton skeleton-line"></span>
+          </div>
+        </div>
+        <div class="metric-list">
+          <span class="skeleton skeleton-block"></span>
+          <span class="skeleton skeleton-block"></span>
+          <span class="skeleton skeleton-block"></span>
+        </div>
+        <span class="skeleton skeleton-line skeleton-bar"></span>
+      </div>`).join('');
+  }
+
+  function renderOverallCards() {
+    const cards = document.getElementById('dashboard-cards');
+
+    if (!cards) {
+      return;
+    }
+
+    if (tasksState === 'loading') {
+      cards.innerHTML = overallSkeletonHtml();
+      return;
+    }
+
+    if (tasksState === 'error') {
+      cards.innerHTML = `
+        <div class="summary-error" role="alert">
+          <p>Couldn't load your task summary.</p>
+          <button type="button" class="link-btn" data-action="retry-summary">Try again</button>
+        </div>`;
+      return;
+    }
+
+    const summary = summarizeTasks(allTasks);
+
+    cards.innerHTML = `
+      <div class="dashboard-stat-card"><span>Total tasks</span><strong>${summary.total}</strong></div>
+      <div class="dashboard-stat-card"><span>Pending</span><strong>${summary.pending}</strong></div>
+      <div class="dashboard-stat-card"><span>Completed</span><strong>${summary.completed}</strong></div>
+      <div class="dashboard-stat-card${summary.overdue > 0 ? ' is-alert' : ''}"><span>Overdue</span><strong>${summary.overdue}</strong></div>
+    `;
+  }
+
+  function renderRoleCards() {
+    const roleCards = document.getElementById('role-cards');
+
+    if (!roleCards) {
+      return;
+    }
+
+    if (tasksState === 'error') {
+      roleCards.innerHTML = '';
+      return;
+    }
+
+    // Role cards also need the profile (its mode decides which cards show).
+    if (tasksState === 'loading' || profileState === 'loading') {
+      const known = currentProfile && currentProfile.profileMode;
+      roleCards.innerHTML = roleSkeletonHtml(
+          known === 'STUDENT' || known === 'WORK' ? 1 : 2
+      );
+      return;
+    }
+
+    roleCards.innerHTML = rolesToShow().map(roleCardHtml).join('');
+  }
+
+  function renderSummaryCards() {
+    const summary = document.getElementById('dashboard-summary');
+
+    if (summary) {
+      summary.setAttribute(
+          'aria-busy',
+          String(tasksState === 'loading' ||
+              (tasksState === 'ready' && profileState === 'loading'))
+      );
+    }
+
+    renderOverallCards();
+    renderRoleCards();
+  }
+
+  const dashboardSummary = document.getElementById('dashboard-summary');
+
+  if (dashboardSummary) {
+    dashboardSummary.addEventListener('click', event => {
+      if (event.target.closest('[data-action="retry-summary"]')) {
+        loadTasks();
+      }
+    });
+  }
+
+  // ============================================================
   // UPDATE DASHBOARD SUMMARY
   // ============================================================
 
@@ -1137,23 +1741,7 @@ document.addEventListener('DOMContentLoaded', () => {
       profileMeta.textContent = summaryText;
     }
 
-    const cards = document.getElementById('dashboard-cards');
-    if (cards) {
-      const total = allTasks.length;
-      const completed = allTasks.filter(task =>
-          String(task.status || '').toUpperCase() === 'COMPLETED'
-      ).length;
-      const pending = allTasks.filter(task =>
-          String(task.status || '').toUpperCase() !== 'COMPLETED'
-      ).length;
-
-      cards.innerHTML = `
-        <div class="dashboard-stat-card"><span>Total tasks</span><strong>${total}</strong></div>
-        <div class="dashboard-stat-card"><span>Pending</span><strong>${pending}</strong></div>
-        <div class="dashboard-stat-card"><span>Completed</span><strong>${completed}</strong></div>
-        <div class="dashboard-stat-card"><span>Overdue</span><strong>${overdue}</strong></div>
-      `;
-    }
+    renderSummaryCards();
   }
 
   // ============================================================
@@ -1859,6 +2447,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateCurrentDate();
   loadProfile();
-  loadTasks();
+  loadTasks();   // renders the loading skeletons first, then the numbers
 
 });
