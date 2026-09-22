@@ -452,6 +452,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
+    // KAN-249: WEEKLY REVIEW CARD (week view only)
+    // Data: GET /api/daily-reviews/weekly?start=YYYY-MM-DD&end=YYYY-MM-DD (KAN-248)
+    // ============================================================
+
+    const summaryEl = document.getElementById('cal-week-summary');
+
+    function statTile(className, value, label) {
+        const tile = el('div', `cal-stat ${className}`);
+        tile.append(el('span', 'cal-stat-value', String(value)), el('span', 'cal-stat-label', label));
+        return tile;
+    }
+
+    function renderWeekSummary(data) {
+        summaryEl.replaceChildren();
+
+        const head = el('div', 'cal-summary-head');
+        head.append(el('h2', 'cal-summary-title', 'Weekly review'));
+
+        const due = data.completedTasks + data.missedTasks;
+        const rateText = due === 0
+            ? 'Nothing was due yet this week.'
+            : `${data.completedTasks} of ${due} due tasks done (${Math.round(data.completedTasks / due * 100)}%).`;
+        head.append(el('p', 'cal-summary-rate', rateText));
+
+        const stats = el('div', 'cal-stats');
+        stats.append(
+            statTile('is-completed', data.completedTasks, 'Completed'),
+            statTile('is-missed', data.missedTasks, 'Missed'),
+            statTile('is-upcoming', data.upcomingTasks, 'Upcoming')
+        );
+
+        // Completed vs missed bar (only when something was due)
+        const bar = el('div', 'cal-summary-bar');
+        bar.setAttribute('aria-hidden', 'true');
+        if (due > 0) {
+            const done = el('span', 'cal-bar-completed');
+            done.style.width = `${data.completedTasks / due * 100}%`;
+            const missed = el('span', 'cal-bar-missed');
+            missed.style.width = `${data.missedTasks / due * 100}%`;
+            bar.append(done, missed);
+        } else {
+            bar.hidden = true;
+        }
+
+        const reviewText = data.daysReviewed === 0
+            ? 'No daily reviews this week.'
+            : `Productivity ${data.averageProductivityScore ?? '—'} / 5 across ${data.daysReviewed} reviewed day${data.daysReviewed === 1 ? '' : 's'}.`;
+
+        summaryEl.append(head, stats, bar, el('p', 'cal-summary-reviews', reviewText));
+        summaryEl.hidden = false;
+    }
+
+    async function loadWeekSummary(days, requestId) {
+        if (state.view !== 'week') {
+            summaryEl.hidden = true;
+            return;
+        }
+        try {
+            const start = toDateInput(days[0]);
+            const end = toDateInput(days[days.length - 1]);
+            const data = await apiFetch(`/api/daily-reviews/weekly?start=${start}&end=${end}`);
+            if (requestId !== state.requestId) return; // user already moved to another week
+            renderWeekSummary(data);
+        } catch (error) {
+            // The card is extra information: if it fails, hide it and keep the calendar working
+            if (!error.sessionExpired) console.error(error);
+            summaryEl.hidden = true;
+        }
+    }
+
+
+    // ============================================================
     // LOADING
     // ============================================================
 
@@ -490,6 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (requestId !== state.requestId) return;
 
             render(days, items, buildConflictMap(conflicts));
+            loadWeekSummary(days, requestId);
             if (state.flash) {
                 setStatus(state.flash.message, state.flash.isError);
                 state.flash = null;

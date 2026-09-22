@@ -398,3 +398,74 @@
     color: var(--trust-blue);
     font-weight: 600;
 }
+
+
+
+
+/* ============================================================
+   KAN-249: weekly review card
+   ============================================================ */
+
+.cal-week-summary {
+    display: grid;
+    gap: 0.625rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-mist);
+}
+
+.cal-week-summary[hidden],
+.cal-summary-bar[hidden] { display: none; }
+
+.cal-summary-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 0.75rem;
+}
+
+.cal-summary-title { margin: 0; font-size: 1rem; }
+
+.cal-summary-rate,
+.cal-summary-reviews {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--slate-light);
+}
+
+.cal-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.cal-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--stat-color);
+    border-radius: 0.5rem;
+    background: var(--white);
+}
+
+.cal-stat.is-completed { --stat-color: var(--success); }
+.cal-stat.is-missed    { --stat-color: var(--coral); }
+.cal-stat.is-upcoming  { --stat-color: var(--trust-blue); }
+
+.cal-stat-value { font-size: 1.25rem; font-weight: 700; color: var(--slate); }
+.cal-stat-label { font-size: 0.75rem; color: var(--slate-light); }
+
+.cal-summary-bar {
+    display: flex;
+    height: 0.5rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--card-mist);
+}
+
+.cal-bar-completed { background: var(--success); }
+.cal-bar-missed    { background: var(--coral); }
+
