@@ -47,9 +47,12 @@
                         <button type="button" class="btn-secondary" id="cal-next" aria-label="Next">&#8250;</button>
                     </div>
                     <h1 class="cal-title" id="cal-title">Calendar</h1>
-                    <div class="cal-view-toggle" role="group" aria-label="Calendar view">
-                        <button type="button" class="filter-tab" data-view="day">Day</button>
-                        <button type="button" class="filter-tab active" data-view="week">Week</button>
+                    <div class="cal-actions">
+                        <button type="button" class="btn-primary cal-schedule-btn" id="cal-schedule-btn">+ Schedule task</button>
+                        <div class="cal-view-toggle" role="group" aria-label="Calendar view">
+                            <button type="button" class="filter-tab" data-view="day">Day</button>
+                            <button type="button" class="filter-tab active" data-view="week">Week</button>
+                        </div>
                     </div>
                 </div>
 
@@ -61,12 +64,14 @@
                     <span class="cal-legend-item"><span class="cal-conflict-badge">!</span> Conflict</span>
                 </div>
 
-                <p class="cal-status" id="cal-status" role="status">Loading…</p>
+                <p class="cal-hint">Click an empty slot to schedule a task there, or click a task to reschedule it.</p>
+                <p class="cal-status" id="cal-status" role="status" aria-live="polite">Loading…</p>
                 <div class="cal-grid" id="cal-grid"></div>
 
             </section>
         </main>
     </div>
+
     <!-- Mobile bottom nav -->
     <nav class="bottom-nav">
         <a href="dashboard.html"><span>&#9635;</span>Dashboard</a>
@@ -74,6 +79,50 @@
         <a href="#"><span>&#9745;</span>Tasks</a>
         <a href="#"><span>&#9881;</span>Settings</a>
     </nav>
+</div>
+
+<!-- S3-12: schedule a task into a time slot (same modal styles as the dashboard) -->
+<div class="modal-backdrop" id="schedule-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
+        <div class="modal-header">
+            <div>
+                <h2 id="schedule-modal-title">Schedule a task</h2>
+                <p>Pick a time slot. The task's deadline does not change.</p>
+            </div>
+            <button type="button" class="modal-close" id="schedule-close" aria-label="Close">&#10005;</button>
+        </div>
+
+        <form id="schedule-form" novalidate>
+            <div class="field" id="schedule-task-field">
+                <label for="schedule-task">Task</label>
+                <div class="input-wrap"><select id="schedule-task"></select></div>
+            </div>
+            <p class="schedule-task-name" id="schedule-task-name" hidden></p>
+
+            <div class="field">
+                <label for="schedule-date">Date</label>
+                <div class="input-wrap"><input type="date" id="schedule-date" required></div>
+            </div>
+
+            <div class="form-grid">
+                <div class="field">
+                    <label for="schedule-start">Start</label>
+                    <div class="input-wrap"><input type="time" id="schedule-start" step="300" required></div>
+                </div>
+                <div class="field">
+                    <label for="schedule-end">End</label>
+                    <div class="input-wrap"><input type="time" id="schedule-end" step="300" required></div>
+                </div>
+            </div>
+
+            <p class="modal-message" id="schedule-message" role="status" aria-live="polite"></p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="schedule-cancel">Cancel</button>
+                <button type="submit" class="btn-primary" id="schedule-save">Save</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script src="calendar.js"></script>

@@ -335,3 +335,66 @@
     /* leave room for the fixed bottom navigation */
     .cal-card { margin-bottom: 4rem; }
 }
+
+
+
+/* ============================================================
+   S3-12: time-blocking
+   ============================================================ */
+
+.cal-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* styles.css makes .btn-primary full width */
+.cal-schedule-btn {
+    width: auto;
+    padding: 0.5rem 0.875rem;
+}
+
+.cal-hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--slate-light);
+}
+
+/* Empty slots, blocks and deadline markers are all clickable */
+.cal-day-col,
+.cal-event,
+.cal-deadline-marker {
+    cursor: pointer;
+}
+
+.cal-day-col:hover { background-color: rgba(44, 110, 158, 0.04); }
+
+.cal-deadline-marker:focus-visible {
+    outline: 2px solid var(--navy);
+    outline-offset: 1px;
+}
+
+/* Tasks that still need a time slot stand out a little */
+.cal-deadline-marker.is-unscheduled { font-weight: 600; }
+
+/* Task name shown in the form when it was opened from a block or marker */
+.schedule-task-name {
+    margin: 0 0 1rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.5rem;
+    background: var(--bg-mist);
+    font-weight: 600;
+    color: var(--slate);
+}
+
+@media (max-width: 40rem) {
+    .cal-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+.modal-link {
+    color: var(--trust-blue);
+    font-weight: 600;
+}
