@@ -75,6 +75,7 @@ public class ScheduleItemService {
         ScheduleItem item = new ScheduleItem();
         item.setUser(user); // ALWAYS set from the authenticated caller — never trust a client-supplied user
         applyRequestToItem(item, request);
+        validateTimes(item);
         ScheduleItem saved = scheduleItemRepository.save(item);
         return ScheduleItemResponse.from(saved, findConflictsFor(saved));
     }
@@ -84,6 +85,7 @@ public class ScheduleItemService {
                 .filter(existing -> existing.getUser().getEmail().equals(email))
                 .map(existing -> {
                     applyPartialUpdateToItem(existing, request);
+                    validateTimes(existing);
                     ScheduleItem saved = scheduleItemRepository.save(existing);
                     return ScheduleItemResponse.from(saved, findConflictsFor(saved));
                 });
@@ -134,7 +136,7 @@ public class ScheduleItemService {
         item.setStartTime(request.getStartTime());
         item.setEndTime(request.getEndTime());
         item.setDeadline(request.getDeadline());
-        item.setRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
+        item.setRecurring(Boolean.TRUE.equals(request.getIsRecurring()));
 
         applyCourseAndWorkplace(item, request);
     }
@@ -159,4 +161,27 @@ public class ScheduleItemService {
             item.setWorkplace(workplace);
         }
     }
+
+    /**
+     * V11 rules, checked on the FINAL state of the item (after a partial update is merged),
+     * so the user gets a clear 400 instead of a database constraint error:
+     *  - start and end are set together or not at all,
+     *  - end is after start,
+     *  - the item has a time slot or a deadline.
+     */
+    private static void validateTimes(ScheduleItem item) {
+        boolean hasStart = item.getStartTime() != null;
+        boolean hasEnd = item.getEndTime() != null;
+
+        if (hasStart != hasEnd) {
+            throw new IllegalArgumentException("startTime and endTime must be set together.");
+        }
+        if (hasStart && !item.getEndTime().isAfter(item.getStartTime())) {
+            throw new IllegalArgumentException("endTime must be after startTime.");
+        }
+        if (!hasStart && item.getDeadline() == null) {
+            throw new IllegalArgumentException("An item needs a time slot (startTime and endTime) or a deadline.");
+        }
+    }
+
 }

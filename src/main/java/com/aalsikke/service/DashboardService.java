@@ -33,7 +33,7 @@ public class DashboardService {
         OffsetDateTime startOfDay = today.atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zone).toOffsetDateTime().minusNanos(1);
 
-        return toResponses(scheduleItemRepository.findByUserIdAndEndTimeBetweenOrderByEndTimeAsc(
+        return toResponses(scheduleItemRepository.findDueBetween(
                 user.getId(), startOfDay, endOfDay));
     }
 
@@ -43,14 +43,14 @@ public class DashboardService {
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime sevenDaysOut = now.plusDays(7);
 
-        return toResponses(scheduleItemRepository.findByUserIdAndEndTimeBetweenOrderByEndTimeAsc(
+        return toResponses(scheduleItemRepository.findDueBetween(
                 user.getId(), now, sevenDaysOut));
     }
 
     public List<ScheduleItemResponse> getOverdueTasks(String email) {
         User user = findUser(email);
 
-        return toResponses(scheduleItemRepository.findByUserIdAndStatusAndEndTimeBeforeOrderByEndTimeAsc(
+        return toResponses(scheduleItemRepository.findDueBefore(
                 user.getId(), "PENDING", OffsetDateTime.now()));
     }
 
@@ -60,7 +60,7 @@ public class DashboardService {
 
         long total = scheduleItemRepository.countByUserId(userId);
         long completed = scheduleItemRepository.countByUserIdAndStatus(userId, "COMPLETED");
-        long overdue = scheduleItemRepository.countByUserIdAndStatusAndEndTimeBefore(
+        long overdue = scheduleItemRepository.countDueBefore(
                 userId, "PENDING", OffsetDateTime.now());
         long pending = total - completed - overdue;
 

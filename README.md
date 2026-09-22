@@ -58,3 +58,17 @@ Returns the caller's items for a date range, so the calendar does not download e
   request, so they are never stale after an edit or delete. The old `schedule_conflicts` table is no
   longer used, and the manual `POST /api/schedule-conflicts` endpoint was removed.
 
+
+### Deadline-only items (V11)
+
+- `startTime` and `endTime` are optional. An item can have only a `deadline` (e.g. "Submit report,
+  due Friday") and be scheduled into a slot later (time-blocking) with a partial `PUT` that sends
+  `startTime` and `endTime`; the deadline is unchanged.
+- Rules (400 with a clear message, also enforced by database constraints):
+  `startTime` and `endTime` are set together or not at all; `endTime` must be after `startTime`;
+  every item needs a time slot or a deadline.
+- Deadline-only items never produce conflicts and appear in the calendar range as deadline markers.
+- Dashboard lists (today, upcoming, overdue) and the overdue count use the item's "due time":
+  `endTime` if it has a slot, otherwise its `deadline`.
+- Known limitation: because `PUT` is a partial update, times cannot be cleared back to empty
+  (an item cannot be "unscheduled" yet).

@@ -25,10 +25,10 @@ public class ScheduleItemRequest {
 
     private Priority priority;
 
-    @NotNull(message = "Start time is required.")
+
     private OffsetDateTime startTime;
 
-    @NotNull(message = "End time is required.")
+
     private OffsetDateTime endTime;
 
     @Future(message = "Deadline must be in the future.")
