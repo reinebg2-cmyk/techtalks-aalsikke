@@ -39,3 +39,22 @@ Returns the caller's items for a date range, so the calendar does not download e
 - Results are sorted by start time and use the same item format as `GET /api/schedule-items/me`.
 - Only the caller's own items are returned (identity comes from the JWT).
 - Errors (`400`): `from` not before `to`, range longer than 62 days, missing or invalid `from`/`to`.
+
+
+
+
+
+### Conflict detection (S3-07)
+
+- `POST` and `PUT /api/schedule-items` responses include `conflicts`: the caller's other items whose
+  time slot overlaps the saved item, each as `{ id, title, startTime, endTime }`. Every other item
+  response has `"conflicts": []`.
+- The save is never blocked; conflicts are only a warning.
+- Overlap means `start1 < end2` and `start2 < end1`. Back-to-back items (one ends exactly when the
+  next starts) are not a conflict. Items without both a start and an end time (deadline-only) never
+  conflict. Only the caller's own items are compared.
+- `GET /api/schedule-conflicts/me` returns every overlapping pair of the caller's items as
+  `{ itemOne, itemTwo }` (earlier item first). Conflicts are computed from the current times on each
+  request, so they are never stale after an edit or delete. The old `schedule_conflicts` table is no
+  longer used, and the manual `POST /api/schedule-conflicts` endpoint was removed.
+

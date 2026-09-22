@@ -75,7 +75,8 @@ public class ScheduleItemService {
         ScheduleItem item = new ScheduleItem();
         item.setUser(user); // ALWAYS set from the authenticated caller — never trust a client-supplied user
         applyRequestToItem(item, request);
-        return ScheduleItemResponse.from(scheduleItemRepository.save(item));
+        ScheduleItem saved = scheduleItemRepository.save(item);
+        return ScheduleItemResponse.from(saved, findConflictsFor(saved));
     }
 
     public Optional<ScheduleItemResponse> updateItem(UUID id, ScheduleItemRequest request, String email) {
@@ -83,7 +84,8 @@ public class ScheduleItemService {
                 .filter(existing -> existing.getUser().getEmail().equals(email))
                 .map(existing -> {
                     applyPartialUpdateToItem(existing, request);
-                    return ScheduleItemResponse.from(scheduleItemRepository.save(existing));
+                    ScheduleItem saved = scheduleItemRepository.save(existing);
+                    return ScheduleItemResponse.from(saved, findConflictsFor(saved));
                 });
     }
 
@@ -97,17 +99,21 @@ public class ScheduleItemService {
         if (request.getDeadline() != null) item.setDeadline(request.getDeadline());
         if (request.getIsRecurring() != null) item.setRecurring(request.getIsRecurring());
 
-        if (request.getCourseId() != null) {
-            Course course = courseRepository.findById(request.getCourseId())
-                    .orElseThrow(() -> new IllegalArgumentException("Course not found."));
-            item.setCourse(course);
-        }
+        applyCourseAndWorkplace(item, request);
+    }
 
-        if (request.getWorkplaceId() != null) {
-            Workplace workplace = workplaceRepository.findById(request.getWorkplaceId())
-                    .orElseThrow(() -> new IllegalArgumentException("Workplace not found."));
-            item.setWorkplace(workplace);
+    /**
+     * S3-07: the caller's other items whose time slot overlaps this one.
+     * Never blocks the save; the result is only returned as a warning.
+     * Items without both start and end times (deadline-only) never conflict.
+     */
+    private List<ScheduleItem> findConflictsFor(ScheduleItem item) {
+        if (!ConflictRules.hasTimeSlot(item)) {
+            return List.of();
         }
+        List<ScheduleItem> candidates = scheduleItemRepository.findOverlappingTimedItems(
+                item.getUser().getId(), item.getId(), item.getStartTime(), item.getEndTime());
+        return ConflictRules.findConflicts(item, candidates);
     }
 
     public boolean deleteItem(UUID id, String email) {
@@ -130,14 +136,25 @@ public class ScheduleItemService {
         item.setDeadline(request.getDeadline());
         item.setRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);
 
+        applyCourseAndWorkplace(item, request);
+    }
+
+    /**
+     * Links a course/workplace only if it belongs to the item's owner.
+     * A foreign or unknown id gives the same "not found" message, so the API
+     * never reveals whether another user's course exists.
+     */
+    private void applyCourseAndWorkplace(ScheduleItem item, ScheduleItemRequest request) {
+        UUID ownerId = item.getUser().getId();
+
         if (request.getCourseId() != null) {
-            Course course = courseRepository.findById(request.getCourseId())
+            Course course = courseRepository.findByIdAndUserId(request.getCourseId(), ownerId)
                     .orElseThrow(() -> new IllegalArgumentException("Course not found."));
             item.setCourse(course);
         }
 
         if (request.getWorkplaceId() != null) {
-            Workplace workplace = workplaceRepository.findById(request.getWorkplaceId())
+            Workplace workplace = workplaceRepository.findByIdAndUserId(request.getWorkplaceId(), ownerId)
                     .orElseThrow(() -> new IllegalArgumentException("Workplace not found."));
             item.setWorkplace(workplace);
         }
