@@ -118,6 +118,17 @@ public class ScheduleItemService {
         return ConflictRules.findConflicts(item, candidates);
     }
 
+    /** Mark one of the caller's items PENDING or COMPLETED (dashboard checkbox, weekly review). */
+    public Optional<ScheduleItemResponse> updateStatus(UUID id, String status, String email) {
+        return scheduleItemRepository.findById(id)
+                .filter(existing -> existing.getUser().getEmail().equals(email))
+                .map(existing -> {
+                    existing.setStatus(status);
+                    ScheduleItem saved = scheduleItemRepository.save(existing);
+                    return ScheduleItemResponse.from(saved, findConflictsFor(saved));
+                });
+    }
+
     public boolean deleteItem(UUID id, String email) {
         return scheduleItemRepository.findById(id)
                 .filter(existing -> existing.getUser().getEmail().equals(email)) // ownership check

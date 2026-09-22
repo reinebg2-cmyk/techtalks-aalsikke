@@ -72,3 +72,23 @@ Returns the caller's items for a date range, so the calendar does not download e
   `endTime` if it has a slot, otherwise its `deadline`.
 - Known limitation: because `PUT` is a partial update, times cannot be cleared back to empty
   (an item cannot be "unscheduled" yet).
+
+
+
+
+### Weekly review: `GET /api/daily-reviews/weekly?start=YYYY-MM-DD&end=YYYY-MM-DD` (KAN-248, ADR-002)
+
+- Aggregates the caller's daily reviews for the date range (start and end inclusive, max 31 days):
+  `daysReviewed`, `averageProductivityScore` (one decimal, `null` if nothing was scored) and the
+  `reviews` themselves, sorted by date.
+- Also counts the caller's tasks due in the same dates (due time = `endTime`, or `deadline` for
+  deadline-only items): `completedTasks`, `missedTasks` (not completed and already due) and
+  `upcomingTasks` (not completed, due later).
+- `GET /api/daily-reviews/me` and `POST /api/daily-reviews` now return reviews without the nested user.
+
+### Completing a task: `PATCH /api/schedule-items/{id}/status`
+
+- Body: `{"status":"COMPLETED"}` or `{"status":"PENDING"}` (anything else → 400). Returns the updated
+  item. Only the owner can change it (otherwise 403). Used by the dashboard's done checkbox.
+
+
