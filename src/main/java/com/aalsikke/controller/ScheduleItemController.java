@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +25,19 @@ public class ScheduleItemController {
     @GetMapping("/me")
     public List<ScheduleItemResponse> getMyItems(Authentication authentication) {
         return scheduleItemService.getItemsForCurrentUser(authentication.getName());
+    }
+
+    /**
+     * Calendar range (S3-02).
+     * Example: GET /api/schedule-items/range?from=2026-09-21T00:00:00Z&to=2026-09-28T00:00:00Z
+     * from is inclusive, to is exclusive. Both must be ISO date-times with an offset.
+     */
+    @GetMapping("/range")
+    public List<ScheduleItemResponse> getMyItemsInRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+            Authentication authentication) {
+        return scheduleItemService.getItemsInRange(authentication.getName(), from, to);
     }
 
     @PostMapping
