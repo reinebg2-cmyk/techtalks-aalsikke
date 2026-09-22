@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aal Sikke — Calendar</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="calendar.css">
+</head>
+<body class="dashboard-body">
+
+<div class="app-shell">
+
+    <header class="topbar dash-topbar">
+        <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
+        <div class="topbar-actions">
+            <a href="login.html" class="btn-secondary cal-logout" id="logout-link">Log out</a>
+        </div>
+    </header>
+
+    <div class="app-body">
+
+        <aside class="sidebar">
+            <nav class="side-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <span class="nav-icon">&#9635;</span> Dashboard
+                </a>
+                <a href="calendar.html" class="nav-link active">
+                    <span class="nav-icon">&#128197;</span> Calendar
+                </a>
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">&#9745;</span> Tasks
+                </a>
+                <a href="#" class="nav-link">
+                    <span class="nav-icon">&#9881;</span> Settings
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <section class="card cal-card">
+
+                <div class="cal-toolbar">
+                    <div class="cal-nav">
+                        <button type="button" class="btn-secondary" id="cal-prev" aria-label="Previous">&#8249;</button>
+                        <button type="button" class="btn-secondary" id="cal-today">Today</button>
+                        <button type="button" class="btn-secondary" id="cal-next" aria-label="Next">&#8250;</button>
+                    </div>
+                    <h1 class="cal-title" id="cal-title">Calendar</h1>
+                    <div class="cal-view-toggle" role="group" aria-label="Calendar view">
+                        <button type="button" class="filter-tab" data-view="day">Day</button>
+                        <button type="button" class="filter-tab active" data-view="week">Week</button>
+                    </div>
+                </div>
+
+                <div class="cal-legend">
+                    <span class="cal-legend-item"><span class="cal-swatch cal-student"></span> Student</span>
+                    <span class="cal-legend-item"><span class="cal-swatch cal-work"></span> Work</span>
+                    <span class="cal-legend-item"><span class="cal-swatch cal-personal"></span> Personal</span>
+                    <span class="cal-legend-item"><span class="cal-deadline-dot"></span> Deadline</span>
+                    <span class="cal-legend-item"><span class="cal-conflict-badge">!</span> Conflict</span>
+                </div>
+
+                <p class="cal-status" id="cal-status" role="status">Loading…</p>
+                <div class="cal-grid" id="cal-grid"></div>
+
+            </section>
+        </main>
+    </div>
+    <!-- Mobile bottom nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html"><span>&#9635;</span>Dashboard</a>
+        <a href="calendar.html" class="active"><span>&#128197;</span>Calendar</a>
+        <a href="#"><span>&#9745;</span>Tasks</a>
+        <a href="#"><span>&#9881;</span>Settings</a>
+    </nav>
+</div>
+
+<script src="calendar.js"></script>
+</body>
+</html>
