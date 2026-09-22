@@ -32,8 +32,9 @@ public class ScheduleItem {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "item_type", nullable = false, length = 30)
-    private String itemType;
+    private ItemType itemType;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -78,8 +79,8 @@ public class ScheduleItem {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getItemType() { return itemType; }
-    public void setItemType(String itemType) { this.itemType = itemType; }
+    public ItemType getItemType() { return itemType; }
+    public void setItemType(ItemType itemType) { this.itemType = itemType; }
 
     public Priority getPriority() { return priority; }
     public void setPriority(Priority priority) { this.priority = priority; }

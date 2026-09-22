@@ -14,7 +14,7 @@
 // Same origin as the page (like login.js and register.js). The dashboard is
 // served by Spring Boot, so this is also where the API lives.
 const API_BASE = window.location.origin;
-const API_BASE= "http://localhost:8080";
+
 
 const TOKEN_KEY = 'aalsikke_token';
 

@@ -1,7 +1,7 @@
 package com.aalsikke.controller;
 
 import com.aalsikke.dto.ScheduleItemRequest;
-import com.aalsikke.model.ScheduleItem;
+import com.aalsikke.dto.ScheduleItemResponse;
 import com.aalsikke.service.ScheduleItemService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -21,20 +21,20 @@ public class ScheduleItemController {
     }
 
     @GetMapping("/me")
-    public List<ScheduleItem> getMyItems(Authentication authentication) {
+    public List<ScheduleItemResponse> getMyItems(Authentication authentication) {
         return scheduleItemService.getItemsForCurrentUser(authentication.getName());
     }
 
     @PostMapping
-    public ResponseEntity<ScheduleItem> createItem(@Valid @RequestBody ScheduleItemRequest request, Authentication authentication) {
+    public ResponseEntity<ScheduleItemResponse> createItem(@Valid @RequestBody ScheduleItemRequest request, Authentication authentication) {
         return ResponseEntity.ok(scheduleItemService.createItem(request, authentication.getName()));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ScheduleItem> updateItem(@PathVariable UUID id, @Valid @RequestBody ScheduleItemRequest request, Authentication authentication) {
+    public ResponseEntity<ScheduleItemResponse> updateItem(@PathVariable UUID id, @RequestBody ScheduleItemRequest request, Authentication authentication) {
         return scheduleItemService.updateItem(id, request, authentication.getName())
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(403).build()); // 403 if not found OR not owned — don't leak which
+                .orElse(ResponseEntity.status(403).build());
     }
 
     @DeleteMapping("/{id}")
