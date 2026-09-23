@@ -427,11 +427,16 @@ document.addEventListener('DOMContentLoaded', () => {
         block.style.left = `calc(${(seg.lane / seg.lanes) * 100}% + 2px)`;
         block.style.width = `calc(${100 / seg.lanes}% - 4px)`;
 
+        // KAN-248: "↻" marks items that repeat weekly (the original and its generated repeats)
+        const repeats = item.recurring || item.occurrence;
+        const titleText = repeats ? `↻ ${item.title}` : item.title;
         const timeText = `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`;
-        block.append(el('span', 'cal-event-title', item.title), el('span', 'cal-event-time', timeText));
+        block.append(el('span', 'cal-event-title', titleText), el('span', 'cal-event-time', timeText));
 
-        const clashes = conflictMap.get(item.id);
         let description = `${item.title}, ${timeText}, ${roleLabel(role)}`;
+
+        // Conflicts are computed for the real item only, so a repeat never shows the original's badge
+        const clashes = item.occurrence ? null : conflictMap.get(item.id);
         if (clashes && clashes.length) {
             block.classList.add('is-conflict');
             const badge = el('span', 'cal-conflict-badge', '!');
@@ -443,11 +448,21 @@ document.addEventListener('DOMContentLoaded', () => {
             block.classList.add('is-completed');
             description += '. Completed';
         }
-        description += '. Click to reschedule';
+
+        if (item.occurrence) {
+            // A generated repeat is read-only: the series is changed through the original item
+            block.classList.add('is-repeat');
+            description += '. Weekly repeat';
+            makeActivatable(block, () => setStatus(
+                `"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`));
+        } else {
+            if (item.recurring) description += '. Repeats weekly';
+            description += '. Click to reschedule';
+            makeActivatable(block, () => openScheduleForm({ item }));
+        }
 
         block.title = description;
         block.setAttribute('aria-label', description);
-        makeActivatable(block, () => openScheduleForm({ item }));
         return block;
     }
 

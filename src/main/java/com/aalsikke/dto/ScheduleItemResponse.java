@@ -23,6 +23,7 @@ public class ScheduleItemResponse {
     private Summary course;
     private Summary workplace;
     private List<ConflictSummary> conflicts = List.of();
+    private boolean occurrence;
 
     public static ScheduleItemResponse from(ScheduleItem item) {
         ScheduleItemResponse dto = new ScheduleItemResponse();
@@ -52,6 +53,20 @@ public class ScheduleItemResponse {
         return dto;
     }
 
+    /**
+     * KAN-248: a generated weekly repeat of a recurring item. Same id and details as the item,
+     * its own start/end, no deadline (the deadline marker belongs to the real item only), and
+     * "occurrence": true so the calendar can show it as a read-only repeat.
+     */
+    public static ScheduleItemResponse occurrenceOf(ScheduleItem item, OffsetDateTime start, OffsetDateTime end) {
+        ScheduleItemResponse dto = from(item);
+        dto.startTime = start.withOffsetSameInstant(java.time.ZoneOffset.UTC);
+        dto.endTime = end.withOffsetSameInstant(java.time.ZoneOffset.UTC);
+        dto.deadline = null;
+        dto.occurrence = true;
+        return dto;
+    }
+
     public static class Summary {
         private final UUID id;
         private final String name;
@@ -78,4 +93,6 @@ public class ScheduleItemResponse {
     public Summary getCourse() { return course; }
     public Summary getWorkplace() { return workplace; }
     public List<ConflictSummary> getConflicts() { return conflicts; }
+    public boolean isOccurrence() { return occurrence; }
+
 }
