@@ -51,4 +51,24 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
     List<ScheduleItem> findInRange(@Param("userId") UUID userId,
                                    @Param("from") OffsetDateTime from,
                                    @Param("to") OffsetDateTime to);
+
+    /**
+     * Conflict candidates (S3-07): the user's OTHER items that have a time slot
+     * overlapping [start, end). Back-to-back items are excluded by the strict < and >.
+     */
+    @Query("""
+            SELECT s FROM ScheduleItem s
+            WHERE s.user.id = :userId
+              AND s.id <> :excludeId
+              AND s.startTime IS NOT NULL AND s.endTime IS NOT NULL
+              AND s.startTime < :end AND s.endTime > :start
+            ORDER BY s.startTime ASC
+            """)
+    List<ScheduleItem> findOverlappingTimedItems(@Param("userId") UUID userId,
+                                                 @Param("excludeId") UUID excludeId,
+                                                 @Param("start") OffsetDateTime start,
+                                                 @Param("end") OffsetDateTime end);
+
+    /** All of the user's items that have both a start and an end time, earliest first (S3-07). */
+    List<ScheduleItem> findByUserIdAndStartTimeIsNotNullAndEndTimeIsNotNullOrderByStartTimeAsc(UUID userId);
 }

@@ -6,6 +6,7 @@ import com.aalsikke.model.ScheduleItem;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.List;
 
 public class ScheduleItemResponse {
 
@@ -21,6 +22,7 @@ public class ScheduleItemResponse {
     private boolean isRecurring;
     private Summary course;
     private Summary workplace;
+    private List<ConflictSummary> conflicts = List.of();
 
     public static ScheduleItemResponse from(ScheduleItem item) {
         ScheduleItemResponse dto = new ScheduleItemResponse();
@@ -40,6 +42,13 @@ public class ScheduleItemResponse {
         if (item.getWorkplace() != null) {
             dto.workplace = new Summary(item.getWorkplace().getId(), item.getWorkplace().getCompanyName());
         }
+        return dto;
+    }
+
+    /** Same as from(item), plus the items it clashes with (S3-07). */
+    public static ScheduleItemResponse from(ScheduleItem item, List<ScheduleItem> clashingItems) {
+        ScheduleItemResponse dto = from(item);
+        dto.conflicts = clashingItems.stream().map(ConflictSummary::from).toList();
         return dto;
     }
 
@@ -68,4 +77,5 @@ public class ScheduleItemResponse {
     public boolean isRecurring() { return isRecurring; }
     public Summary getCourse() { return course; }
     public Summary getWorkplace() { return workplace; }
+    public List<ConflictSummary> getConflicts() { return conflicts; }
 }
