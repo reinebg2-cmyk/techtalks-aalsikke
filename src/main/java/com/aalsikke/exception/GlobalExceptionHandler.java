@@ -1,6 +1,8 @@
 package com.aalsikke.exception;
 
 import com.aalsikke.dto.ApiError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.exc.InvalidFormatException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -8,15 +10,27 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Turns exceptions into the { field, message } shape the frontend expects.
+ * Rule (S3-06): only messages WE wrote reach the client. Anything from the
+ * database, Hibernate, Jackson or the JWT library is logged server-side and
+ * replaced with a generic message.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    // ---- Our own exceptions: messages are written by us, safe to return ----
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleEmailExists(EmailAlreadyExistsException ex) {
@@ -35,6 +49,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiError.of("Invalid email or password."));
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of(ex.getMessage()));
+    }
+
+    // ---- Request problems: build our own message, never echo the framework's ----
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<List<ApiError>> handleValidation(MethodArgumentNotValidException ex) {
@@ -55,30 +77,43 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiError.of(field, "Must be one of: " + allowed));
         }
+        log.debug("Unreadable request body", ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiError.of("Request body is malformed."));
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+    // e.g. /api/schedule-items/abc (bad UUID), or ?from=not-a-date on the range endpoint
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiError.of(ex.getMessage()));
+                .body(ApiError.of(ex.getName(), "Invalid value for '" + ex.getName() + "'."));
     }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiError> handleMissingParam(MissingServletRequestParameterException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of(ex.getParameterName(), "'" + ex.getParameterName() + "' is required."));
+    }
+
+    // ---- Everything else: log the details, return a generic message ----
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation", ex);
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiError.of("That change conflicts with existing data. Please review your details and try again."));
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiError> handleGenericRuntime(RuntimeException ex) {
+        log.warn("Request failed", ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiError.of(ex.getMessage()));
+                .body(ApiError.of("The request could not be processed."));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex) {
+        log.error("Unexpected error", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiError.of("An unexpected error occurred. Please try again."));
     }
