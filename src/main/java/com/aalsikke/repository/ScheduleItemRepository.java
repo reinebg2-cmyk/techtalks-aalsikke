@@ -3,6 +3,8 @@ package com.aalsikke.repository;
 import com.aalsikke.model.ScheduleItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -25,5 +27,28 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
 
     long countByUserIdAndStatusAndEndTimeBefore(UUID userId, String status, OffsetDateTime now);
 
-
+    /**
+     * Calendar range (S3-02): the user's items that should appear between from (inclusive)
+     * and to (exclusive). An item is included if
+     *  - its time slot overlaps the range (start < to AND end > from), which also catches
+     *    items that start before the range and end inside it, or
+     *  - its deadline falls inside the range, so the calendar can show a deadline marker.
+     * Course and workplace are fetched in the same query to avoid one extra query per item.
+     */
+    @Query("""
+            SELECT s FROM ScheduleItem s
+            LEFT JOIN FETCH s.course
+            LEFT JOIN FETCH s.workplace
+            WHERE s.user.id = :userId
+              AND (
+                    (s.startTime IS NOT NULL AND s.endTime IS NOT NULL
+                        AND s.startTime < :to AND s.endTime > :from)
+                 OR (s.deadline IS NOT NULL
+                        AND s.deadline >= :from AND s.deadline < :to)
+              )
+            ORDER BY COALESCE(s.startTime, s.deadline) ASC
+            """)
+    List<ScheduleItem> findInRange(@Param("userId") UUID userId,
+                                   @Param("from") OffsetDateTime from,
+                                   @Param("to") OffsetDateTime to);
 }

@@ -17,9 +17,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 
 @Service
 public class ScheduleItemService {
+    private static final Duration MAX_CALENDAR_RANGE = Duration.ofDays(62);
     private final ScheduleItemRepository scheduleItemRepository;
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
@@ -39,6 +42,27 @@ public class ScheduleItemService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return scheduleItemRepository.findByUserId(user.getId())
+                .stream()
+                .map(ScheduleItemResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Calendar range (S3-02): the caller's items overlapping [from, to), plus items whose
+     * deadline falls in that range. Identity always comes from the JWT (email), never the request.
+     */
+    public List<ScheduleItemResponse> getItemsInRange(String email, OffsetDateTime from, OffsetDateTime to) {
+        if (!from.isBefore(to)) {
+            throw new IllegalArgumentException("'from' must be before 'to'.");
+        }
+        if (Duration.between(from, to).compareTo(MAX_CALENDAR_RANGE) > 0) {
+            throw new IllegalArgumentException("The range cannot be longer than 62 days.");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return scheduleItemRepository.findInRange(user.getId(), from, to)
                 .stream()
                 .map(ScheduleItemResponse::from)
                 .collect(Collectors.toList());
