@@ -13,19 +13,11 @@ import java.util.UUID;
 @Repository
 public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID> {
 
-    List<ScheduleItem> findByUserIdAndStatusAndEndTimeBeforeOrderByEndTimeAsc(
-            UUID userId, String status, OffsetDateTime now);
-
-    List<ScheduleItem> findByUserIdAndEndTimeBetweenOrderByEndTimeAsc(
-            UUID userId, OffsetDateTime start, OffsetDateTime end);
-
     List<ScheduleItem> findByUserId(UUID userId);
 
     long countByUserId(UUID userId);
 
     long countByUserIdAndStatus(UUID userId, String status);
-
-    long countByUserIdAndStatusAndEndTimeBefore(UUID userId, String status, OffsetDateTime now);
 
     /**
      * Calendar range (S3-02): the user's items that should appear between from (inclusive)
@@ -71,4 +63,39 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
 
     /** All of the user's items that have both a start and an end time, earliest first (S3-07). */
     List<ScheduleItem> findByUserIdAndStartTimeIsNotNullAndEndTimeIsNotNullOrderByStartTimeAsc(UUID userId);
+
+
+    // ---- Dashboard (V11): "due time" = endTime for timed items, deadline for deadline-only items ----
+
+    @Query("""
+            SELECT s FROM ScheduleItem s
+            WHERE s.user.id = :userId
+              AND COALESCE(s.endTime, s.deadline) BETWEEN :start AND :end
+            ORDER BY COALESCE(s.endTime, s.deadline) ASC
+            """)
+    List<ScheduleItem> findDueBetween(@Param("userId") UUID userId,
+                                      @Param("start") OffsetDateTime start,
+                                      @Param("end") OffsetDateTime end);
+
+    @Query("""
+            SELECT s FROM ScheduleItem s
+            WHERE s.user.id = :userId
+              AND s.status = :status
+              AND COALESCE(s.endTime, s.deadline) < :now
+            ORDER BY COALESCE(s.endTime, s.deadline) ASC
+            """)
+    List<ScheduleItem> findDueBefore(@Param("userId") UUID userId,
+                                     @Param("status") String status,
+                                     @Param("now") OffsetDateTime now);
+
+    @Query("""
+            SELECT COUNT(s) FROM ScheduleItem s
+            WHERE s.user.id = :userId
+              AND s.status = :status
+              AND COALESCE(s.endTime, s.deadline) < :now
+            """)
+    long countDueBefore(@Param("userId") UUID userId,
+                        @Param("status") String status,
+                        @Param("now") OffsetDateTime now);
+
 }

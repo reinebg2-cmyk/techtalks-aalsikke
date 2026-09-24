@@ -43,10 +43,10 @@ public class ScheduleItem {
     @Column(length = 20)
     private String status = "PENDING";
 
-    @Column(name = "start_time", nullable = false)
+    @Column(name = "start_time")
     private OffsetDateTime startTime;
 
-    @Column(name = "end_time", nullable = false)
+    @Column(name = "end_time")
     private OffsetDateTime endTime;
 
     @Column(name = "deadline")
