@@ -48,6 +48,7 @@ public class SecurityConfig {
                                 "/register.html",
                                 "/login.html",
                                 "/dashboard.html",
+                                "/calendar.html",
                                 "/css/**",
                                 "/js/**",
                                 "/*.js",

@@ -1,0 +1,337 @@
+/* Aal Sikke — Calendar (S3-11). Uses the colour variables from styles.css. */
+
+/* ---- Role colours (blocks, markers, legend) ---- */
+.cal-student  { --cal-color: var(--trust-blue); --cal-bg: #E3EEF7; }
+.cal-work     { --cal-color: var(--amber);      --cal-bg: var(--amber-bg); }
+.cal-personal { --cal-color: var(--success);    --cal-bg: var(--success-bg); }
+
+/* ---- Card + toolbar ---- */
+.cal-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.cal-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.cal-nav {
+    display: flex;
+    gap: 0.375rem;
+}
+
+/* styles.css makes .btn-secondary full width; the calendar needs compact buttons */
+.cal-nav .btn-secondary,
+.cal-logout {
+    width: auto;
+    padding: 0.5rem 0.875rem;
+    text-decoration: none;
+}
+
+.cal-title {
+    flex: 1;
+    margin: 0;
+    font-size: 1.25rem;
+    text-align: center;
+    min-width: 12rem;
+}
+
+.cal-view-toggle {
+    display: flex;
+    gap: 0.375rem;
+}
+
+/* ---- Legend ---- */
+.cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    color: var(--slate-light);
+}
+
+.cal-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.cal-swatch {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 0.1875rem;
+    background: var(--cal-color);
+}
+
+.cal-deadline-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    background: var(--navy);
+    transform: rotate(45deg);
+}
+
+.cal-conflict-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: var(--coral);
+    color: var(--white);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* ---- Status line (loading / empty / error) ---- */
+.cal-status {
+    margin: 0;
+    min-height: 1.25em;
+    font-size: 0.875rem;
+    color: var(--slate-light);
+}
+
+.cal-status.is-error { color: var(--coral); }
+
+/* ---- Grid ---- */
+.cal-grid {
+    --cal-days: 7;
+    --cal-hour: 48px;   /* must match HOUR_HEIGHT in calendar.js */
+    --cal-gutter: 3.25rem;
+    --cal-scrollbar: 0px;   /* set by calendar.js to the real scrollbar width */
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--white);
+    overflow-x: auto;   /* narrow screens scroll sideways instead of squashing 7 days */
+}
+
+.cal-grid[aria-busy="true"] { opacity: 0.6; }
+
+.cal-inner {
+    min-width: calc(var(--cal-gutter) + var(--cal-days) * 5.5rem);
+}
+
+.cal-grid--day .cal-inner { min-width: 0; }
+
+.cal-row {
+    display: grid;
+    grid-template-columns: var(--cal-gutter) repeat(var(--cal-days), minmax(0, 1fr));
+}
+
+.cal-head {
+    background: var(--bg-mist);
+    border-bottom: 1px solid var(--border);
+}
+
+/* Same width as the body's scrollbar, so header and body columns line up */
+.cal-head,
+.cal-deadlines {
+    padding-right: var(--cal-scrollbar, 0px);
+}
+
+.cal-day-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.375rem 0.25rem;
+    border-left: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--slate-light);
+}
+
+.cal-date {
+    width: 1.875rem;
+    height: 1.875rem;
+    line-height: 1.875rem;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--slate);
+}
+
+.cal-day-head.is-today .cal-date {
+    border-radius: 50%;
+    background: var(--trust-blue);
+    color: var(--white);
+}
+
+/* ---- Deadline row ---- */
+.cal-deadlines {
+    min-height: 2rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.cal-gutter-label {
+    align-self: center;
+    padding: 0.25rem 0.375rem;
+    font-size: 0.6875rem;
+    text-align: right;
+    color: var(--slate-light);
+}
+
+.cal-deadline-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1875rem;
+    min-width: 0;
+    padding: 0.25rem;
+    border-left: 1px solid var(--border);
+}
+
+.cal-deadline-marker {
+    display: flex;
+    align-items: center;
+    gap: 0.3125rem;
+    min-width: 0;
+    padding: 0.125rem 0.375rem;
+    border: 1px dashed var(--cal-color);
+    border-radius: 0.375rem;
+    background: var(--cal-bg);
+    font-size: 0.6875rem;
+    color: var(--slate);
+}
+
+.cal-deadline-marker::before {
+    content: "";
+    flex: none;
+    width: 0.4375rem;
+    height: 0.4375rem;
+    background: var(--navy);
+    transform: rotate(45deg);
+}
+
+.cal-deadline-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.cal-deadline-marker.is-completed { opacity: 0.55; }
+.cal-deadline-marker.is-completed .cal-deadline-text { text-decoration: line-through; }
+
+/* ---- Time grid ---- */
+.cal-scroll {
+    max-height: 36rem;
+    overflow-y: auto;
+}
+
+.cal-times,
+.cal-day-col {
+    position: relative;
+    height: calc(24 * var(--cal-hour));
+}
+
+.cal-time-label {
+    position: absolute;
+    right: 0.375rem;
+    transform: translateY(-50%);
+    font-size: 0.6875rem;
+    color: var(--slate-light);
+}
+
+.cal-day-col {
+    border-left: 1px solid var(--border);
+    background-image: repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent calc(var(--cal-hour) - 1px),
+            var(--border) calc(var(--cal-hour) - 1px),
+            var(--border) var(--cal-hour)
+    );
+}
+
+.cal-day-col.is-today { background-color: #F7FAFD; }
+
+/* ---- Event blocks ---- */
+.cal-event {
+    position: absolute;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 0.1875rem 0.375rem;
+    border-left: 3px solid var(--cal-color);
+    border-radius: 0.375rem;
+    background: var(--cal-bg);
+    box-shadow: 0 1px 2px rgba(15, 76, 117, 0.12);
+    font-size: 0.75rem;
+    line-height: 1.25;
+    color: var(--slate);
+    cursor: default;
+}
+
+.cal-event:focus-visible {
+    outline: 2px solid var(--navy);
+    outline-offset: 1px;
+    z-index: 3;
+}
+
+.cal-event-title {
+    display: block;
+    padding-right: 1.125rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.cal-event-time {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--slate-light);
+}
+
+.cal-event.is-conflict { box-shadow: 0 0 0 2px var(--coral); }
+
+.cal-event .cal-conflict-badge {
+    position: absolute;
+    top: 0.1875rem;
+    right: 0.1875rem;
+}
+
+.cal-event.is-completed { opacity: 0.55; }
+.cal-event.is-completed .cal-event-title { text-decoration: line-through; }
+
+/* ---- Current time ---- */
+.cal-now {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--coral);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.cal-now::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--coral);
+}
+
+/* ---- Phone width ---- */
+@media (max-width: 40rem) {
+    .cal-title {
+        order: -1;
+        flex-basis: 100%;
+        text-align: left;
+    }
+
+    .cal-scroll { max-height: 28rem; }
+
+    /* leave room for the fixed bottom navigation */
+    .cal-card { margin-bottom: 4rem; }
+}
