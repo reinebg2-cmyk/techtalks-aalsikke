@@ -1,11 +1,18 @@
-// Aal Sikke — Calendar (S3-11: day and week views)
+// Aal Sikke — Calendar
+//   S3-11: day and week views
+//   S3-12: time-blocking (schedule a task into a time slot)
 //
 // Data:
 //   GET /api/schedule-items/range?from=&to=   items overlapping the visible days (S3-02)
 //   GET /api/schedule-conflicts/me            overlapping pairs, used for conflict badges (S3-07)
+//   GET /api/schedule-items/me                all items, to list unscheduled tasks (S3-12)
+//   PUT /api/schedule-items/{id}              partial update: only startTime + endTime are sent,
+//                                             so the deadline and everything else stay unchanged
 //
 // The backend sends every date-time in UTC (ending in Z). `new Date(iso)` turns it
 // into the user's local time, and every calculation below works in local time.
+//
+// Open the schedule form for one task from another page with: calendar.html?schedule=<itemId>
 
 const API_BASE = window.location.origin;
 const TOKEN_KEY = 'aalsikke_token';
@@ -17,6 +24,8 @@ const WORK_TYPES = new Set(['SHIFT']);
 const HOUR_HEIGHT = 48;       // px per hour; must match --cal-hour in calendar.css
 const MIN_EVENT_HEIGHT = 22;  // px, so very short items stay readable
 const DEFAULT_SCROLL_HOUR = 7;
+const SLOT_MINUTES = 30;      // clicking an empty slot snaps to the half hour
+const DEFAULT_BLOCK_MINUTES = 60;
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -34,9 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'login.html';
     }
 
-    async function apiFetch(path) {
+    async function apiRequest(path, options = {}) {
         const response = await fetch(API_BASE + path, {
-            headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+            ...options,
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
+                ...(options.headers || {})
+            }
         });
         if (response.status === 401) {
             redirectToLogin();
@@ -44,10 +57,30 @@ document.addEventListener('DOMContentLoaded', () => {
             expired.sessionExpired = true;
             throw expired;
         }
+        return response;
+    }
+
+    async function apiFetch(path) {
+        const response = await apiRequest(path);
         if (!response.ok) {
             throw new Error(`Server responded ${response.status}`);
         }
         return response.json();
+    }
+
+    async function readJsonSafely(response) {
+        try {
+            return await response.json();
+        } catch (_) {
+            return null;
+        }
+    }
+
+    // The backend returns { field, message } or a list of them (see README "Error responses")
+    function errorMessageFrom(body, fallback) {
+        if (Array.isArray(body) && body.length) return body.map(e => e.message).filter(Boolean).join(' ');
+        if (body && body.message) return body.message;
+        return fallback;
     }
 
     document.getElementById('logout-link').addEventListener('click', () => {
@@ -68,7 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
         view: window.matchMedia('(max-width: 40rem)').matches ? 'day' : 'week',
         anchor: startOfDay(new Date()),
         requestId: 0,
-        scrollPending: true
+        scrollPending: true,
+        flash: null,        // { message, isError } shown after the next load (e.g. "Scheduled …")
+        itemsById: new Map()
     };
 
     // ============================================================
@@ -107,6 +142,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     }
 
+    function formatShortDate(date) {
+        return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
     function formatTitle(days) {
         const first = days[0];
         const last = days[days.length - 1];
@@ -116,6 +155,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const left = first.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const right = last.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         return `${left} – ${right}`;
+    }
+
+    const pad = n => String(n).padStart(2, '0');
+
+    // Values for <input type="date"> and <input type="time"> (local time)
+    function toDateInput(date) {
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+
+    function toTimeInput(date) {
+        return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    // "2026-09-23" + "13:30" -> local Date
+    function fromInputs(dateValue, timeValue) {
+        const [y, m, d] = dateValue.split('-').map(Number);
+        const [hh, mm] = timeValue.split(':').map(Number);
+        return new Date(y, m - 1, d, hh, mm);
     }
 
     // ============================================================
@@ -204,6 +261,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return (date - dayStart) / 60000;
     }
 
+    // Enter/Space on a focused block or marker behaves like a click
+    function makeActivatable(node, onActivate) {
+        node.tabIndex = 0;
+        node.setAttribute('role', 'button');
+        node.addEventListener('click', event => {
+            event.stopPropagation(); // don't also trigger the empty-slot click on the column
+            onActivate();
+        });
+        node.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onActivate();
+            }
+        });
+    }
+
     function render(days, items, conflictMap) {
         const today = startOfDay(new Date());
         // Remember the scroll position so ‹ / › keep the same hours in view
@@ -211,6 +284,8 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.replaceChildren();
         grid.style.setProperty('--cal-days', days.length);
         grid.classList.toggle('cal-grid--day', days.length === 1);
+
+        state.itemsById = new Map(items.map(item => [item.id, item]));
 
         const inner = el('div', 'cal-inner');
 
@@ -247,9 +322,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const role = roleOf(item);
             const marker = el('div', `cal-deadline-marker cal-${role}`);
             if (item.status === 'COMPLETED') marker.classList.add('is-completed');
+            if (!hasTimeSlot(item)) marker.classList.add('is-unscheduled');
             marker.append(el('span', 'cal-deadline-text', `${formatTime(due)} ${item.title}`));
-            marker.title = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)})`
-                + (hasTimeSlot(item) ? '' : ' — not scheduled yet');
+            const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)})`
+                + (hasTimeSlot(item) ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
+            marker.title = label;
+            marker.setAttribute('aria-label', label);
+            makeActivatable(marker, () => openScheduleForm({ item }));
             deadlineCells[index].append(marker);
         }
 
@@ -278,6 +357,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const dayEnd = addDays(day, 1);
             const column = el('div', 'cal-day-col');
             if (sameDay(day, today)) column.classList.add('is-today');
+            column.title = 'Click an empty slot to schedule a task here';
+
+            // S3-12: click an empty slot -> schedule form for that day and time (snapped to the half hour)
+            column.addEventListener('click', event => {
+                if (event.target !== column) return; // clicks on blocks are handled by the block
+                const minutes = Math.floor((event.offsetY / HOUR_HEIGHT) * 60 / SLOT_MINUTES) * SLOT_MINUTES;
+                const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, Math.max(0, minutes));
+                openScheduleForm({ start });
+            });
 
             // Clip each item to this day (an item from 23:00 to 01:00 shows in both days)
             const segments = timed
@@ -331,7 +419,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const { item } = seg;
         const role = roleOf(item);
         const block = el('div', `cal-event cal-${role}`);
-        block.tabIndex = 0;
 
         const top = seg.start / 60 * HOUR_HEIGHT;
         const height = Math.max((seg.end - seg.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
@@ -356,9 +443,11 @@ document.addEventListener('DOMContentLoaded', () => {
             block.classList.add('is-completed');
             description += '. Completed';
         }
+        description += '. Click to reschedule';
 
         block.title = description;
         block.setAttribute('aria-label', description);
+        makeActivatable(block, () => openScheduleForm({ item }));
         return block;
     }
 
@@ -401,7 +490,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (requestId !== state.requestId) return;
 
             render(days, items, buildConflictMap(conflicts));
-            if (items.length === 0) {
+            if (state.flash) {
+                setStatus(state.flash.message, state.flash.isError);
+                state.flash = null;
+            } else if (items.length === 0) {
                 setStatus(state.view === 'day' ? 'Nothing scheduled for this day.' : 'Nothing scheduled this week.');
             } else {
                 setStatus('');
@@ -415,6 +507,220 @@ document.addEventListener('DOMContentLoaded', () => {
             if (requestId === state.requestId) grid.removeAttribute('aria-busy');
         }
     }
+
+    // ============================================================
+    // S3-12: SCHEDULE FORM (time-blocking)
+    // ============================================================
+
+    const modal = document.getElementById('schedule-modal');
+    const form = document.getElementById('schedule-form');
+    const modalTitle = document.getElementById('schedule-modal-title');
+    const taskField = document.getElementById('schedule-task-field');
+    const taskSelect = document.getElementById('schedule-task');
+    const taskName = document.getElementById('schedule-task-name');
+    const dateInput = document.getElementById('schedule-date');
+    const startInput = document.getElementById('schedule-start');
+    const endInput = document.getElementById('schedule-end');
+    const modalMessage = document.getElementById('schedule-message');
+    const saveButton = document.getElementById('schedule-save');
+
+    let fixedItem = null;          // the task being scheduled when opened from a block/marker
+    let returnFocusTo = null;
+
+    function setModalMessage(message, type = '') {
+        modalMessage.textContent = message;
+        modalMessage.className = `modal-message${type ? ` is-${type}` : ''}`;
+    }
+
+    function nextFullHour() {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0);
+    }
+
+    function fillTimes(start, end) {
+        dateInput.value = toDateInput(start);
+        startInput.value = toTimeInput(start);
+        endInput.value = toTimeInput(end);
+    }
+
+    async function loadUnscheduledTasks() {
+        const all = await apiFetch('/api/schedule-items/me');
+        return all
+            .filter(item => !hasTimeSlot(item) && item.status !== 'COMPLETED')
+            .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    }
+
+    /*
+     * open({ item })  -> schedule / reschedule that task (from a block, a marker or ?schedule=id)
+     * open({ start }) -> empty slot or "+ Schedule": pick one of the unscheduled tasks
+     */
+    async function openScheduleForm({ item = null, start = null } = {}) {
+        returnFocusTo = document.activeElement;
+        fixedItem = item;
+        setModalMessage('');
+        saveButton.disabled = false;
+
+        if (item) {
+            const scheduled = hasTimeSlot(item);
+            modalTitle.textContent = scheduled ? 'Reschedule task' : 'Schedule task';
+            taskField.hidden = true;
+            taskName.hidden = false;
+            taskName.textContent = item.deadline
+                ? `${item.title} (due ${formatShortDate(new Date(item.deadline))}, ${formatTime(new Date(item.deadline))})`
+                : item.title;
+            if (scheduled) {
+                fillTimes(new Date(item.startTime), new Date(item.endTime));
+            } else {
+                const begin = nextFullHour();
+                fillTimes(begin, new Date(begin.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
+            }
+        } else {
+            const begin = start || nextFullHour();
+            modalTitle.textContent = 'Schedule a task';
+            taskField.hidden = false;
+            taskName.hidden = true;
+            fillTimes(begin, new Date(begin.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
+
+            taskSelect.replaceChildren(new Option('Loading your tasks…', ''));
+            taskSelect.disabled = true;
+            saveButton.disabled = true;
+        }
+
+        modal.hidden = false;
+        (item ? startInput : taskSelect).focus();
+
+        if (!item) {
+            try {
+                const tasks = await loadUnscheduledTasks();
+                taskSelect.replaceChildren();
+                if (tasks.length === 0) {
+                    taskSelect.append(new Option('No unscheduled tasks', ''));
+                    const dashboardLink = el('a', 'modal-link', 'add a task on the dashboard');
+                    dashboardLink.href = 'dashboard.html';
+                    setModalMessage('', 'info');
+                    modalMessage.append(
+                        'Every task already has a time slot. To schedule something new, ',
+                        dashboardLink,
+                        ' (a deadline is enough), or click a task in the calendar to reschedule it.'
+                    );
+                    return;
+                }
+                for (const task of tasks) {
+                    const due = task.deadline ? ` — due ${formatShortDate(new Date(task.deadline))}` : '';
+                    taskSelect.append(new Option(`${task.title}${due}`, task.id));
+                }
+                taskSelect.disabled = false;
+                saveButton.disabled = false;
+                taskSelect.focus();
+            } catch (error) {
+                if (error.sessionExpired) return;
+                console.error(error);
+                taskSelect.replaceChildren(new Option('Could not load tasks', ''));
+                setModalMessage('Could not load your tasks. Please try again.', 'error');
+            }
+        }
+    }
+
+    function closeScheduleForm() {
+        modal.hidden = true;
+        fixedItem = null;
+        if (returnFocusTo && document.contains(returnFocusTo)) returnFocusTo.focus();
+    }
+
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const itemId = fixedItem ? fixedItem.id : taskSelect.value;
+        const title = fixedItem ? fixedItem.title : taskSelect.selectedOptions[0]?.textContent;
+
+        if (!itemId) {
+            setModalMessage('Choose a task to schedule.', 'error');
+            return;
+        }
+        if (!dateInput.value || !startInput.value || !endInput.value) {
+            setModalMessage('Pick a date, a start time and an end time.', 'error');
+            return;
+        }
+
+        const start = fromInputs(dateInput.value, startInput.value);
+        const end = fromInputs(dateInput.value, endInput.value);
+
+        // Client-side check required by S3-12 (the backend checks it too)
+        if (end <= start) {
+            setModalMessage('The end time must be after the start time.', 'error');
+            endInput.focus();
+            return;
+        }
+
+        saveButton.disabled = true;
+        setModalMessage('Saving…', 'info');
+
+        try {
+            // Partial update: only the slot is sent, so the deadline and all other fields are unchanged
+            const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(itemId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ startTime: start.toISOString(), endTime: end.toISOString() })
+            });
+            const body = await readJsonSafely(response);
+
+            if (response.status === 403) {
+                setModalMessage('You can only schedule your own tasks.', 'error');
+                saveButton.disabled = false;
+                return;
+            }
+            if (!response.ok) {
+                setModalMessage(errorMessageFrom(body, 'Could not save. Please try again.'), 'error');
+                saveButton.disabled = false;
+                return;
+            }
+
+            // TODO(S3-09): show Yara's shared conflict warning here once it is merged,
+            // instead of this plain text. body.conflicts = [{ id, title, startTime, endTime }]
+            const conflicts = (body && body.conflicts) || [];
+            const slotText = `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`;
+            const savedTitle = (body && body.title) || title;
+            state.flash = conflicts.length
+                ? {
+                    message: `Scheduled "${savedTitle}" on ${slotText}. Heads-up: it overlaps with ${conflicts.map(c => `"${c.title}"`).join(', ')}.`,
+                    isError: true
+                }
+                : { message: `Scheduled "${savedTitle}" on ${slotText}.`, isError: false };
+
+            closeScheduleForm();
+
+            // Jump to the day that was scheduled so the block is visible
+            state.anchor = startOfDay(start);
+            state.scrollPending = true;
+            load();
+        } catch (error) {
+            if (error.sessionExpired) return;
+            console.error(error);
+            setModalMessage('Could not save. Please check your connection and try again.', 'error');
+            saveButton.disabled = false;
+        }
+    });
+
+    // Keep the end after the start while the user changes the start time
+    startInput.addEventListener('change', () => {
+        if (!startInput.value || !endInput.value) return;
+        const start = fromInputs(dateInput.value || toDateInput(new Date()), startInput.value);
+        const end = fromInputs(dateInput.value || toDateInput(new Date()), endInput.value);
+        if (end <= start) {
+            const newEnd = new Date(start.getTime() + DEFAULT_BLOCK_MINUTES * 60000);
+            endInput.value = sameDay(newEnd, start) ? toTimeInput(newEnd) : '23:59';
+        }
+    });
+
+    document.getElementById('schedule-cancel').addEventListener('click', closeScheduleForm);
+    document.getElementById('schedule-close').addEventListener('click', closeScheduleForm);
+    modal.addEventListener('click', event => {
+        if (event.target === modal) closeScheduleForm(); // click on the dark backdrop
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !modal.hidden) closeScheduleForm();
+    });
+    document.getElementById('cal-schedule-btn').addEventListener('click', () => openScheduleForm());
 
     // ============================================================
     // NAVIGATION
@@ -445,5 +751,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // calendar.html?schedule=<id> opens the form for that task (e.g. from a dashboard "Schedule" link)
+    async function openFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('schedule');
+        if (!id) return;
+        history.replaceState(null, '', window.location.pathname);
+        try {
+            const all = await apiFetch('/api/schedule-items/me');
+            const item = all.find(i => i.id === id);
+            if (item) {
+                openScheduleForm({ item });
+            } else {
+                setStatus('That task was not found.', true);
+            }
+        } catch (error) {
+            if (!error.sessionExpired) console.error(error);
+        }
+    }
+
     load();
+    openFromUrl();
 });
