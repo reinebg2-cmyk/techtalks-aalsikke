@@ -12,7 +12,12 @@ import com.aalsikke.repository.UserRepository;
 import com.aalsikke.repository.WorkplaceRepository;
 import org.springframework.stereotype.Service;
 import com.aalsikke.model.Priority;
+import com.aalsikke.model.RecurrenceRule;
+import com.aalsikke.repository.RecurrenceRuleRepository;
 
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,15 +32,18 @@ public class ScheduleItemService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final WorkplaceRepository workplaceRepository;
+    private final RecurrenceRuleRepository recurrenceRuleRepository;
 
     public ScheduleItemService(ScheduleItemRepository scheduleItemRepository,
                                UserRepository userRepository,
                                CourseRepository courseRepository,
-                               WorkplaceRepository workplaceRepository) {
+                               WorkplaceRepository workplaceRepository,
+                               RecurrenceRuleRepository recurrenceRuleRepository) {
         this.scheduleItemRepository = scheduleItemRepository;
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
         this.workplaceRepository = workplaceRepository;
+        this.recurrenceRuleRepository = recurrenceRuleRepository;
     }
 
     public List<ScheduleItemResponse> getItemsForCurrentUser(String email) {
@@ -62,10 +70,29 @@ public class ScheduleItemService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return scheduleItemRepository.findInRange(user.getId(), from, to)
-                .stream()
-                .map(ScheduleItemResponse::from)
-                .collect(Collectors.toList());
+        List<ScheduleItemResponse> result = new ArrayList<>(
+                scheduleItemRepository.findInRange(user.getId(), from, to)
+                        .stream()
+                        .map(ScheduleItemResponse::from)
+                        .toList());
+
+        // KAN-248: add the weekly repeats of recurring items that fall in the range
+        ZoneId zone = ZoneId.systemDefault();   // same convention as the dashboard
+        for (RecurrenceRule rule : recurrenceRuleRepository.findActiveWeeklyForUser(
+                user.getId(), to, from.atZoneSameInstant(zone).toLocalDate())) {
+            ScheduleItem base = rule.getScheduleItem();
+            int interval = rule.getIntervalValue() != null ? rule.getIntervalValue() : 1;
+            for (RecurrenceExpander.Occurrence occurrence : RecurrenceExpander.weekly(
+                    base.getStartTime(), base.getEndTime(), interval,
+                    RecurrenceExpander.parseDays(rule.getDaysOfWeek()), rule.getUntilDate(),
+                    zone, from, to)) {
+                result.add(ScheduleItemResponse.occurrenceOf(base, occurrence.start(), occurrence.end()));
+            }
+        }
+
+        result.sort(Comparator.comparing(
+                (ScheduleItemResponse r) -> r.getStartTime() != null ? r.getStartTime() : r.getDeadline()));
+        return result;
     }
 
     public ScheduleItemResponse createItem(ScheduleItemRequest request, String email) {

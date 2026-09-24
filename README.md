@@ -92,3 +92,17 @@ Returns the caller's items for a date range, so the calendar does not download e
   item. Only the owner can change it (otherwise 403). Used by the dashboard's done checkbox.
 
 
+
+### Recurring items (KAN-248, weekly only)
+
+- `POST /api/recurrence-rules` with `{ "scheduleItemId", "frequency": "WEEKLY", "intervalValue"?: 1-52,
+  "daysOfWeek"?: "MON,WED", "untilDate"?: "YYYY-MM-DD" }` makes one of the caller's timed items repeat.
+  Posting again for the same item replaces its rule. Only `WEEKLY` is accepted for now.
+- `GET /api/recurrence-rules` lists the caller's rules.
+- `GET /api/schedule-items/range` includes the generated repeats in the range with `"occurrence": true`
+  (same `id` as the original item, own `startTime`/`endTime`, no deadline). The original keeps
+  `"occurrence": false`. Repeats keep the original's local start time (server time zone), so 09:00
+  stays 09:00 across daylight-saving changes.
+- The calendar shows repeats striped with a ↻ and read-only; the series is changed through the original.
+- Known limitations: conflict detection, the dashboard lists and the weekly review counts only look at
+  real items, not generated repeats. Single repeats cannot be moved or skipped yet.

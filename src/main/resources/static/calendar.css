@@ -469,3 +469,23 @@
 .cal-bar-completed { background: var(--success); }
 .cal-bar-missed    { background: var(--coral); }
 
+
+/* ============================================================
+   KAN-248: weekly repeats
+   ============================================================ */
+
+/* Generated repeats: same colours, dashed edge and light stripes, read-only */
+.cal-event.is-repeat {
+    border-left-style: dashed;
+    box-shadow: none;
+    background-image: repeating-linear-gradient(
+            135deg,
+            transparent 0 6px,
+            rgba(255, 255, 255, 0.45) 6px 12px
+    );
+}
+
+.cal-repeat-icon {
+    font-weight: 700;
+    color: var(--slate);
+}
