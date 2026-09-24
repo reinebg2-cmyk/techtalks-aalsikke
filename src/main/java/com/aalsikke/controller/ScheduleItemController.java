@@ -3,6 +3,7 @@ package com.aalsikke.controller;
 import com.aalsikke.dto.ScheduleItemRequest;
 import com.aalsikke.dto.ScheduleItemResponse;
 import com.aalsikke.service.ScheduleItemService;
+import com.aalsikke.dto.StatusUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -48,6 +49,16 @@ public class ScheduleItemController {
     @PutMapping("/{id}")
     public ResponseEntity<ScheduleItemResponse> updateItem(@PathVariable UUID id, @RequestBody ScheduleItemRequest request, Authentication authentication) {
         return scheduleItemService.updateItem(id, request, authentication.getName())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(403).build());
+    }
+
+    /** Dashboard "done" checkbox: {"status":"COMPLETED"} or {"status":"PENDING"}. */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ScheduleItemResponse> updateStatus(@PathVariable UUID id,
+                                                             @Valid @RequestBody StatusUpdateRequest request,
+                                                             Authentication authentication) {
+        return scheduleItemService.updateStatus(id, request.status(), authentication.getName())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(403).build());
     }
