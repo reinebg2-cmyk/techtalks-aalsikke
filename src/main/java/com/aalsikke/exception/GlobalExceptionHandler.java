@@ -1,14 +1,17 @@
 package com.aalsikke.exception;
 
 import com.aalsikke.dto.ApiError;
+import tools.jackson.databind.exc.InvalidFormatException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,10 +44,31 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException ife && ife.getTargetType() != null && ife.getTargetType().isEnum()) {
+            String field = ife.getPath().isEmpty() ? "" : ife.getPath().get(ife.getPath().size() - 1).getPropertyName();
+            String allowed = Arrays.stream(ife.getTargetType().getEnumConstants())
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", "));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiError.of(field, "Must be one of: " + allowed));
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiError.of("Request body is malformed."));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiError.of(ex.getMessage()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiError.of("That change conflicts with existing data. Please review your details and try again."));
     }
 
     @ExceptionHandler(RuntimeException.class)
@@ -57,10 +81,5 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleUnexpected(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiError.of("An unexpected error occurred. Please try again."));
-    }
-
-    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiError.of("That change conflicts with existing data. Please review your details and try again."));
     }
 }

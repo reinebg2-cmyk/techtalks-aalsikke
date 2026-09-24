@@ -1,6 +1,7 @@
 package com.aalsikke.service;
 
 import com.aalsikke.dto.ScheduleItemRequest;
+import com.aalsikke.dto.ScheduleItemResponse;
 import com.aalsikke.model.Course;
 import com.aalsikke.model.ScheduleItem;
 import com.aalsikke.model.User;
@@ -15,6 +16,7 @@ import com.aalsikke.model.Priority;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ScheduleItemService {
@@ -33,29 +35,55 @@ public class ScheduleItemService {
         this.workplaceRepository = workplaceRepository;
     }
 
-    public List<ScheduleItem> getItemsForCurrentUser(String email) {
+    public List<ScheduleItemResponse> getItemsForCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return scheduleItemRepository.findByUserId(user.getId());
+        return scheduleItemRepository.findByUserId(user.getId())
+                .stream()
+                .map(ScheduleItemResponse::from)
+                .collect(Collectors.toList());
     }
 
-    public ScheduleItem createItem(ScheduleItemRequest request, String email) {
+    public ScheduleItemResponse createItem(ScheduleItemRequest request, String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         ScheduleItem item = new ScheduleItem();
         item.setUser(user); // ALWAYS set from the authenticated caller — never trust a client-supplied user
         applyRequestToItem(item, request);
-        return scheduleItemRepository.save(item);
+        return ScheduleItemResponse.from(scheduleItemRepository.save(item));
     }
 
-    public Optional<ScheduleItem> updateItem(UUID id, ScheduleItemRequest request, String email) {
+    public Optional<ScheduleItemResponse> updateItem(UUID id, ScheduleItemRequest request, String email) {
         return scheduleItemRepository.findById(id)
-                .filter(existing -> existing.getUser().getEmail().equals(email)) // ownership check
+                .filter(existing -> existing.getUser().getEmail().equals(email))
                 .map(existing -> {
-                    applyRequestToItem(existing, request);
-                    return scheduleItemRepository.save(existing);
+                    applyPartialUpdateToItem(existing, request);
+                    return ScheduleItemResponse.from(scheduleItemRepository.save(existing));
                 });
+    }
+
+    private void applyPartialUpdateToItem(ScheduleItem item, ScheduleItemRequest request) {
+        if (request.getTitle() != null) item.setTitle(request.getTitle());
+        if (request.getDescription() != null) item.setDescription(request.getDescription());
+        if (request.getItemType() != null) item.setItemType(request.getItemType());
+        if (request.getPriority() != null) item.setPriority(request.getPriority());
+        if (request.getStartTime() != null) item.setStartTime(request.getStartTime());
+        if (request.getEndTime() != null) item.setEndTime(request.getEndTime());
+        if (request.getDeadline() != null) item.setDeadline(request.getDeadline());
+        if (request.getIsRecurring() != null) item.setRecurring(request.getIsRecurring());
+
+        if (request.getCourseId() != null) {
+            Course course = courseRepository.findById(request.getCourseId())
+                    .orElseThrow(() -> new IllegalArgumentException("Course not found."));
+            item.setCourse(course);
+        }
+
+        if (request.getWorkplaceId() != null) {
+            Workplace workplace = workplaceRepository.findById(request.getWorkplaceId())
+                    .orElseThrow(() -> new IllegalArgumentException("Workplace not found."));
+            item.setWorkplace(workplace);
+        }
     }
 
     public boolean deleteItem(UUID id, String email) {

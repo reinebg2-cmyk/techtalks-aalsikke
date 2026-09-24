@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import com.aalsikke.model.Priority;
+import com.aalsikke.model.ItemType;
 import jakarta.validation.constraints.Future;
 
 @Getter
@@ -19,8 +20,8 @@ public class ScheduleItemRequest {
 
     private String description;
 
-    @NotBlank(message = "Item type is required.")
-    private String itemType;
+    @NotNull(message = "Item type is required.")
+    private ItemType itemType;
 
     private Priority priority;
 
