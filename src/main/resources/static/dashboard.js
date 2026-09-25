@@ -2414,6 +2414,491 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ============================================================
+  // CHANGE PASSWORD MODAL (KAN-242)
+  // PUT /api/auth/change-password
+  // ============================================================
+
+  const changePasswordLink = document.getElementById('change-password-link');
+  const passwordModal = document.getElementById('password-modal');
+  const passwordForm = document.getElementById('password-form');
+  const closePasswordBtn = document.getElementById('close-password-modal');
+  const cancelPasswordBtn = document.getElementById('cancel-password-btn');
+  const savePasswordBtn = document.getElementById('save-password-btn');
+
+  const currentPasswordInput = document.getElementById('current-password');
+  const newPasswordInput = document.getElementById('new-password');
+  const confirmNewPasswordInput = document.getElementById('confirm-new-password');
+  const passwordStrengthMeter = document.getElementById('password-strength-meter');
+  const newPasswordStrengthHint = document.getElementById('new-password-strength-hint');
+  const passwordMessage = document.getElementById('password-message');
+
+  // Field name (as sent to / returned by the API) -> wrapper element id.
+  const PASSWORD_FIELD_IDS = {
+    currentPassword: 'field-current-password',
+    newPassword: 'field-new-password',
+    confirmPassword: 'field-confirm-new-password'
+  };
+
+  const PASSWORD_FIELD_ORDER = ['currentPassword', 'newPassword', 'confirmPassword'];
+
+  let lastFocusedBeforePasswordModal = null;
+  let passwordCloseTimer = null;
+
+  function getPasswordFieldInput(name) {
+    if (name === 'currentPassword') return currentPasswordInput;
+    if (name === 'newPassword') return newPasswordInput;
+    if (name === 'confirmPassword') return confirmNewPasswordInput;
+    return null;
+  }
+
+  function setPasswordFieldError(name, message) {
+    const wrapper = document.getElementById(PASSWORD_FIELD_IDS[name]);
+    if (!wrapper) return;
+    wrapper.classList.add('is-error');
+    const hint = wrapper.querySelector('.hint.error-text');
+    if (hint) hint.textContent = message;
+    const input = getPasswordFieldInput(name);
+    if (input) input.setAttribute('aria-invalid', 'true');
+  }
+
+  function clearPasswordFieldError(name) {
+    const wrapper = document.getElementById(PASSWORD_FIELD_IDS[name]);
+    if (!wrapper) return;
+    wrapper.classList.remove('is-error');
+    const hint = wrapper.querySelector('.hint.error-text');
+    if (hint) hint.textContent = '';
+    const input = getPasswordFieldInput(name);
+    if (input) input.removeAttribute('aria-invalid');
+  }
+
+  function clearPasswordFieldErrors() {
+    Object.keys(PASSWORD_FIELD_IDS).forEach(clearPasswordFieldError);
+  }
+
+  function showPasswordFieldErrors(errors) {
+    Object.entries(errors).forEach(([name, message]) => setPasswordFieldError(name, message));
+    const firstInvalid = PASSWORD_FIELD_ORDER.find(name => errors[name]);
+    const input = firstInvalid ? getPasswordFieldInput(firstInvalid) : null;
+    if (input) input.focus();
+  }
+
+  function showPasswordMessage(message, type) {
+    if (!passwordMessage) return;
+    passwordMessage.textContent = message;
+    passwordMessage.classList.remove('is-success', 'is-error', 'is-info');
+    if (type) passwordMessage.classList.add(`is-${type}`);
+  }
+
+  function clearPasswordMessage() {
+    showPasswordMessage('', null);
+  }
+
+  // Same 4-point scoring register.js uses for the sign-up password field.
+  function scoreNewPassword(value) {
+    let score = 0;
+    if (value.length >= 8) score++;
+    if (/[A-Z]/.test(value)) score++;
+    if (/[0-9]/.test(value)) score++;
+    if (/[^A-Za-z0-9]/.test(value)) score++;
+    return score;
+  }
+
+  function updatePasswordStrengthMeter() {
+    const value = newPasswordInput ? newPasswordInput.value : '';
+    if (!passwordStrengthMeter || !newPasswordStrengthHint) return;
+
+    passwordStrengthMeter.classList.remove('strength-1', 'strength-2', 'strength-3');
+
+    if (!value) {
+      newPasswordStrengthHint.style.display = 'none';
+      return;
+    }
+
+    const score = scoreNewPassword(value);
+
+    if (score <= 1) {
+      passwordStrengthMeter.classList.add('strength-1');
+      newPasswordStrengthHint.textContent = 'Too weak. Add length, a number, and a symbol.';
+    } else if (score <= 3) {
+      passwordStrengthMeter.classList.add('strength-2');
+      newPasswordStrengthHint.textContent = 'Good, but add a special symbol to make it bulletproof.';
+    } else {
+      passwordStrengthMeter.classList.add('strength-3');
+    }
+
+    newPasswordStrengthHint.style.display = score <= 3 ? 'block' : 'none';
+  }
+
+  function validatePasswordValues(values) {
+    const errors = {};
+
+    if (!values.currentPassword) {
+      errors.currentPassword = 'Current password is required.';
+    }
+
+    if (!values.newPassword) {
+      errors.newPassword = 'New password is required.';
+    } else if (values.newPassword.length < 8) {
+      errors.newPassword = 'New password must be at least 8 characters.';
+    } else if (values.currentPassword && values.newPassword === values.currentPassword) {
+      errors.newPassword = 'New password must be different from your current password.';
+    }
+
+    if (!values.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your new password.';
+    } else if (values.confirmPassword !== values.newPassword) {
+      errors.confirmPassword = 'Passwords do not match.';
+    }
+
+    return errors;
+  }
+
+  // The backend answers with either
+  //   400 -> { field, message }            (wrong current password)
+  //   400 -> [ { field, message }, ... ]   (bean validation)
+  //   4xx -> { message } or { error }      (everything else)
+  function parsePasswordApiErrors(body) {
+    const fieldErrors = {};
+    let general = '';
+
+    const items = Array.isArray(body) ? body : (body ? [body] : []);
+
+    items.forEach(item => {
+      if (!item || typeof item !== 'object') return;
+      const message = item.message || item.error;
+      if (!message) return;
+
+      if (item.field && PASSWORD_FIELD_IDS[item.field]) {
+        if (!fieldErrors[item.field]) fieldErrors[item.field] = message;
+      } else if (!general) {
+        general = message;
+      }
+    });
+
+    return { fieldErrors, general };
+  }
+
+  function handlePasswordError(status, body) {
+    const { fieldErrors, general } = parsePasswordApiErrors(body);
+
+    if (Object.keys(fieldErrors).length > 0) {
+      showPasswordFieldErrors(fieldErrors);
+    }
+
+    if (general) {
+      showPasswordMessage(general, 'error');
+    } else if (Object.keys(fieldErrors).length === 0) {
+      showPasswordMessage(`Could not update your password (error ${status}). Please try again.`, 'error');
+    }
+  }
+
+  function resetPasswordForm() {
+    if (passwordForm) passwordForm.reset();
+    clearPasswordFieldErrors();
+    clearPasswordMessage();
+    if (passwordStrengthMeter) passwordStrengthMeter.classList.remove('strength-1', 'strength-2', 'strength-3');
+    if (newPasswordStrengthHint) newPasswordStrengthHint.style.display = 'none';
+  }
+
+  function openPasswordModal() {
+    if (!passwordModal) return;
+
+    clearTimeout(passwordCloseTimer);
+    resetPasswordForm();
+
+    lastFocusedBeforePasswordModal = document.activeElement;
+
+    passwordModal.hidden = false;
+
+    if (profileDropdown) profileDropdown.hidden = true;
+
+    if (currentPasswordInput) currentPasswordInput.focus();
+  }
+
+  function closePasswordModal() {
+    if (!passwordModal || passwordModal.hidden) return;
+
+    passwordModal.hidden = true;
+    resetPasswordForm();
+
+    if (lastFocusedBeforePasswordModal && typeof lastFocusedBeforePasswordModal.focus === 'function') {
+      lastFocusedBeforePasswordModal.focus();
+    }
+  }
+
+  if (changePasswordLink) {
+    changePasswordLink.addEventListener('click', event => {
+      event.preventDefault();
+      openPasswordModal();
+    });
+  }
+
+  if (closePasswordBtn) closePasswordBtn.addEventListener('click', closePasswordModal);
+  if (cancelPasswordBtn) cancelPasswordBtn.addEventListener('click', closePasswordModal);
+
+  if (passwordModal) {
+    passwordModal.addEventListener('click', event => {
+      if (event.target === passwordModal) closePasswordModal();
+    });
+  }
+
+  if (newPasswordInput) {
+    newPasswordInput.addEventListener('input', () => {
+      updatePasswordStrengthMeter();
+      clearPasswordFieldError('newPassword');
+      clearPasswordMessage();
+    });
+  }
+
+  [
+    ['currentPassword', currentPasswordInput],
+    ['confirmPassword', confirmNewPasswordInput]
+  ].forEach(([name, input]) => {
+    if (input) {
+      input.addEventListener('input', () => {
+        clearPasswordFieldError(name);
+        clearPasswordMessage();
+      });
+    }
+  });
+
+  function setPasswordSaving(isSaving) {
+    if (!savePasswordBtn) return;
+    savePasswordBtn.disabled = isSaving;
+    savePasswordBtn.textContent = isSaving ? 'Updating…' : 'Update password';
+  }
+
+  if (passwordForm) {
+    passwordForm.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      if (savePasswordBtn && savePasswordBtn.disabled) return;
+
+      clearPasswordMessage();
+      clearPasswordFieldErrors();
+
+      const values = {
+        currentPassword: currentPasswordInput ? currentPasswordInput.value : '',
+        newPassword: newPasswordInput ? newPasswordInput.value : '',
+        confirmPassword: confirmNewPasswordInput ? confirmNewPasswordInput.value : ''
+      };
+
+      const errors = validatePasswordValues(values);
+
+      if (Object.keys(errors).length > 0) {
+        showPasswordFieldErrors(errors);
+        return;
+      }
+
+      setPasswordSaving(true);
+
+      try {
+        const response = await apiFetch(`${API_BASE}/api/auth/change-password`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currentPassword: values.currentPassword,
+            newPassword: values.newPassword
+          })
+        });
+
+        const body = await readJsonSafely(response);
+
+        if (!response.ok) {
+          handlePasswordError(response.status, body);
+          return;
+        }
+
+        showPasswordMessage('Password updated successfully.', 'success');
+        showToast('Password updated successfully.');
+
+        passwordCloseTimer = setTimeout(closePasswordModal, 900);
+
+      } catch (error) {
+
+        if (error.sessionExpired) return;
+
+        console.error('Failed to update password:', error);
+        showPasswordMessage(
+            'Could not reach the server. Please check your connection and try again.',
+            'error'
+        );
+
+      } finally {
+        setPasswordSaving(false);
+      }
+    });
+  }
+
+  // ============================================================
+  // NOTIFICATION PREFERENCES MODAL (KAN-244)
+  // GET/PUT /api/notification-preferences/me
+  // ============================================================
+
+  const notifPrefsLink = document.getElementById('notification-prefs-link');
+  const settingsNavLink = document.getElementById('settings-nav-link');
+  const settingsBottomLink = document.getElementById('settings-bottom-link');
+  const notifPrefsModal = document.getElementById('notif-prefs-modal');
+  const notifPrefsForm = document.getElementById('notif-prefs-form');
+  const closeNotifPrefsBtn = document.getElementById('close-notif-prefs-modal');
+  const cancelNotifPrefsBtn = document.getElementById('cancel-notif-prefs-btn');
+  const saveNotifPrefsBtn = document.getElementById('save-notif-prefs-btn');
+  const notifPrefsMessage = document.getElementById('notif-prefs-message');
+
+  const prefToggles = {
+    deadlineReminders: document.getElementById('pref-deadline-reminders'),
+    overdueAlerts: document.getElementById('pref-overdue-alerts'),
+    scheduleConflicts: document.getElementById('pref-schedule-conflicts'),
+    weeklyReviewReady: document.getElementById('pref-weekly-review-ready')
+  };
+
+  let lastFocusedBeforeNotifPrefsModal = null;
+
+  function showNotifPrefsMessage(message, type) {
+    if (!notifPrefsMessage) return;
+    notifPrefsMessage.textContent = message;
+    notifPrefsMessage.classList.remove('is-success', 'is-error', 'is-info');
+    if (type) notifPrefsMessage.classList.add(`is-${type}`);
+  }
+
+  function setNotifPrefsTogglesDisabled(disabled) {
+    Object.values(prefToggles).forEach(toggle => {
+      if (toggle) toggle.disabled = disabled;
+    });
+  }
+
+  function applyPreferencesToToggles(preferences) {
+    Object.entries(prefToggles).forEach(([key, toggle]) => {
+      if (toggle) toggle.checked = Boolean(preferences && preferences[key]);
+    });
+  }
+
+  async function loadNotificationPreferences() {
+    setNotifPrefsTogglesDisabled(true);
+    showNotifPrefsMessage('Loading your preferences…', 'info');
+
+    try {
+      const response = await apiFetch(`${API_BASE}/api/notification-preferences/me`);
+
+      if (!response.ok) {
+        throw new Error(`Server responded ${response.status}`);
+      }
+
+      const preferences = await response.json();
+      applyPreferencesToToggles(preferences);
+      showNotifPrefsMessage('', null);
+
+    } catch (error) {
+
+      if (error.sessionExpired) return;
+
+      console.error('Failed to load notification preferences:', error);
+      showNotifPrefsMessage('Could not load your preferences. Please try again.', 'error');
+
+    } finally {
+      setNotifPrefsTogglesDisabled(false);
+    }
+  }
+
+  function openNotifPrefsModal() {
+    if (!notifPrefsModal) return;
+
+    lastFocusedBeforeNotifPrefsModal = document.activeElement;
+
+    notifPrefsModal.hidden = false;
+
+    if (profileDropdown) profileDropdown.hidden = true;
+
+    loadNotificationPreferences();
+  }
+
+  function closeNotifPrefsModal() {
+    if (!notifPrefsModal || notifPrefsModal.hidden) return;
+
+    notifPrefsModal.hidden = true;
+    showNotifPrefsMessage('', null);
+
+    if (lastFocusedBeforeNotifPrefsModal && typeof lastFocusedBeforeNotifPrefsModal.focus === 'function') {
+      lastFocusedBeforeNotifPrefsModal.focus();
+    }
+  }
+
+  [notifPrefsLink, settingsNavLink, settingsBottomLink].forEach(trigger => {
+    if (trigger) {
+      trigger.addEventListener('click', event => {
+        event.preventDefault();
+        openNotifPrefsModal();
+      });
+    }
+  });
+
+  if (closeNotifPrefsBtn) closeNotifPrefsBtn.addEventListener('click', closeNotifPrefsModal);
+  if (cancelNotifPrefsBtn) cancelNotifPrefsBtn.addEventListener('click', closeNotifPrefsModal);
+
+  if (notifPrefsModal) {
+    notifPrefsModal.addEventListener('click', event => {
+      if (event.target === notifPrefsModal) closeNotifPrefsModal();
+    });
+  }
+
+  function setNotifPrefsSaving(isSaving) {
+    if (!saveNotifPrefsBtn) return;
+    saveNotifPrefsBtn.disabled = isSaving;
+    saveNotifPrefsBtn.textContent = isSaving ? 'Saving…' : 'Save preferences';
+  }
+
+  if (notifPrefsForm) {
+    notifPrefsForm.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      if (saveNotifPrefsBtn && saveNotifPrefsBtn.disabled) return;
+
+      showNotifPrefsMessage('', null);
+      setNotifPrefsSaving(true);
+
+      const body = {};
+      Object.entries(prefToggles).forEach(([key, toggle]) => {
+        body[key] = toggle ? toggle.checked : true;
+      });
+
+      try {
+        const response = await apiFetch(`${API_BASE}/api/notification-preferences/me`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const responseBody = await readJsonSafely(response);
+
+        if (!response.ok) {
+          const message = (responseBody && (responseBody.message || responseBody.error))
+              || `Could not save your preferences (error ${response.status}).`;
+          showNotifPrefsMessage(message, 'error');
+          return;
+        }
+
+        if (responseBody) applyPreferencesToToggles(responseBody);
+
+        showNotifPrefsMessage('Preferences saved.', 'success');
+        showToast('Notification preferences saved.');
+
+      } catch (error) {
+
+        if (error.sessionExpired) return;
+
+        console.error('Failed to save notification preferences:', error);
+        showNotifPrefsMessage(
+            'Could not reach the server. Please check your connection and try again.',
+            'error'
+        );
+
+      } finally {
+        setNotifPrefsSaving(false);
+      }
+    });
+  }
+
+  // ============================================================
   // ESCAPE KEY
   // ============================================================
 
@@ -2437,6 +2922,20 @@ document.addEventListener('DOMContentLoaded', () => {
             !taskModal.hidden
         ) {
           closeEditModal();
+        }
+
+        if (
+            passwordModal &&
+            !passwordModal.hidden
+        ) {
+          closePasswordModal();
+        }
+
+        if (
+            notifPrefsModal &&
+            !notifPrefsModal.hidden
+        ) {
+          closeNotifPrefsModal();
         }
       }
   );
