@@ -14,10 +14,17 @@
   <header class="topbar dash-topbar">
     <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
     <div class="topbar-actions">
-      <button class="icon-btn" id="notif-btn" aria-label="Notifications">
-        &#128276;
-        <span class="badge-dot" id="notif-badge" hidden></span>
-      </button>
+      <div class="profile-menu" id="notif-menu">
+        <button class="icon-btn" id="notif-btn" aria-label="Notifications">
+          &#128276;
+          <span class="badge-dot" id="notif-badge" hidden></span>
+        </button>
+        <div class="profile-dropdown notif-dropdown" id="notif-dropdown" hidden>
+          <div class="notif-dropdown-header">Reminders</div>
+          <ul class="notif-list" id="notif-list"></ul>
+          <p class="notif-empty" id="notif-empty" hidden>Nothing due right now.</p>
+        </div>
+      </div>
       <div class="profile-menu">
         <button class="avatar-btn" id="avatar-btn" aria-label="Open profile menu">AC</button>
         <div class="profile-dropdown" id="profile-dropdown" hidden>
@@ -49,13 +56,12 @@
         </a>
         <a href="calendar.html" class="nav-link">
           <span class="nav-icon">&#128197;</span> Calendar
-
-          <a href="#" class="nav-link">
-            <span class="nav-icon">&#9745;</span> Tasks
-          </a>
-          <a href="#" class="nav-link" id="settings-nav-link">
-            <span class="nav-icon">&#9881;</span> Settings
-          </a>
+        </a>
+        <a href="#" class="nav-link">
+          <span class="nav-icon">&#9745;</span> Tasks
+        </a>
+        <a href="settings.html" class="nav-link" id="settings-nav-link">
+          <span class="nav-icon">&#9881;</span> Settings
         </a>
       </nav>
 
@@ -200,7 +206,7 @@
     <a href="dashboard.html" class="active"><span>&#9635;</span>Dashboard</a>
     <a href="calendar.html"><span>&#128197;</span>Calendar</a>
     <a href="#"><span>&#9745;</span>Tasks</a>
-    <a href="#" id="settings-bottom-link"><span>&#9881;</span>Settings</a>
+    <a href="settings.html" id="settings-bottom-link"><span>&#9881;</span>Settings</a>
   </nav>
 
 </div>

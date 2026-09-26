@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import com.aalsikke.dto.UserProfileResponse;
 import com.aalsikke.exception.EmailAlreadyExistsException;
 import com.aalsikke.dto.UpdateProfileRequest;
+import com.aalsikke.dto.ChangePasswordRequest;
+import org.springframework.security.core.Authentication;
 
 @Service
 public class AuthService {
@@ -47,6 +49,7 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setProfileMode(request.getProfileMode() != null ? request.getProfileMode() : "STUDENT");
+
         if (request.getDateOfBirth() != null && !request.getDateOfBirth().isBlank()) {
             user.setDateOfBirth(java.time.LocalDate.parse(request.getDateOfBirth()));
         }
@@ -61,14 +64,14 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
                         request.getPassword()
                 )
         );
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String jwtToken = jwtService.generateToken(user.getEmail());
@@ -83,14 +86,32 @@ public class AuthService {
                 user.getFullName(),
                 user.getEmail(),
                 user.getUsername(),
-                user.getProfileMode()
+                user.getProfileMode(),
+                user.getPhoneNumber(),
+                user.getDateOfBirth()
         );
     }
+
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect.");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password must be different from your current password.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
     public UserProfileResponse updateProfile(String currentEmail, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Email uniqueness check — only flag it if the new email belongs to someone else (KAN-131, KAN-132)
         if (!request.getEmail().equalsIgnoreCase(user.getEmail())
                 && userRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("This email is already registered to another account.");
@@ -99,8 +120,17 @@ public class AuthService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setProfileMode(request.getProfileMode());
+
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            userRepository.findByPhoneNumber(request.getPhoneNumber())
+                    .ifPresent(existingUser -> {
+                        if (!existingUser.getId().equals(user.getId())) {
+                            throw new IllegalArgumentException("Phone number is already in use by another account.");
+                        }
+                    });
             user.setPhoneNumber(request.getPhoneNumber());
+        } else {
+            user.setPhoneNumber(null);
         }
 
         userRepository.save(user);
@@ -109,7 +139,9 @@ public class AuthService {
                 user.getFullName(),
                 user.getEmail(),
                 user.getUsername(),
-                user.getProfileMode()
+                user.getProfileMode(),
+                user.getPhoneNumber(),
+                user.getDateOfBirth()
         );
     }
 }

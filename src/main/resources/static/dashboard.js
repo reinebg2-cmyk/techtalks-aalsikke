@@ -11,6 +11,8 @@
 // GET    /api/auth/me
 // PUT    /api/auth/profile
 
+
+
 // Same origin as the page (like login.js and register.js). The dashboard is
 // served by Spring Boot, so this is also where the API lives.
 const API_BASE = window.location.origin;
@@ -62,6 +64,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     return response;
   }
+  // ============================================================
+  // THEME (KAN-239)
+  // ============================================================
+
+  const THEME_KEY = 'aalsikke_theme';
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+
+  const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+  applyTheme(savedTheme);
+
+  const themeToggle = document.getElementById('theme-toggle');
+  if (themeToggle) {
+    themeToggle.checked = savedTheme === 'dark';
+    themeToggle.addEventListener('change', () => {
+      const newTheme = themeToggle.checked ? 'dark' : 'light';
+      localStorage.setItem(THEME_KEY, newTheme);
+      applyTheme(newTheme);
+    });
+  }
 
   // ============================================================
   // DOM ELEMENTS
@@ -85,7 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const avatarBtn = document.getElementById('avatar-btn');
   const profileDropdown = document.getElementById('profile-dropdown');
-
+  const notifBtn = document.getElementById('notif-btn');
+  const notifDropdown = document.getElementById('notif-dropdown');
+  const notifList = document.getElementById('notif-list');
+  const notifEmpty = document.getElementById('notif-empty');
+  const notifBadge = document.getElementById('notif-badge');
   const editProfileLink = document.getElementById('edit-profile-link');
   const sidebarProfileBtn =
       document.getElementById('sidebar-profile-btn');
@@ -154,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeStatusFilter = 'ALL';    // ALL | PENDING | COMPLETED | OVERDUE
   let activeSort = 'DEFAULT';        // DEFAULT | DEADLINE | PRIORITY
   let currentProfile = null;
+  let dueReminders = [];
 
   // Loading state of the two things the summary cards depend on.
   // 'loading' -> skeletons, 'ready' -> real numbers, 'error' -> message.
@@ -2823,14 +2852,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  [notifPrefsLink, settingsNavLink, settingsBottomLink].forEach(trigger => {
-    if (trigger) {
-      trigger.addEventListener('click', event => {
-        event.preventDefault();
-        openNotifPrefsModal();
-      });
-    }
-  });
+  if (notifPrefsLink) {
+   notifPrefsLink.addEventListener('click', event => {
+     event.preventDefault();
+     openNotifPrefsModal();
+   });
+  }
+  const settingsChangePasswordBtn = document.getElementById('settings-change-password-btn');
+  const settingsNotifPrefsBtn = document.getElementById('settings-notif-prefs-btn');
+
+  if (settingsChangePasswordBtn) {
+    settingsChangePasswordBtn.addEventListener('click', openPasswordModal);
+  }
+
+  if (settingsNotifPrefsBtn) {
+    settingsNotifPrefsBtn.addEventListener('click', openNotifPrefsModal);
+  }
 
   if (closeNotifPrefsBtn) closeNotifPrefsBtn.addEventListener('click', closeNotifPrefsModal);
   if (cancelNotifPrefsBtn) cancelNotifPrefsBtn.addEventListener('click', closeNotifPrefsModal);
@@ -2897,6 +2934,102 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  // ============================================================
+  // REMINDERS BELL (KAN-236)
+  // GET /api/reminders/due, PATCH /api/reminders/{id}/trigger
+  // ============================================================
+
+  function renderNotifList(reminders) {
+    if (!notifList) return;
+    notifList.innerHTML = '';
+
+    if (notifEmpty) {
+      notifEmpty.hidden = reminders.length !== 0;
+    }
+
+    reminders.forEach(reminder => {
+      const li = document.createElement('li');
+      li.className = 'notif-item';
+      li.dataset.id = reminder.id;
+
+      const title = reminder.scheduleItem?.title || 'Reminder';
+
+      li.innerHTML = `
+        <div class="notif-item-body">
+          <p class="notif-item-title">${escapeHtml(title)}</p>
+          <span class="notif-item-time">Due ${escapeHtml(formatDue(reminder.remindAt))}</span>
+        </div>
+        <button type="button" class="notif-dismiss-btn" aria-label="Dismiss reminder">&#10003;</button>
+      `;
+
+      const dismissBtn = li.querySelector('.notif-dismiss-btn');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => dismissReminder(reminder.id, li));
+      }
+
+      notifList.appendChild(li);
+    });
+  }
+
+  function updateNotifBadge() {
+    if (notifBadge) {
+      notifBadge.hidden = dueReminders.length === 0;
+    }
+  }
+
+  async function loadDueReminders() {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/reminders/due`);
+
+      if (!response.ok) {
+        throw new Error(`Server responded ${response.status}`);
+      }
+
+      dueReminders = await response.json();
+      renderNotifList(dueReminders);
+      updateNotifBadge();
+
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Failed to load due reminders:', error);
+    }
+  }
+
+  async function dismissReminder(id, li) {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/reminders/${id}/trigger`, { method: 'PATCH' });
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`Server responded ${response.status}`);
+      }
+
+      dueReminders = dueReminders.filter(reminder => String(reminder.id) !== String(id));
+      li.remove();
+      updateNotifBadge();
+
+      if (notifEmpty) {
+        notifEmpty.hidden = notifList.children.length !== 0;
+      }
+
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Failed to dismiss reminder:', error);
+      showToast('Could not dismiss the reminder.');
+    }
+  }
+
+  if (notifBtn && notifDropdown) {
+    notifBtn.addEventListener('click', event => {
+      event.stopPropagation();
+      notifDropdown.hidden = !notifDropdown.hidden;
+    });
+  }
+
+  document.addEventListener('click', event => {
+    if (notifDropdown && !event.target.closest('#notif-menu')) {
+      notifDropdown.hidden = true;
+    }
+  });
 
   // ============================================================
   // ESCAPE KEY
@@ -2931,6 +3064,10 @@ document.addEventListener('DOMContentLoaded', () => {
           closePasswordModal();
         }
 
+        if (notifDropdown && !notifDropdown.hidden) {
+          notifDropdown.hidden = true;
+        }
+
         if (
             notifPrefsModal &&
             !notifPrefsModal.hidden
@@ -2946,6 +3083,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateCurrentDate();
   loadProfile();
-  loadTasks();   // renders the loading skeletons first, then the numbers
-
+  loadTasks();// renders the loading skeletons first, then the numbers
+  loadDueReminders();
 });

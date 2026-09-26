@@ -29,7 +29,9 @@ public class UserController {
                 user.getFullName(),
                 user.getEmail(),
                 user.getUsername(),
-                user.getProfileMode()
+                user.getProfileMode(),
+                user.getPhoneNumber(),
+                user.getDateOfBirth()
         );
 
         return ResponseEntity.ok(response);

@@ -23,6 +23,23 @@
   --radius: 0.75rem;
 }
 
+:root[data-theme="dark"] {
+  --trust-blue: #4A9FD8;
+  --navy: #E8F1F8;
+  --bg-mist: #131A22;
+  --card-mist: #1E2833;
+  --white: #1A232D;
+  --slate: #E8EEF3;
+  --slate-light: #94A3B8;
+  --border: #2D3B48;
+  --success: #3FBF8F;
+  --success-bg: #12291F;
+  --amber: #F0A202;
+  --amber-bg: #2E2410;
+  --coral: #E4572E;
+  --coral-bg: #2E1712;
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -1145,6 +1162,68 @@ select:focus-visible {
   .modal-card { padding: 1.125rem; }
 }
 
+
+/* ---- Reminders bell dropdown (KAN-235/236) ---- */
+.notif-dropdown {
+  width: 18rem;
+}
+
+.notif-dropdown-header {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--navy);
+  padding: 0.25rem 1rem 0.625rem;
+}
+
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notif-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-top: 0.0625rem solid var(--border);
+}
+
+.notif-item-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.notif-item-time {
+  font-size: 0.75rem;
+  color: var(--slate-light);
+}
+
+.notif-dismiss-btn {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--card-mist);
+  color: var(--trust-blue);
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+
+.notif-dismiss-btn:hover {
+  background: var(--border);
+}
+
+.notif-empty {
+  padding: 1rem;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+  text-align: center;
+}
 
 /* =========================================================
    TASK LIST: ROLE / STATUS FILTERS + SORT

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 @Repository
 public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID> {
@@ -19,6 +20,7 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
 
     long countByUserIdAndStatus(UUID userId, String status);
 
+    Optional<ScheduleItem> findByIdAndUserId(UUID id, UUID userId);
     /**
      * Calendar range (S3-02): the user's items that should appear between from (inclusive)
      * and to (exclusive). An item is included if
