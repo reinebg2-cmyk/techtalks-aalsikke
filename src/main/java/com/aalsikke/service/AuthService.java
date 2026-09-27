@@ -40,7 +40,7 @@ public class AuthService {
         }
 
         if (request.getUsername() != null && userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("This username is already taken.");
+            throw new com.aalsikke.exception.UsernameAlreadyExistsException("This username is already taken.");
         }
 
         User user = new User();
@@ -97,7 +97,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Current password is incorrect.");
+            throw new com.aalsikke.exception.InvalidCurrentPasswordException("Current password is incorrect.");
         }
 
         if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
