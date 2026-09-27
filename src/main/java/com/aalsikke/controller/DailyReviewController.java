@@ -4,6 +4,7 @@ import com.aalsikke.dto.DailyReviewEntry;
 import com.aalsikke.dto.WeeklyReviewResponse;
 import com.aalsikke.model.DailyReview;
 import com.aalsikke.service.DailyReviewService;
+import com.aalsikke.dto.DailyReviewRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/daily-reviews")
@@ -44,7 +47,8 @@ public class DailyReviewController {
     }
 
     @PostMapping
-    public ResponseEntity<DailyReviewEntry> createReview(@RequestBody DailyReview review, Authentication authentication) {
-        return ResponseEntity.ok(dailyReviewService.createReview(review, authentication.getName()));
+    public ResponseEntity<DailyReviewEntry> createReview(@Valid @RequestBody DailyReviewRequest request,
+                                                         Authentication authentication) {
+        return ResponseEntity.ok(dailyReviewService.createReview(request, authentication.getName()));
     }
 }

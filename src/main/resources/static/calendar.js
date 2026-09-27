@@ -86,7 +86,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logout-link').addEventListener('click', () => {
         localStorage.removeItem(TOKEN_KEY);
     });
-
+// // ============================================================
+//     // THEME (KAN-239)
+//     // ============================================================
+//
+//     const THEME_KEY = 'aalsikke_theme';
+//
+//     function applyTheme(theme) {
+//         document.documentElement.setAttribute('data-theme', theme);
+//     }
+//
+//     const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+//     applyTheme(savedTheme);
+//
+//     const themeToggle = document.getElementById('theme-toggle');
+//     if (themeToggle) {
+//         themeToggle.checked = savedTheme === 'dark';
+//         themeToggle.addEventListener('change', () => {
+//             const newTheme = themeToggle.checked ? 'dark' : 'light';
+//             localStorage.setItem(THEME_KEY, newTheme);
+//             applyTheme(newTheme);
+//         });
+//     }
     // ============================================================
     // DOM + STATE
     // ============================================================

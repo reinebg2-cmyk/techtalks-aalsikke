@@ -64,28 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     return response;
   }
-  // ============================================================
-  // THEME (KAN-239)
-  // ============================================================
-
-  const THEME_KEY = 'aalsikke_theme';
-
-  function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-  }
-
-  const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
-  applyTheme(savedTheme);
-
-  const themeToggle = document.getElementById('theme-toggle');
-  if (themeToggle) {
-    themeToggle.checked = savedTheme === 'dark';
-    themeToggle.addEventListener('change', () => {
-      const newTheme = themeToggle.checked ? 'dark' : 'light';
-      localStorage.setItem(THEME_KEY, newTheme);
-      applyTheme(newTheme);
-    });
-  }
 
   // ============================================================
   // DOM ELEMENTS
@@ -177,6 +155,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================
 
   let allTasks = [];
+
+  // Populated by refreshConflicts() from GET /api/schedule-conflicts/me (S3-07).
+  // conflictPartnersByTaskId maps a task's id (string) -> the other items it
+  // clashes with, so renderTasks() can mark cards without re-fetching.
+  let conflictPartnersByTaskId = new Map();
+
   let activeFilter = 'all';
   let activeRoleFilter = 'ALL';      // ALL | STUDENT | WORK
   let activeStatusFilter = 'ALL';    // ALL | PENDING | COMPLETED | OVERDUE
@@ -290,6 +274,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getTaskDate(task) {
     return task.deadline || task.startTime;
+  }
+
+  // ============================================================
+  // SCHEDULE CONFLICTS (S3-07 / KAN-233)
+  // GET /api/schedule-conflicts/me
+  // ============================================================
+
+  function applyConflictPairs(pairs) {
+    conflictPartnersByTaskId = new Map();
+
+    (Array.isArray(pairs) ? pairs : []).forEach(pair => {
+      const first = pair && pair.itemOne;
+      const second = pair && pair.itemTwo;
+
+      if (!first || !second) {
+        return;
+      }
+
+      const firstId = String(first.id);
+      const secondId = String(second.id);
+
+      if (!conflictPartnersByTaskId.has(firstId)) {
+        conflictPartnersByTaskId.set(firstId, []);
+      }
+      if (!conflictPartnersByTaskId.has(secondId)) {
+        conflictPartnersByTaskId.set(secondId, []);
+      }
+
+      conflictPartnersByTaskId.get(firstId).push(second);
+      conflictPartnersByTaskId.get(secondId).push(first);
+    });
+  }
+
+  // Re-fetches every conflicting pair among the user's own items and rebuilds
+  // conflictPartnersByTaskId. Called after the initial task load and again
+  // whenever a task is created or edited, since a saved item's new time can
+  // both create and clear clashes for other items too.
+  async function refreshConflicts() {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/schedule-conflicts/me`);
+
+      if (!response.ok) {
+        throw new Error(`Server responded ${response.status}`);
+      }
+
+      applyConflictPairs(await response.json());
+
+    } catch (error) {
+
+      if (error.sessionExpired) {
+        return;
+      }
+
+      // Non-fatal: the task list still renders, just without conflict badges.
+      console.error('Failed to load schedule conflicts:', error);
+    }
+  }
+
+  function describeConflictPartners(partners) {
+    const names = partners.map(
+        partner => `${partner.title} (${formatDue(partner.startTime)})`
+    );
+
+    if (names.length <= 2) {
+      return names.join(' and ');
+    }
+
+    return `${names.slice(0, 2).join(', ')}, and ${names.length - 2} more`;
+  }
+
+  // Shows a toast naming the clashing item(s) when the just-saved task has
+  // any conflicts (KAN-233). Silent when there are none, so saving a task
+  // that clashes with nothing doesn't get a redundant toast.
+  function announceConflictsIfAny(taskId) {
+    const partners = conflictPartnersByTaskId.get(String(taskId)) || [];
+
+    if (partners.length > 0) {
+      showToast(`Saved — this clashes with ${describeConflictPartners(partners)}.`);
+    }
   }
 
   function isToday(dateStr) {
@@ -1304,6 +1367,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       tasksState = 'ready';
 
+      await refreshConflicts();
+
       renderTasks();
       updateSummary();
 
@@ -1381,7 +1446,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const li =
           document.createElement('li');
 
-      li.className = 'task-card';
+      const conflictPartners =
+          conflictPartnersByTaskId.get(String(task.id)) || [];
+
+      const hasConflict = conflictPartners.length > 0;
+
+      li.className = `task-card${hasConflict ? ' is-conflict' : ''}`;
       li.dataset.id = task.id;
 
       const completed =
@@ -1417,6 +1487,12 @@ document.addEventListener('DOMContentLoaded', () => {
             Due ${escapeHtml(
           formatDue(getTaskDate(task))
       )}
+
+            ${
+          hasConflict
+              ? `<span class="conflict-badge" title="${escapeHtml(describeConflictPartners(conflictPartners))}">&#9888; Conflict</span>`
+              : ''
+      }
 
           </div>
 
@@ -1912,8 +1988,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             allTasks.push(createdTask);
 
+            await refreshConflicts();
+
             renderTasks();
             updateSummary();
+
+            announceConflictsIfAny(createdTask.id);
 
             taskForm.reset();
             taskForm.hidden = true;
@@ -2386,10 +2466,14 @@ document.addEventListener('DOMContentLoaded', () => {
                   updatedTask;
             }
 
+            await refreshConflicts();
+
             renderTasks();
             updateSummary();
 
             closeEditModal();
+
+            announceConflictsIfAny(updatedTask.id);
 
           } catch (error) {
 
@@ -2853,10 +2937,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (notifPrefsLink) {
-   notifPrefsLink.addEventListener('click', event => {
-     event.preventDefault();
-     openNotifPrefsModal();
-   });
+    notifPrefsLink.addEventListener('click', event => {
+      event.preventDefault();
+      openNotifPrefsModal();
+    });
   }
   const settingsChangePasswordBtn = document.getElementById('settings-change-password-btn');
   const settingsNotifPrefsBtn = document.getElementById('settings-notif-prefs-btn');

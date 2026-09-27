@@ -7,10 +7,13 @@
 
 :root {
   --trust-blue: #2C6E9E;
+  --trust-blue-bg: #E3EEF7;
   --navy: #0F4C75;
+  --ink-strong: #0F4C75;
   --bg-mist: #F4F7FA;
   --card-mist: #E8EEF3;
   --white: #FFFFFF;
+  --surface: #FFFFFF;
   --slate: #2D3748;
   --slate-light: #64748B;
   --border: #D8E1E8;
@@ -23,12 +26,23 @@
   --radius: 0.75rem;
 }
 
+/*
+ * KAN-239: dark theme. --white and --navy were each doing double duty in the
+ * light palette above — "literal white/dark" for text drawn on a colored
+ * button AND "the card surface / guaranteed-dark-background" color. Redefining
+ * them directly here breaks contrast (e.g. buttons and the toast go
+ * unreadable), so this override keeps --white and --navy for their text role
+ * and hands the surface/guaranteed-dark-background role to the new --surface
+ * and --ink-strong variables instead (see the var(--surface) / var(--ink-strong)
+ * usages throughout this file).
+ */
 :root[data-theme="dark"] {
   --trust-blue: #4A9FD8;
+  --trust-blue-bg: #16283A;
   --navy: #E8F1F8;
   --bg-mist: #131A22;
   --card-mist: #1E2833;
-  --white: #1A232D;
+  --surface: #1A232D;
   --slate: #E8EEF3;
   --slate-light: #94A3B8;
   --border: #2D3B48;
@@ -96,6 +110,12 @@ body {
   text-decoration: none;
 }
 
+.topbar-end {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* Intro block (registration) */
 .intro {
   padding: 0.25rem 0.25rem 1.25rem;
@@ -142,7 +162,7 @@ body {
 
 /* Card */
 .card {
-  background: var(--white);
+  background: var(--surface);
   border: 0.0625rem solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
@@ -221,7 +241,7 @@ body {
   font-size: 0.875rem;
   border: 0.0625rem solid var(--border);
   border-radius: 0.625rem;
-  background: var(--white);
+  background: var(--surface);
   color: var(--slate);
   outline: none;
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -316,7 +336,7 @@ body {
   transition: background 0.15s ease;
 }
 
-.btn-primary:hover { background: var(--navy); }
+.btn-primary:hover { background: var(--ink-strong); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-secondary {
@@ -439,7 +459,7 @@ body {
 /* ---- Top bar ---- */
 .dash-topbar {
   padding: 0.875rem 1.5rem;
-  background: var(--white);
+  background: var(--surface);
   border-bottom: 0.0625rem solid var(--border);
 }
 
@@ -468,7 +488,7 @@ body {
   height: 0.5rem;
   border-radius: 50%;
   background: var(--amber);
-  border: 0.0938rem solid var(--white);
+  border: 0.0938rem solid var(--surface);
 }
 
 .profile-menu {
@@ -491,7 +511,7 @@ body {
   position: absolute;
   right: 0;
   top: 2.75rem;
-  background: var(--white);
+  background: var(--surface);
   border: 0.0625rem solid var(--border);
   border-radius: 0.625rem;
   box-shadow: 0 0.25rem 0.75rem rgba(15, 76, 117, 0.12);
@@ -527,7 +547,7 @@ body {
 }
 
 .profile-card {
-  background: var(--white);
+  background: var(--surface);
   border: 0.0625rem solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
@@ -573,7 +593,7 @@ body {
 }
 
 .side-nav {
-  background: var(--white);
+  background: var(--surface);
   border: 0.0625rem solid var(--border);
   border-radius: var(--radius);
   padding: 0.5rem;
@@ -713,7 +733,7 @@ body {
   padding: 0.875rem;
   border: 0.0625rem solid var(--border);
   border-radius: 0.625rem;
-  background: var(--white);
+  background: var(--surface);
 }
 
 .task-card.is-complete { opacity: 0.55; }
@@ -755,6 +775,25 @@ body {
 .priority-dot.low { background: var(--success); }
 .priority-dot.medium { background: var(--amber); }
 .priority-dot.high { background: var(--coral); }
+
+/* ---- Conflict marking (S3-07 / KAN-233) ---- */
+.task-card.is-conflict {
+  border-color: var(--coral);
+  background: var(--coral-bg);
+}
+
+.conflict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--white);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
 
 .task-menu-btn {
   background: none;
@@ -804,7 +843,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--white);
+    background: var(--surface);
     border-top: 0.0625rem solid var(--border);
     padding: 0.5rem 0 0.75rem;
   }
@@ -928,7 +967,7 @@ select:focus-visible {
   max-width: 30rem;
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
-  background: var(--white);
+  background: var(--surface);
   border-radius: var(--radius);
   padding: 1.5rem;
   box-shadow: 0 1rem 2.5rem rgba(15, 76, 117, 0.25);
@@ -1137,7 +1176,7 @@ select:focus-visible {
   max-width: calc(100vw - 2rem);
   padding: 0.75rem 1.25rem;
   border-radius: 0.625rem;
-  background: var(--navy);
+  background: var(--ink-strong);
   color: var(--white);
   font-size: 0.875rem;
   font-weight: 600;
@@ -1255,7 +1294,7 @@ select:focus-visible {
   padding: 0.5rem 0.75rem;
   font-size: 0.8125rem;
   color: var(--slate);
-  background: var(--white);
+  background: var(--surface);
   border: 0.0625rem solid var(--border);
   border-radius: 0.625rem;
   cursor: pointer;

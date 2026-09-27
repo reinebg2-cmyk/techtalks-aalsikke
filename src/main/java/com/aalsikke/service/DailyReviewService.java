@@ -8,6 +8,7 @@ import com.aalsikke.model.User;
 import com.aalsikke.repository.DailyReviewRepository;
 import com.aalsikke.repository.ScheduleItemRepository;
 import com.aalsikke.repository.UserRepository;
+import com.aalsikke.dto.DailyReviewRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -44,9 +45,19 @@ public class DailyReviewService {
                 .toList();
     }
 
-    public DailyReviewEntry createReview(DailyReview review, String email) {
+    /**
+     * Always creates a NEW review for the caller from the allowed fields only.
+     * The request has no id, so a client cannot overwrite (or take over) someone else's review.
+     */
+    public DailyReviewEntry createReview(DailyReviewRequest request, String email) {
         User user = findUser(email);
+
+        DailyReview review = new DailyReview();
         review.setUser(user);
+        review.setReviewDate(request.reviewDate());
+        review.setProductivityScore(request.productivityScore());
+        review.setNotes(request.notes());
+
         return DailyReviewEntry.from(dailyReviewRepository.save(review));
     }
 
