@@ -13,6 +13,7 @@ import com.aalsikke.model.User;
 import com.aalsikke.repository.UserRepository;
 import com.aalsikke.security.JwtService;
 import com.aalsikke.util.PhoneNumbers;
+import com.aalsikke.exception.PhoneAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -50,7 +51,7 @@ public class AuthService {
         // KAN-257: store phones in one format and give a clear error for duplicates
         String phone = PhoneNumbers.normalize(request.getPhoneNumber());
         if (phone != null && userRepository.existsByPhoneNumber(phone)) {
-            throw new IllegalArgumentException("Phone number is already in use by another account.");
+            throw new PhoneAlreadyExistsException("Phone number is already in use by another account.");
         }
 
         User user = new User();
@@ -146,7 +147,7 @@ public class AuthService {
             userRepository.findByPhoneNumber(newPhone)
                     .filter(existing -> !existing.getId().equals(user.getId()))
                     .ifPresent(existing -> {
-                        throw new IllegalArgumentException("Phone number is already in use by another account.");
+                        throw new PhoneAlreadyExistsException("Phone number is already in use by another account.");
                     });
             user.setPhoneNumber(newPhone);
             user.setPhoneVerified(false);
