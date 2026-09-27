@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="theme-init.js"></script>
     <title>Aal Sikke — Calendar</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="calendar.css">
@@ -14,6 +15,7 @@
     <header class="topbar dash-topbar">
         <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
         <div class="topbar-actions">
+            <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
             <a href="login.html" class="btn-secondary cal-logout" id="logout-link">Log out</a>
         </div>
     </header>
@@ -31,7 +33,7 @@
                 <a href="#" class="nav-link">
                     <span class="nav-icon">&#9745;</span> Tasks
                 </a>
-                <a href="#settings.html" class="nav-link">
+                <a href="settings.html" class="nav-link">
                     <span class="nav-icon">&#9881;</span> Settings
                 </a>
             </nav>
@@ -80,7 +82,7 @@
         <a href="dashboard.html"><span>&#9635;</span>Dashboard</a>
         <a href="calendar.html" class="active"><span>&#128197;</span>Calendar</a>
         <a href="#"><span>&#9745;</span>Tasks</a>
-        <a href="#"><span>&#9881;</span>Settings</a>
+        <a href="settings.html"><span>&#9881;</span>Settings</a>
     </nav>
 </div>
 
@@ -128,6 +130,7 @@
     </div>
 </div>
 
+<script src="theme-toggle.js"></script>
 <script src="calendar.js"></script>
 </body>
 </html>

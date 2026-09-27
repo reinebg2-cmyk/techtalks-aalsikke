@@ -1,7 +1,7 @@
 /* Aal Sikke — Calendar (S3-11). Uses the colour variables from styles.css. */
 
 /* ---- Role colours (blocks, markers, legend) ---- */
-.cal-student  { --cal-color: var(--trust-blue); --cal-bg: #E3EEF7; }
+.cal-student  { --cal-color: var(--trust-blue); --cal-bg: var(--trust-blue-bg); }
 .cal-work     { --cal-color: var(--amber);      --cal-bg: var(--amber-bg); }
 .cal-personal { --cal-color: var(--success);    --cal-bg: var(--success-bg); }
 
@@ -110,7 +110,7 @@
     --cal-scrollbar: 0px;   /* set by calendar.js to the real scrollbar width */
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: var(--white);
+    background: var(--surface);
     overflow-x: auto;   /* narrow screens scroll sideways instead of squashing 7 days */
 }
 
@@ -250,7 +250,7 @@
     );
 }
 
-.cal-day-col.is-today { background-color: #F7FAFD; }
+.cal-day-col.is-today { background-color: var(--card-mist); }
 
 /* ---- Event blocks ---- */
 .cal-event {
@@ -448,7 +448,7 @@
     padding: 0.5rem 0.75rem;
     border-left: 3px solid var(--stat-color);
     border-radius: 0.5rem;
-    background: var(--white);
+    background: var(--surface);
 }
 
 .cal-stat.is-completed { --stat-color: var(--success); }
