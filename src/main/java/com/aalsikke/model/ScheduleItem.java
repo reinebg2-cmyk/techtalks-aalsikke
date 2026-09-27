@@ -2,6 +2,8 @@ package com.aalsikke.model;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import java.util.List;
+import java.util.ArrayList;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -13,6 +15,13 @@ public class ScheduleItem {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @OneToMany(mappedBy = "scheduleItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Reminder> reminders = new ArrayList<>();
+
+    // Getters and setters
+    public List<Reminder> getReminders() { return reminders; }
+    public void setReminders(List<Reminder> reminders) { this.reminders = reminders; }
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

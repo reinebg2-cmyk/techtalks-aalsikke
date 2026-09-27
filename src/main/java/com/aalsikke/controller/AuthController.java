@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.aalsikke.dto.UpdateProfileRequest;
+import com.aalsikke.dto.ChangePasswordRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,5 +41,11 @@ public class AuthController {
             @Valid @RequestBody UpdateProfileRequest request,
             Authentication authentication) {
         return ResponseEntity.ok(authService.updateProfile(authentication.getName(), request));
+    }
+    @PutMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+                                               Authentication authentication) {
+        authService.changePassword(authentication.getName(), request);
+        return ResponseEntity.noContent().build();
     }
 }

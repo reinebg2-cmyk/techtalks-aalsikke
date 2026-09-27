@@ -5,6 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "reminders")
@@ -16,6 +17,7 @@ public class Reminder {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "schedule_item_id", nullable = false)
+    @JsonIgnoreProperties({"reminders", "hibernateLazyInitializer", "handler"})
     private ScheduleItem scheduleItem;
 
     @Column(name = "remind_at", nullable = false)
