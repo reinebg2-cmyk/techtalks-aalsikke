@@ -1,0 +1,59 @@
+/* Tasks page only (KAN-259). Loaded after styles.css by tasks.html. */
+
+/* Search on its own row, the four filters evenly in one row below. */
+.tasks-toolbar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tasks-toolbar .tasks-search-field {
+    grid-column: 1 / -1;
+}
+
+/* Search box styled like the toolbar dropdowns (styles.css .toolbar-field select). */
+.toolbar-field input[type="search"] {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--slate);
+    background: var(--surface);
+    border: 0.0625rem solid var(--border);
+    border-radius: 0.625rem;
+}
+
+.toolbar-field input[type="search"]:hover,
+.toolbar-field input[type="search"]:focus {
+    border-color: var(--trust-blue);
+    outline: none;
+}
+
+/* Groups: breathing room between the filters and each group header. */
+#tasks-groups {
+    margin-top: 1rem;
+}
+
+.tasks-group + .tasks-group {
+    margin-top: 1.25rem;
+}
+
+.tasks-group summary {
+    cursor: pointer;
+    padding: 0.25rem 0;
+    color: var(--slate);
+}
+
+.tasks-group-count {
+    color: var(--slate-light);
+    font-weight: 400;
+}
+
+.tasks-group .task-list {
+    margin-top: 0.5rem;
+}
+
+/* Phones: two filters per row. */
+@media (max-width: 48rem) {
+    .tasks-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

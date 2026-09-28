@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="theme-init.js"></script>
+    <title>Aal Sikke — Tasks</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="tasks.css">
+</head>
+<body class="dashboard-body">
+
+<div class="app-shell">
+
+    <!-- Top bar (same shell as dashboard.html, so the bell/reminders and profile menu work here too) -->
+    <header class="topbar dash-topbar">
+        <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
+        <div class="topbar-actions">
+            <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
+            <div class="profile-menu" id="notif-menu">
+                <button class="icon-btn" id="notif-btn" aria-label="Notifications">
+                    &#128276;
+                    <span class="badge-dot" id="notif-badge" hidden></span>
+                </button>
+                <div class="profile-dropdown notif-dropdown" id="notif-dropdown" hidden>
+                    <div class="notif-dropdown-header">Reminders</div>
+                    <ul class="notif-list" id="notif-list"></ul>
+                    <p class="notif-empty" id="notif-empty" hidden>Nothing due right now.</p>
+                </div>
+            </div>
+            <div class="profile-menu">
+                <button class="avatar-btn" id="avatar-btn" aria-label="Open profile menu">AC</button>
+                <div class="profile-dropdown" id="profile-dropdown" hidden>
+                    <a href="#" id="edit-profile-link">Edit Profile</a>
+                    <a href="#" id="change-password-link">Change password</a>
+                    <a href="#" id="notification-prefs-link">Notification preferences</a>
+                    <a href="login.html" id="logout-link">Log out</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-body">
+
+        <!-- Sidebar (Settings marked active instead of Dashboard) -->
+        <aside class="sidebar">
+            <div class="profile-card">
+                <div class="avatar-lg" id="profile-avatar">AC</div>
+                <div class="profile-info">
+                    <p class="profile-name" id="profile-name">Loading...</p>
+                    <span class="role-tag" id="profile-role"> profile</span>
+                </div>
+                <p class="profile-meta" id="profile-meta"></p>
+            </div>
+
+            <nav class="side-nav">
+                <a href="dashboard.html" class="nav-link">
+                    <span class="nav-icon">&#9635;</span> Dashboard
+                </a>
+                <a href="calendar.html" class="nav-link">
+                    <span class="nav-icon">&#128197;</span> Calendar
+                </a>
+                <a href="tasks.html" class="nav-link active" id="tasks-nav-link">
+                    <span class="nav-icon">&#9745;</span> Tasks
+                </a>
+                <a href="settings.html" class="nav-link" id="settings-nav-link">
+                    <span class="nav-icon">&#9881;</span> Settings
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main content -->
+        <main class="main-content">
+
+            <!-- KAN-259: Tasks page (full task management view) -->
+            <section class="greeting-row">
+                <div>
+                    <h1>Tasks</h1>
+                    <span class="greeting-sub">Everything you need to do, in one place.</span>
+                </div>
+                <p class="greeting-summary" id="greeting-summary">Loading...</p>
+            </section>
+
+            <!-- Create: same ids as the dashboard's quick capture, so dashboard.js handles it -->
+            <section class="card task-create-card">
+                <div class="row-between">
+                    <div>
+                        <h2>New task</h2>
+                        <p class="card-subtitle">Add a task to your workspace.</p>
+                    </div>
+                    <button type="button" class="link-btn" id="toggle-form-btn">+ New task</button>
+                </div>
+                <form id="task-form" class="task-form" hidden>
+                    <div class="field">
+                        <label for="task-title">Task title</label>
+                        <div class="input-wrap">
+                            <input type="text" id="task-title" name="title" placeholder="e.g. Submit CS301 Problem Set" required>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="task-due">Deadline</label>
+                            <div class="input-wrap"><input type="datetime-local" id="task-due" name="due" required></div>
+                        </div>
+                        <div class="field">
+                            <label for="task-priority">Priority</label>
+                            <div class="input-wrap">
+                                <select id="task-priority" name="priority">
+                                    <option value="LOW">Low</option>
+                                    <option value="MEDIUM" selected>Medium</option>
+                                    <option value="HIGH">High</option>
+                                    <option value="URGENT">Urgent</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="task-category">Category</label>
+                        <div class="input-wrap">
+                            <select id="task-category" name="category">
+                                <option value="ASSIGNMENT">Assignment</option>
+                                <option value="EXAM">Exam</option>
+                                <option value="CLASS">Class</option>
+                                <option value="STUDY">Study</option>
+                                <option value="SHIFT">Shift</option>
+                                <option value="PERSONAL">Personal</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" id="cancel-task-btn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="save-task-btn">+ Add task</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Search + filters (own ids, handled by tasks.js) -->
+            <section class="card task-list-card">
+                <div class="row-between">
+                    <h2>All tasks</h2>
+                    <p class="task-count" id="tasks-count" role="status" aria-live="polite"></p>
+                </div>
+
+                <div class="task-toolbar tasks-toolbar" role="group" aria-label="Search and filter tasks">
+                    <div class="toolbar-field tasks-search-field">
+                        <label for="tasks-search">Search</label>
+                        <input type="search" id="tasks-search" placeholder="Search by title" autocomplete="off">
+                    </div>
+                    <div class="toolbar-field">
+                        <label for="tasks-role-filter">Role</label>
+                        <select id="tasks-role-filter" autocomplete="off">
+                            <option value="ALL" selected>All roles</option>
+                            <option value="STUDENT">Student</option>
+                            <option value="WORK">Work</option>
+                            <option value="PERSONAL">Personal</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-field">
+                        <label for="tasks-category-filter">Category</label>
+                        <select id="tasks-category-filter" autocomplete="off">
+                            <option value="ALL" selected>All categories</option>
+                            <option value="ASSIGNMENT">Assignment</option>
+                            <option value="EXAM">Exam</option>
+                            <option value="CLASS">Class</option>
+                            <option value="STUDY">Study</option>
+                            <option value="SHIFT">Shift</option>
+                            <option value="PERSONAL">Personal</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-field">
+                        <label for="tasks-priority-filter">Priority</label>
+                        <select id="tasks-priority-filter" autocomplete="off">
+                            <option value="ALL" selected>All priorities</option>
+                            <option value="URGENT">Urgent</option>
+                            <option value="HIGH">High</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="LOW">Low</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-field">
+                        <label for="tasks-status-filter">Status</label>
+                        <select id="tasks-status-filter" autocomplete="off">
+                            <option value="ALL" selected>All statuses</option>
+                            <option value="PENDING">Pending</option>
+                            <option value="OVERDUE">Overdue</option>
+                            <option value="COMPLETED">Completed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- tasks.js renders the groups (Overdue / Today / Upcoming / No date / Completed) here -->
+                <p class="empty-state" id="tasks-state">Loading your tasks...</p>
+                <div id="tasks-groups"></div>
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- Mobile bottom nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html"><span>&#9635;</span>Dashboard</a>
+        <a href="calendar.html"><span>&#128197;</span>Calendar</a>
+        <a href="tasks.html" class="active" id="tasks-bottom-link"><span>&#9745;</span>Tasks</a>
+        <a href="settings.html" id="settings-bottom-link"><span>&#9881;</span>Settings</a>
+    </nav>
+
+</div>
+
+<!-- Profile edit modal (shared with dashboard.html; dashboard.js wires it up the same way here) -->
+<div class="modal-backdrop" id="profile-modal" hidden>
+    <div class="modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+        <div class="modal-header">
+            <div>
+                <h2 id="profile-modal-title">Edit profile</h2>
+                <p id="profile-modal-subtitle">Update your details and how you use Aal Sikke.</p>
+            </div>
+            <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close">&#10005;</button>
+        </div>
+
+        <form id="profile-form" novalidate>
+            <div class="profile-modal-avatar" id="modal-profile-avatar" aria-hidden="true">AC</div>
+
+            <fieldset class="role-field" id="field-profile-mode">
+                <legend class="field-label">I use Aal Sikke primarily for</legend>
+                <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role">
+                    <input type="radio" name="profile-role" id="profile-role-student" value="STUDENT">
+                    <label for="profile-role-student">Student</label>
+                    <input type="radio" name="profile-role" id="profile-role-work" value="WORK">
+                    <label for="profile-role-work">Work</label>
+                    <input type="radio" name="profile-role" id="profile-role-dual" value="HYBRID">
+                    <label for="profile-role-dual">Dual</label>
+                </div>
+                <p class="role-hint" id="profile-role-hint"></p>
+                <p class="hint error-text" role="alert"></p>
+            </fieldset>
+
+            <div class="form-grid">
+                <div class="field" id="field-profile-fullname">
+                    <label for="profile-fullname">Full name</label>
+                    <div class="input-wrap"><input id="profile-fullname" type="text" autocomplete="name" maxlength="255"></div>
+                    <p class="hint error-text" role="alert"></p>
+                </div>
+                <div class="field">
+                    <label for="profile-username">Username</label>
+                    <div class="input-wrap"><input id="profile-username" type="text" readonly aria-readonly="true"></div>
+                </div>
+            </div>
+
+            <div class="field" id="field-profile-email">
+                <label for="profile-email">Email</label>
+                <div class="input-wrap"><input id="profile-email" type="email" autocomplete="email" maxlength="255"></div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <div class="form-grid">
+                <div class="field">
+                    <label for="profile-dob">Date of birth</label>
+                    <div class="input-wrap"><input id="profile-dob" type="date" readonly aria-readonly="true"></div>
+                </div>
+                <div class="field" id="field-profile-phone">
+                    <label for="profile-phone">Phone number</label>
+                    <div class="input-wrap"><input id="profile-phone" type="tel" autocomplete="tel" maxlength="50"></div>
+                    <p class="hint error-text" role="alert"></p>
+                </div>
+            </div>
+
+            <p class="modal-message" id="profile-message" role="status" aria-live="polite"></p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-profile-btn">Cancel</button>
+                <button type="submit" class="btn-primary" id="save-profile-btn">Save profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change password modal (shared with dashboard.html) -->
+<div class="modal-backdrop" id="password-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+        <div class="modal-header">
+            <div>
+                <h2 id="password-modal-title">Change password</h2>
+                <p>Choose a new password for your account.</p>
+            </div>
+            <button type="button" class="modal-close" id="close-password-modal" aria-label="Close">&#10005;</button>
+        </div>
+
+        <form id="password-form" novalidate>
+            <div class="field" id="field-current-password">
+                <label for="current-password">Current password</label>
+                <div class="input-wrap">
+                    <input id="current-password" type="password" autocomplete="current-password">
+                </div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <div class="field" id="field-new-password">
+                <label for="new-password">New password</label>
+                <div class="input-wrap">
+                    <input id="new-password" type="password" autocomplete="new-password">
+                </div>
+                <div class="strength-meter" id="password-strength-meter"><span></span><span></span><span></span></div>
+                <p class="hint" id="new-password-strength-hint" style="display:none;"></p>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <div class="field" id="field-confirm-new-password">
+                <label for="confirm-new-password">Confirm new password</label>
+                <div class="input-wrap">
+                    <input id="confirm-new-password" type="password" autocomplete="new-password">
+                </div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <p class="modal-message" id="password-message" role="status" aria-live="polite"></p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-password-btn">Cancel</button>
+                <button type="submit" class="btn-primary" id="save-password-btn">Update password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Notification preferences modal (shared with dashboard.html) -->
+<div class="modal-backdrop" id="notif-prefs-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="notif-prefs-modal-title">
+        <div class="modal-header">
+            <div>
+                <h2 id="notif-prefs-modal-title">Notification preferences</h2>
+                <p>Choose which alerts Aal Sikke sends you.</p>
+            </div>
+            <button type="button" class="modal-close" id="close-notif-prefs-modal" aria-label="Close">&#10005;</button>
+        </div>
+
+        <form id="notif-prefs-form">
+            <div class="toggle-row">
+                <div class="toggle-text">
+                    <span class="toggle-title">Deadline reminders</span>
+                    <span class="toggle-subtitle">Get notified as a task's deadline approaches.</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="pref-deadline-reminders">
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div class="toggle-text">
+                    <span class="toggle-title">Overdue alerts</span>
+                    <span class="toggle-subtitle">Get notified when a task passes its deadline.</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="pref-overdue-alerts">
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div class="toggle-text">
+                    <span class="toggle-title">Schedule conflicts</span>
+                    <span class="toggle-subtitle">Get notified when two items overlap on your calendar.</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="pref-schedule-conflicts">
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div class="toggle-text">
+                    <span class="toggle-title">Weekly review readiness</span>
+                    <span class="toggle-subtitle">Get notified when your weekly summary is ready.</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="pref-weekly-review-ready">
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <p class="modal-message" id="notif-prefs-message" role="status" aria-live="polite"></p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-notif-prefs-btn">Close</button>
+                <button type="submit" class="btn-primary" id="save-notif-prefs-btn">Save preferences</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Task edit modal (same as dashboard.html; dashboard.js wires it up) -->
+<div class="modal-backdrop" id="task-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+        <div class="modal-header">
+            <div><h2 id="task-modal-title">Edit task</h2><p>Update the task and save it to the backend.</p></div>
+            <button type="button" class="modal-close" id="close-task-modal" aria-label="Close">&#10005;</button>
+        </div>
+        <form id="edit-task-form">
+            <input type="hidden" id="edit-task-id">
+            <div class="field"><label for="edit-task-title">Task title</label><div class="input-wrap"><input id="edit-task-title" required></div></div>
+            <div class="field"><label for="edit-task-description">Description</label><div class="input-wrap"><textarea id="edit-task-description"></textarea></div></div>
+            <div class="form-grid">
+                <div class="field"><label for="edit-task-deadline">Deadline</label><div class="input-wrap"><input type="datetime-local" id="edit-task-deadline" required></div></div>
+                <div class="field"><label for="edit-task-priority">Priority</label><div class="input-wrap"><select id="edit-task-priority"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select></div></div>
+            </div>
+            <div class="form-grid">
+                <div class="field"><label for="edit-task-category">Category / role</label><div class="input-wrap"><select id="edit-task-category"><option value="ASSIGNMENT">Assignment</option><option value="EXAM">Exam</option><option value="CLASS">Class</option><option value="STUDY">Study</option><option value="SHIFT">Work shift</option><option value="PERSONAL">Personal</option></select></div></div>
+                <div class="field"><label for="edit-task-status">Status</label><div class="input-wrap"><select id="edit-task-status"><option value="PENDING">Pending</option><option value="COMPLETED">Completed</option></select></div></div>
+            </div>
+            <div class="form-actions"><button type="button" class="btn-secondary" id="cancel-edit-btn">Cancel</button><button type="submit" class="btn-primary" id="update-task-btn">Save changes</button></div>
+        </form>
+    </div>
+</div>
+
+<script src="theme-toggle.js"></script>
+<script src="dashboard.js"></script>
+<script src="tasks.js"></script>
+</body>
+</html>
