@@ -1381,6 +1381,8 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTasks();
       updateSummary();
 
+
+
     } catch (error) {
 
       if (error.sessionExpired) {
@@ -1393,6 +1395,7 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       tasksState = 'error';
+      document.dispatchEvent(new CustomEvent('aalsikke:tasks-error')); // KAN-259
       renderSummaryCards();
 
       const failedText = 'Tasks unavailable';
@@ -1856,6 +1859,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderSummaryCards();
+
+    // KAN-259: every task change (load, create, edit, complete, delete) ends
+    // here, so this is the one place that tells the Tasks page to re-render.
+    document.dispatchEvent(new CustomEvent('aalsikke:tasks-loaded'));
   }
 
   // ============================================================
@@ -3167,8 +3174,26 @@ document.addEventListener('DOMContentLoaded', () => {
         ) {
           closeNotifPrefsModal();
         }
+
       }
   );
+
+  // ============================================================
+  // KAN-259: small public API so the Tasks page reuses the same
+  // data, edit modal and actions instead of duplicating them.
+  // ============================================================
+  window.AalSikke = {
+    getTasks: () => allTasks,
+    getConflicts: () => conflictPartnersByTaskId,
+    getTasksState: () => tasksState,
+    reloadTasks: loadTasks,
+    openEditModal,
+    deleteTask,
+    apiFetch,
+    API_BASE
+  };
+
+
 
   // ============================================================
   // INITIALIZATION

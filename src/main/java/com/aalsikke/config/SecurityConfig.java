@@ -50,6 +50,7 @@ public class SecurityConfig {
                                 "/dashboard.html",
                                 "/calendar.html",
                                 "/settings.html",
+                                "/tasks.html",
                                 "/css/**",
                                 "/js/**",
                                 "/*.js",
