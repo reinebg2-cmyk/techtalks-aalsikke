@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = passwordInput.value;
 
     if (!email || !password) {
-      loginError.textContent = 'Please enter your email and password.';
+      loginError.textContent = 'Please enter your email, phone or username and your password.';
       passwordField.classList.add('is-error');
       return;
     }
