@@ -25,9 +25,11 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @NonNull
     public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        // Login accepts email, then phone, then username (first match wins).
         User user = userRepository.findByEmail(identifier)
                 .or(() -> findByPhone(identifier))
-                .orElseThrow(() -> new UsernameNotFoundException("No user found with email or phone number: " + identifier));
+                .or(() -> findByUsername(identifier))
+                .orElseThrow(() -> new UsernameNotFoundException("No user found with email, phone number or username: " + identifier));
 
         boolean enabled = "ACTIVE".equalsIgnoreCase(user.getAccountStatus()) && user.getDeletedAt() == null;
         return org.springframework.security.core.userdetails.User.builder()
@@ -54,5 +56,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
+    }
+
+
+    /** Usernames never contain "@", so an email-looking value skips this lookup. */
+    private Optional<User> findByUsername(String identifier) {
+        if (identifier == null || identifier.isBlank() || identifier.contains("@")) {
+            return Optional.empty();
+        }
+        return userRepository.findByUsername(identifier.trim());
     }
 }

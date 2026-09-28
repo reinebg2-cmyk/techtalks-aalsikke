@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({InvalidCredentialsException.class, BadCredentialsException.class})
     public ResponseEntity<ApiError> handleInvalidCredentials(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiError.of("Invalid email or password."));
+                .body(ApiError.of("Invalid login details or password."));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
