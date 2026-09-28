@@ -36,6 +36,12 @@ public class ScheduleItemRequest {
 
     private Boolean isRecurring;
 
+    /**
+     * KAN-270: on update, true removes the time window (startTime/endTime) so the
+     * task becomes deadline-only. Needed because null means "keep" in a partial update.
+     */
+    private Boolean clearTimeSlot;
+
     private UUID courseId;
     private UUID workplaceId;
 }
