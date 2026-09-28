@@ -120,7 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try { body = await res.json(); } catch (_) { /* empty body */ }
 
     if (!res.ok) {
-      throw { message: (body && body.message) || (body && body.error) || 'Registration failed. Please try again.' };
+      throw {
+        message: (body && body.message) || (body && body.error) || 'Registration failed. Please try again.',
+        field: body && !Array.isArray(body) ? body.field : null // KAN-258: server says which field
+      };
     }
     return body; // real AuthResponse: { token, message }
   }
@@ -157,7 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }).catch((err) => {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Create account →';
-      if (err.message && err.message.toLowerCase().includes('email')) {
+      if (err.field === 'username') {
+        // KAN-258: taken username → inline error, same as email
+        const usernameField = document.getElementById('field-username');
+        const usernameHint = usernameField.querySelector('.error-text');
+        if (usernameHint) usernameHint.textContent = err.message;
+        setState(usernameField, 'is-error');
+      } else if (err.field === 'email' || (err.message && err.message.toLowerCase().includes('email'))) {
         if (emailHint) emailHint.textContent = err.message;
         setState(emailField, 'is-error');
       } else {
