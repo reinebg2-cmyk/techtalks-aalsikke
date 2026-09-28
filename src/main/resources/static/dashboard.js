@@ -3036,7 +3036,7 @@ document.addEventListener('DOMContentLoaded', () => {
       li.className = 'notif-item';
       li.dataset.id = reminder.id;
 
-      const title = reminder.scheduleItem?.title || 'Reminder';
+      const title = reminder.scheduleItemTitle || 'Reminder';
 
       li.innerHTML = `
         <div class="notif-item-body">
