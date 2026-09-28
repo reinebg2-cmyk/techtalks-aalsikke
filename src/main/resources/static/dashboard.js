@@ -113,6 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const profileEmail = document.getElementById('profile-email');
   const profileDob = document.getElementById('profile-dob');
   const profilePhone = document.getElementById('profile-phone');
+  const profileCurrentPassword =
+      document.getElementById('profile-current-password'); // KAN-257
   const profileRoleRadios =
       document.querySelectorAll('input[name="profile-role"]');
   const profileRoleHint =
@@ -888,7 +890,9 @@ document.addEventListener('DOMContentLoaded', () => {
       fullName: profileFullname ? profileFullname.value.trim() : '',
       email: profileEmail ? profileEmail.value.trim() : '',
       profileMode: getSelectedRole(),
-      phoneNumber: profilePhone ? profilePhone.value.trim() : ''
+      phoneNumber: profilePhone ? profilePhone.value.trim() : '',
+      // KAN-257: backend requires it only when email or phone changes
+      currentPassword: profileCurrentPassword ? profileCurrentPassword.value : ''
     };
   }
 
@@ -926,6 +930,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profilePhone) {
       profilePhone.value = currentProfile.phoneNumber || '';
     }
+    // KAN-257: never keep a password in the form between opens/saves
+    if (profileCurrentPassword) {
+      profileCurrentPassword.value = '';
+    }
+
 
     if (modalProfileAvatar) {
       modalProfileAvatar.textContent = getInitials(
@@ -3043,7 +3052,7 @@ document.addEventListener('DOMContentLoaded', () => {
       li.className = 'notif-item';
       li.dataset.id = reminder.id;
 
-      const title = reminder.scheduleItem?.title || 'Reminder';
+      const title = reminder.scheduleItemTitle || 'Reminder';
 
       li.innerHTML = `
         <div class="notif-item-body">

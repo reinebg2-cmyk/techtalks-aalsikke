@@ -55,6 +55,7 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/*.js",
                                 "/*.css",
+                                "/favicon.ico",
                                 "/error"
                         ).permitAll()
                         .anyRequest().authenticated()

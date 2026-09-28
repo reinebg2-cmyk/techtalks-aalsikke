@@ -21,7 +21,11 @@ public class UpdateProfileRequest {
     @NotBlank(message = "Profile mode is required.")
     @Pattern(regexp = "STUDENT|WORK|HYBRID", message = "Profile mode must be STUDENT, WORK, or HYBRID.")
     private String profileMode;
-    @Size(max = 50, message = "Phone number must be 50 characters or fewer.")
 
+    /** Blank or missing = keep the current phone (KAN-257). Use remove-phone to delete it. */
+    @Size(max = 50, message = "Phone number must be 50 characters or fewer.")
     private String phoneNumber;
+
+    /** Required only when the email or phone number is being changed (KAN-257). */
+    private String currentPassword;
 }

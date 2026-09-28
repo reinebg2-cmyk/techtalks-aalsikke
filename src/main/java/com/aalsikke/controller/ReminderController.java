@@ -1,6 +1,7 @@
 package com.aalsikke.controller;
 
-import com.aalsikke.model.Reminder;
+import com.aalsikke.dto.CreateReminderRequest;
+import com.aalsikke.dto.ReminderResponseDTO;
 import com.aalsikke.service.ReminderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,13 +20,19 @@ public class ReminderController {
     }
 
     @PostMapping
-    public ResponseEntity<Reminder> createReminder(@RequestBody Reminder reminder, Authentication authentication) {
-        return ResponseEntity.ok(reminderService.createReminder(reminder, authentication.getName()));
+    public ResponseEntity<ReminderResponseDTO> createReminder(@RequestBody CreateReminderRequest request,
+                                                              Authentication authentication) {
+        if (request == null || request.scheduleItemId() == null || request.remindAt() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return reminderService.createReminder(request, authentication.getName())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /** KAN-236: bell/panel polls this on app open. */
     @GetMapping("/due")
-    public List<Reminder> getDueReminders(Authentication authentication) {
+    public List<ReminderResponseDTO> getDueReminders(Authentication authentication) {
         return reminderService.getDueRemindersForCurrentUser(authentication.getName());
     }
 
