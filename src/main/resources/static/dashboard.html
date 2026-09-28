@@ -6,6 +6,7 @@
   <script src="theme-init.js"></script>
   <title>Aal Sikke — Dashboard</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dashboard-board.css">
 </head>
 <body class="dashboard-body">
 
@@ -15,6 +16,7 @@
   <header class="topbar dash-topbar">
     <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
     <div class="topbar-actions">
+      <a href="tasks.html#new-task" class="add-task-btn" id="add-task-link" aria-label="Add task" title="Add task"></a>
       <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
       <div class="profile-menu" id="notif-menu">
         <button class="icon-btn" id="notif-btn" aria-label="Notifications">
@@ -82,123 +84,22 @@
         <button type="button" class="btn-secondary profile-open-btn" id="sidebar-profile-btn">Edit profile</button>
       </section>
 
-      <!-- Task creation panel (KAN-37) -->
-      <!--      <section class="card task-create-card">-->
-      <!--        <div class="row-between">-->
-      <!--          <h2>Quick capture</h2>-->
-      <!--          <button type="button" class="link-btn" id="toggle-form-btn">+ New task</button>-->
-      <!--        </div>-->
       <section class="dashboard-cards" id="dashboard-cards"></section>
 
-      <section class="card task-create-card">
-        <div class="row-between">
-          <div>
-            <h2>Quick capture</h2>
-            <p class="card-subtitle">Add a task to your personal workspace.</p>
-          </div>
-          <button type="button" class="link-btn" id="toggle-form-btn">+ New task</button>
-        </div>
-        <form id="task-form" class="task-form" hidden>
-          <div class="field">
-            <label for="task-title">Task title</label>
-            <div class="input-wrap">
-              <input type="text" id="task-title" name="title" placeholder="e.g. Submit CS301 Problem Set" required>
+        <!-- Task board: task cards grouped into columns (replaces the old list) -->
+        <section class="card board-panel" aria-labelledby="board-heading">
+          <div class="board-head">
+            <h2 id="board-heading">Your tasks</h2>
+            <div class="board-view-tabs" role="group" aria-label="Group tasks by">
+              <button type="button" class="board-view-tab active" data-board-view="TIME" aria-pressed="true">By time</button>
+              <button type="button" class="board-view-tab" data-board-view="STATUS" aria-pressed="false">By status</button>
+              <button type="button" class="board-view-tab" data-board-view="ROLE" aria-pressed="false">By role</button>
             </div>
           </div>
 
-          <div class="form-grid">
-            <div class="field">
-              <label for="task-due">Deadline</label>
-              <div class="input-wrap"><input type="datetime-local" id="task-due" name="due" required></div>
-            </div>
-
-            <div class="field">
-              <label for="task-priority">Priority</label>
-              <div class="input-wrap">
-                <select id="task-priority" name="priority">
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM" selected>Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="URGENT">Urgent</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="task-category">Category</label>
-            <div class="input-wrap">
-              <select id="task-category" name="category">
-                <option value="ASSIGNMENT">Assignment</option>
-                <option value="EXAM">Exam</option>
-                <option value="CLASS">Class</option>
-                <option value="STUDY">Study</option>
-                <option value="SHIFT">Shift</option>
-                <option value="PERSONAL">Personal</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button type="button" class="btn-secondary" id="cancel-task-btn">Cancel</button>
-            <button type="submit" class="btn-primary" id="save-task-btn">+ Add task</button>
-          </div>
-        </form>
-      </section>
-
-      <!-- Task list panel (KAN-38) -->
-      <section class="card task-list-card">
-        <div class="row-between">
-          <h2 id="task-list-heading">Your tasks</h2>
-          <div class="filter-tabs" role="tablist">
-            <button class="filter-tab active" data-filter="all">All</button>
-            <button class="filter-tab" data-filter="today">Due Today</button>
-            <button class="filter-tab" data-filter="upcoming">Upcoming</button>
-          </div>
-        </div>
-
-        <!-- Filter + sort controls. Everything here works on the tasks already
-             loaded in the browser, so changing a dropdown never calls the API. -->
-        <div class="task-toolbar" role="group" aria-label="Filter and sort tasks">
-          <div class="toolbar-field">
-            <label for="role-filter">Role</label>
-            <select id="role-filter" autocomplete="off">
-              <option value="ALL" selected>All roles</option>
-              <option value="STUDENT">Student</option>
-              <option value="WORK">Work</option>
-            </select>
-          </div>
-
-          <div class="toolbar-field">
-            <label for="status-filter">Status</label>
-            <select id="status-filter" autocomplete="off">
-              <option value="ALL" selected>All statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="OVERDUE">Overdue</option>
-            </select>
-          </div>
-
-          <div class="toolbar-field">
-            <label for="sort-select">Sort by</label>
-            <select id="sort-select" autocomplete="off">
-              <option value="DEFAULT" selected>Default (overdue first)</option>
-              <option value="DEADLINE">Deadline (soonest first)</option>
-              <option value="PRIORITY">Priority (highest first)</option>
-            </select>
-          </div>
-        </div>
-
-        <p class="task-count" id="task-count" role="status" aria-live="polite"></p>
-
-        <ul class="task-list" id="task-list">
-          <!-- Task cards injected here by dashboard.js -->
-        </ul>
-
-        <p class="empty-state" id="empty-state" hidden>
-          No tasks yet — add your first one above.
-        </p>
-      </section>
+          <p class="board-state" id="board-state" role="status" aria-live="polite">Loading your tasks…</p>
+          <div class="task-board" id="task-board"></div>
+        </section>
 
     </main>
   </div>
@@ -430,5 +331,6 @@
 
 <script src="theme-toggle.js"></script>
 <script src="dashboard.js"></script>
+<script src="dashboard-board.js"></script>
 </body>
 </html>

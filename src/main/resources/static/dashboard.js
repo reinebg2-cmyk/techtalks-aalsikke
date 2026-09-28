@@ -1797,7 +1797,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderSummaryCards() {
-    const summary = document.getElementById('dashboard-summary');
+    const summary = document.getElementById('dashboard-cards');
 
     if (summary) {
       summary.setAttribute(
@@ -1811,7 +1811,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRoleCards();
   }
 
-  const dashboardSummary = document.getElementById('dashboard-summary');
+  const dashboardSummary = document.getElementById('dashboard-cards');
 
   if (dashboardSummary) {
     dashboardSummary.addEventListener('click', event => {

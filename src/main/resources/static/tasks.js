@@ -300,4 +300,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (app.getTasksState() === 'ready') {
         render();
     }
+
+
+    // ============================================================
+    // "+" ADD TASK LINK (tasks.html#new-task)
+    // The dashboard's top-bar "+" links here: open the New task form and put
+    // the cursor in the title field. Also works when already on this page.
+    // ============================================================
+
+    function openNewTaskFromHash() {
+        if (window.location.hash !== '#new-task') return;
+
+        const form = document.getElementById('task-form');
+        const titleInput = document.getElementById('task-title');
+        if (!form) return;
+
+        form.hidden = false;
+        form.closest('.card')?.scrollIntoView({ block: 'start' });
+        titleInput?.focus();
+
+        // Drop the hash so a refresh or a second "+" click opens it again.
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
+    window.addEventListener('hashchange', openNewTaskFromHash);
+    openNewTaskFromHash();
+
 });

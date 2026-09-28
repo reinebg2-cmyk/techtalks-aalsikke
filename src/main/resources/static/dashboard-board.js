@@ -1,0 +1,368 @@
+// Aal Sikke — Dashboard task board (card view)
+//
+// Replaces the old dashboard task list with a board of task cards, grouped
+// into columns. The user switches the grouping with the "By time / By status /
+// By role" toggle; the choice is remembered in this browser.
+//
+// Like tasks.js, this reuses dashboard.js (loaded first) through
+// window.AalSikke for the task data, edit modal and delete, and re-renders on
+// 'aalsikke:tasks-loaded', which dashboard.js fires after every task change.
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const app = window.AalSikke;
+    if (!app) {
+        return; // dashboard.js redirected to login (no token)
+    }
+
+    const boardEl = document.getElementById('task-board');
+    const stateEl = document.getElementById('board-state');
+    const viewTabs = document.querySelectorAll('[data-board-view]');
+
+    if (!boardEl) {
+        return;
+    }
+
+    const VIEW_KEY = 'aalsikke_board_view';
+
+    const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY']);
+    const WORK_TYPES = new Set(['SHIFT']);
+
+    const PRIORITY_RANK = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
+
+    /*
+     * Columns for each view. keyOf(task) decides which column a task goes in.
+     * "optional" columns are hidden while empty (most users never have
+     * undated or personal tasks); the others always show so the board keeps
+     * its shape.
+     */
+    const VIEWS = {
+        TIME: {
+            keyOf: timeGroupOf,
+            columns: [
+                { key: 'OVERDUE', title: 'Overdue' },
+                { key: 'TODAY', title: 'Today' },
+                { key: 'UPCOMING', title: 'Upcoming' },
+                { key: 'NO_DATE', title: 'No date', optional: true },
+                { key: 'COMPLETED', title: 'Completed' }
+            ]
+        },
+        STATUS: {
+            keyOf: statusOf,
+            columns: [
+                { key: 'PENDING', title: 'Pending' },
+                { key: 'OVERDUE', title: 'Overdue' },
+                { key: 'COMPLETED', title: 'Completed' }
+            ]
+        },
+        ROLE: {
+            keyOf: roleOf,
+            columns: [
+                { key: 'STUDENT', title: 'Student' },
+                { key: 'WORK', title: 'Work' },
+                { key: 'PERSONAL', title: 'Personal', optional: true }
+            ]
+        }
+    };
+
+    let activeView = readSavedView();
+
+    // ============================================================
+    // HELPERS (same rules as dashboard.js / tasks.js)
+    // ============================================================
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value ?? '';
+        return div.innerHTML;
+    }
+
+    function taskDate(task) {
+        const value = task.deadline || task.startTime;
+        if (!value) return null;
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatDue(date) {
+        if (!date) return 'No deadline';
+        return date.toLocaleString(undefined, {
+            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+        });
+    }
+
+    function isCompleted(task) {
+        return String(task.status || '').toUpperCase() === 'COMPLETED';
+    }
+
+    function roleOf(task) {
+        const type = String(task.itemType || '').toUpperCase();
+        if (STUDENT_TYPES.has(type)) return 'STUDENT';
+        if (WORK_TYPES.has(type)) return 'WORK';
+        return 'PERSONAL';
+    }
+
+    // Missing/unknown priority = MEDIUM (the backend's default).
+    function priorityOf(task) {
+        const priority = String(task.priority || 'MEDIUM').toUpperCase();
+        return PRIORITY_RANK[priority] ? priority : 'MEDIUM';
+    }
+
+    // Backend stores PENDING/COMPLETED; OVERDUE is derived (not done, date passed).
+    function statusOf(task) {
+        if (isCompleted(task)) return 'COMPLETED';
+        const date = taskDate(task);
+        return date && date < new Date() ? 'OVERDUE' : 'PENDING';
+    }
+
+    function timeGroupOf(task) {
+        const status = statusOf(task);
+        if (status !== 'PENDING') return status; // COMPLETED or OVERDUE
+        const date = taskDate(task);
+        if (!date) return 'NO_DATE';
+        return date.toDateString() === new Date().toDateString() ? 'TODAY' : 'UPCOMING';
+    }
+
+    function titleCase(value) {
+        const text = String(value || '').toLowerCase();
+        return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    // Inside a column: overdue first, then soonest deadline, completed last.
+    function compareCards(a, b) {
+        const rank = task => ({ OVERDUE: 0, PENDING: 1, COMPLETED: 2 })[statusOf(task)];
+        const ta = taskDate(a)?.getTime() ?? Infinity;
+        const tb = taskDate(b)?.getTime() ?? Infinity;
+        return (rank(a) - rank(b)) || (ta === tb ? 0 : (ta < tb ? -1 : 1));
+    }
+
+    function findTask(id) {
+        return app.getTasks().find(task => String(task.id) === String(id));
+    }
+
+    function conflictPartners(task) {
+        return app.getConflicts().get(String(task.id)) || [];
+    }
+
+    // localStorage can throw (private mode, blocked storage) - fall back quietly.
+    function readSavedView() {
+        try {
+            const saved = localStorage.getItem(VIEW_KEY);
+            return VIEWS[saved] ? saved : 'TIME';
+        } catch (_) {
+            return 'TIME';
+        }
+    }
+
+    function saveView(view) {
+        try {
+            localStorage.setItem(VIEW_KEY, view);
+        } catch (_) { /* not important */ }
+    }
+
+    // ============================================================
+    // RENDERING
+    // ============================================================
+
+    function cardHtml(task) {
+        const completed = isCompleted(task);
+        const overdue = statusOf(task) === 'OVERDUE';
+        const priority = priorityOf(task);
+        const partners = conflictPartners(task);
+
+        const badge = partners.length === 0 ? '' :
+            `<span class="conflict-badge" title="Clashes with ${escapeHtml(partners.map(p => p.title).join(', '))}">&#9888; Conflict</span>`;
+
+        const classes = [
+            'board-card',
+            `priority-${priority.toLowerCase()}`,
+            partners.length ? 'is-conflict' : '',
+            completed ? 'is-complete' : '',
+            overdue ? 'is-overdue' : ''
+        ].filter(Boolean).join(' ');
+
+        return `
+      <li class="${classes}" data-id="${escapeHtml(String(task.id))}">
+        <div class="board-card-top">
+          <p class="board-card-title">${escapeHtml(task.title)}</p>
+          <div class="task-actions">
+            <button type="button" class="task-menu-btn" aria-label="Actions for ${escapeHtml(task.title)}"
+                    aria-expanded="false" title="Task actions">&#8942;</button>
+            <div class="task-menu" hidden>
+              <button type="button" class="task-action-edit">Edit</button>
+              <button type="button" class="task-action-delete">Delete</button>
+            </div>
+          </div>
+        </div>
+        <div class="board-card-meta">
+          ${task.itemType ? `<span class="board-chip">${escapeHtml(titleCase(task.itemType))}</span>` : ''}
+          <span class="board-priority">${titleCase(priority)} priority</span>
+        </div>
+        <p class="board-due">${overdue ? 'Was due' : 'Due'} ${escapeHtml(formatDue(taskDate(task)))}</p>
+        <div class="board-card-foot">
+          <label class="board-done">
+            <input type="checkbox" class="task-checkbox"
+                   aria-label="Mark ${escapeHtml(task.title)} complete" ${completed ? 'checked' : ''}>
+            Done
+          </label>
+          ${badge}
+        </div>
+      </li>`;
+    }
+
+    function columnHtml(column, tasks) {
+        const headingId = `board-col-${column.key.toLowerCase()}`;
+
+        return `
+      <section class="board-column board-column--${column.key.toLowerCase()}" aria-labelledby="${headingId}">
+        <h3 class="board-column-head" id="${headingId}">
+          ${column.title} <span class="board-count">(${tasks.length})</span>
+        </h3>
+        ${tasks.length === 0
+            ? '<p class="board-empty">Nothing here</p>'
+            : `<ul class="board-list">${tasks.map(cardHtml).join('')}</ul>`}
+      </section>`;
+    }
+
+    function showState(message, withRetry = false) {
+        if (!stateEl) return;
+        stateEl.innerHTML = message
+            ? `${escapeHtml(message)}${withRetry ? ' <button type="button" class="link-btn" data-action="retry-board">Try again</button>' : ''}`
+            : '';
+        stateEl.hidden = !message;
+    }
+
+    function syncTabs() {
+        viewTabs.forEach(tab => {
+            const active = tab.dataset.boardView === activeView;
+            tab.classList.toggle('active', active);
+            tab.setAttribute('aria-pressed', String(active));
+        });
+    }
+
+    function render() {
+        const tasks = app.getTasks();
+        const view = VIEWS[activeView];
+
+        if (tasks.length === 0) {
+            boardEl.innerHTML = '';
+            showState('No tasks yet. Use the + button at the top to add your first one.');
+            return;
+        }
+
+        showState('');
+
+        const buckets = new Map(view.columns.map(column => [column.key, []]));
+        tasks.forEach(task => buckets.get(view.keyOf(task))?.push(task));
+
+        const columns = view.columns.filter(column =>
+            !column.optional || buckets.get(column.key).length > 0);
+
+        boardEl.innerHTML = columns
+            .map(column => columnHtml(column, buckets.get(column.key).sort(compareCards)))
+            .join('');
+    }
+
+    // ============================================================
+    // ACTIONS (edit/delete reuse dashboard.js; status is one PATCH)
+    // ============================================================
+
+    async function setStatus(task, checkbox) {
+        const next = checkbox.checked ? 'COMPLETED' : 'PENDING';
+        checkbox.disabled = true;
+
+        try {
+            const response = await app.apiFetch(
+                `${app.API_BASE}/api/schedule-items/${task.id}/status`,
+                {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: next })
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Server responded ${response.status}`);
+            }
+
+            await app.reloadTasks(); // fires 'aalsikke:tasks-loaded' -> render()
+
+        } catch (error) {
+            if (error.sessionExpired) return;
+            console.error('Failed to update task status:', error);
+            checkbox.checked = !checkbox.checked;
+            checkbox.disabled = false;
+            alert('Could not update the task status. Please try again.');
+        }
+    }
+
+    // One listener for every card (cards are re-created on each render).
+    boardEl.addEventListener('click', event => {
+        const card = event.target.closest('.board-card');
+        if (!card) return;
+
+        const task = findTask(card.dataset.id);
+        const menu = card.querySelector('.task-menu');
+        const menuBtn = card.querySelector('.task-menu-btn');
+
+        if (event.target.closest('.task-menu-btn')) {
+            document.querySelectorAll('.task-menu').forEach(other => {
+                if (other !== menu) other.hidden = true;
+            });
+            menu.hidden = !menu.hidden;
+            menuBtn.setAttribute('aria-expanded', String(!menu.hidden));
+            return;
+        }
+
+        if (event.target.closest('.task-action-edit') && task) {
+            menu.hidden = true;
+            app.openEditModal(task);
+            return;
+        }
+
+        if (event.target.closest('.task-action-delete') && task) {
+            menu.hidden = true;
+            app.deleteTask(task.id);
+        }
+    });
+
+    boardEl.addEventListener('change', event => {
+        const checkbox = event.target.closest('.task-checkbox');
+        if (!checkbox) return;
+        const task = findTask(checkbox.closest('.board-card').dataset.id);
+        if (task) setStatus(task, checkbox);
+    });
+
+    viewTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            activeView = VIEWS[tab.dataset.boardView] ? tab.dataset.boardView : 'TIME';
+            saveView(activeView);
+            syncTabs();
+            if (app.getTasksState() === 'ready') render();
+        });
+    });
+
+    stateEl?.addEventListener('click', event => {
+        if (event.target.closest('[data-action="retry-board"]')) {
+            showState('Loading your tasks…');
+            app.reloadTasks();
+        }
+    });
+
+    // ============================================================
+    // WIRING
+    // ============================================================
+
+    document.addEventListener('aalsikke:tasks-loaded', render);
+    document.addEventListener('aalsikke:tasks-error', () => {
+        boardEl.innerHTML = '';
+        showState("Couldn't load your tasks.", true);
+    });
+
+    syncTabs();
+
+    // If dashboard.js already finished loading before this ran, render now.
+    if (app.getTasksState() === 'ready') {
+        render();
+    }
+});
