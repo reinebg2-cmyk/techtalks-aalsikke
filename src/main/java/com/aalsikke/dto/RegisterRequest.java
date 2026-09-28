@@ -3,6 +3,7 @@ package com.aalsikke.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,8 @@ import lombok.Setter;
 public class RegisterRequest {
 
     @NotBlank(message = "Username is required.")
+    @Pattern(regexp = "^[A-Za-z0-9._]{3,30}$",
+            message = "Username must be 3–30 characters: letters, numbers, dots or underscores only (no spaces).")
     private String username;
 
     @NotBlank(message = "Email is required.")
