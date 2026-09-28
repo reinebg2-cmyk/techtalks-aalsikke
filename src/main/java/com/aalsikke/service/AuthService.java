@@ -120,7 +120,7 @@ public class AuthService {
     /**
      * KAN-257 rules:
      * - blank/missing phone = keep the current one (use removePhone to delete it)
-     * - changing the email or phone requires the current password
+     *      * - changing the full name, email or phone requires the current password
      * - a new phone resets phoneVerified; a new email resets emailVerified
      * - a new email returns a new JWT (the subject is the email, the old token stops working)
      */
@@ -135,7 +135,12 @@ public class AuthService {
         String newPhone = PhoneNumbers.normalize(request.getPhoneNumber()); // null = keep; throws if invalid
         boolean phoneChanged = newPhone != null && !newPhone.equals(user.getPhoneNumber());
 
-        if (emailChanged || phoneChanged) {
+        // The name is shown to others and identifies the account, so it is protected too.
+        String newFullName = request.getFullName().trim();
+        String oldFullName = user.getFullName() == null ? "" : user.getFullName().trim();
+        boolean nameChanged = !newFullName.equals(oldFullName);
+
+        if (emailChanged || phoneChanged || nameChanged) {
             requireCurrentPassword(user, request.getCurrentPassword());
         }
 
@@ -158,7 +163,7 @@ public class AuthService {
             user.setEmailVerified(false);
         }
 
-        user.setFullName(request.getFullName());
+        user.setFullName(newFullName);
         user.setProfileMode(request.getProfileMode());
         userRepository.save(user);
 
@@ -187,7 +192,7 @@ public class AuthService {
 
     private void requireCurrentPassword(User user, String currentPassword) {
         if (currentPassword == null || currentPassword.isBlank()) {
-            throw new IllegalArgumentException("Current password is required to change your email or phone number.");
+            throw new IllegalArgumentException("Current password is required to change your name, email or phone number.");
         }
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("Current password is incorrect.");
