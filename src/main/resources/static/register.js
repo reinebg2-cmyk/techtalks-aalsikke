@@ -38,10 +38,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function validateFullname() {
     setState(fullnameField, document.getElementById('fullname').value.trim().length > 1 ? 'is-success' : null);
   }
+  // KAN-260: same rule as the backend (RegisterRequest @Pattern)
+  const USERNAME_RULE = /^[A-Za-z0-9._]{3,30}$/;
+  const USERNAME_RULE_MSG = 'Username must be 3–30 characters: letters, numbers, dots or underscores only (no spaces).';
+
   function validateUsername() {
     const usernameField = document.getElementById('field-username');
-    setState(usernameField, document.getElementById('username').value.trim().length > 2 ? 'is-success' : null);
+    const usernameHint = usernameField.querySelector('.error-text');
+    const value = document.getElementById('username').value.trim();
+    if (!value) return setState(usernameField, null);
+    if (!USERNAME_RULE.test(value)) {
+      if (usernameHint) usernameHint.textContent = USERNAME_RULE_MSG;
+      return setState(usernameField, 'is-error');
+    }
+    setState(usernameField, 'is-success');
   }
+  document.getElementById('username').addEventListener('input', validateUsername);
   function calculateAge(dobValue) {
     const dob = new Date(dobValue);
     const diff = Date.now() - dob.getTime();
