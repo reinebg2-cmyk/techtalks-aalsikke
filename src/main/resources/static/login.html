@@ -30,6 +30,13 @@
     <h2>Welcome back</h2>
     <p class="subtitle">Access your unified calendar, assignments, and daily flow.</p>
 
+
+    <!-- KAN-262: "check your email" after register, and the unverified-login message -->
+    <div class="login-notice" id="login-notice" role="status" aria-live="polite" hidden>
+      <p id="login-notice-text"></p>
+      <button type="button" class="link-btn" id="resend-verification-btn" hidden>Resend verification email</button>
+    </div>
+
     <div class="field" id="field-identifier">
       <label for="identifier">Email, phone number or username</label>
       <div class="input-wrap">
