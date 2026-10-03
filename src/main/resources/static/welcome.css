@@ -1,0 +1,215 @@
+/* Aal Sikke — Welcome page (KAN-288). Uses the shared theme + palette variables from styles.css. */
+
+body.welcome-body {
+    display: block;
+    padding: 0;
+}
+
+.wl-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.wl-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1.0625rem;
+    color: var(--navy);
+    text-decoration: none;
+}
+
+.wl-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.wl-link {
+    color: var(--slate);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+}
+
+.wl-link:hover { color: var(--trust-blue); }
+
+/* Buttons */
+.wl-btn {
+    display: inline-block;
+    padding: 0.625rem 1.125rem;
+    border-radius: 0.625rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    text-align: center;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.wl-btn-lg { padding: 0.875rem 1.5rem; font-size: 1rem; }
+
+.wl-btn-primary { background: var(--trust-blue); color: var(--white); }
+.wl-btn-primary:hover { background: var(--ink-strong); }
+
+.wl-btn-secondary {
+    background: transparent;
+    color: var(--trust-blue);
+    border-color: var(--trust-blue);
+}
+.wl-btn-secondary:hover { background: var(--trust-blue-bg); }
+
+.wl-btn-light { background: var(--white); color: #0F203E; }
+.wl-btn-light:hover { opacity: 0.92; }
+
+.wl-btn:focus-visible,
+.wl-link:focus-visible,
+.wl-brand:focus-visible {
+    outline: 2px solid var(--trust-blue);
+    outline-offset: 2px;
+}
+
+/* Hero */
+.wl-hero {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 4rem 1.25rem 3rem;
+    text-align: center;
+}
+
+.wl-eyebrow {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--trust-blue);
+}
+
+.wl-hero h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2rem, 6vw, 3.25rem);
+    line-height: 1.1;
+    color: var(--navy);
+}
+
+.wl-accent { color: var(--trust-blue); }
+
+.wl-lead {
+    margin: 0 auto 1.75rem;
+    max-width: 36rem;
+    font-size: 1.125rem;
+    line-height: 1.55;
+    color: var(--slate-light);
+}
+
+.wl-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.wl-note {
+    margin: 1.25rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--slate-light);
+}
+
+/* Sections */
+.wl-section {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem;
+}
+
+.wl-section > h2 {
+    margin: 0 0 1.5rem;
+    text-align: center;
+    font-size: clamp(1.375rem, 3.5vw, 1.875rem);
+    color: var(--navy);
+}
+
+.wl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem;
+}
+
+.wl-grid-3 { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+
+.wl-card {
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.wl-card h3 { margin: 0.5rem 0 0.375rem; font-size: 1.0625rem; color: var(--navy); }
+.wl-card p { margin: 0; font-size: 0.9375rem; line-height: 1.5; color: var(--slate-light); }
+
+.wl-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.25rem;
+    border-radius: 0.625rem;
+    background: var(--trust-blue-bg);
+}
+
+/* Call to action band */
+.wl-cta {
+    max-width: 64rem;
+    margin: 1.5rem auto 3rem;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+    color: var(--white);
+    background: var(--ink-strong);
+    border-radius: 1rem;
+}
+
+.wl-cta h2 { margin: 0 0 0.5rem; font-size: clamp(1.375rem, 3.5vw, 1.875rem); }
+.wl-cta p { margin: 0 0 1.25rem; opacity: 0.85; }
+
+@media (max-width: 40rem) {
+    .wl-cta { margin-left: 1rem; margin-right: 1rem; }
+}
+
+/* Footer */
+.wl-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8125rem;
+    color: var(--slate-light);
+}
+
+.wl-footer-links { display: flex; gap: 1rem; }
+.wl-footer a { color: var(--slate-light); text-decoration: none; font-weight: 600; }
+.wl-footer a:hover { color: var(--trust-blue); }
+
+/* [hidden] must win over the display rules above */
+.wl-btn[hidden], .wl-link[hidden], .wl-footer a[hidden] { display: none; }
+
+@media (max-width: 30rem) {
+    .wl-nav { padding: 0.625rem 0.875rem; }
+    .wl-nav-actions { gap: 0.5rem; }
+    .wl-nav .wl-btn { white-space: nowrap; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+    .wl-hero { padding-top: 2.5rem; }
+    .wl-hero-actions .wl-btn { width: 100%; }
+}
