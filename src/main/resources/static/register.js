@@ -7,6 +7,9 @@
 const API_BASE = window.location.origin;
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('.back-btn')?.addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
   const form = document.getElementById('register-form');
   const fullnameField = document.getElementById('field-fullname');
   const dobField = document.getElementById('field-dob');

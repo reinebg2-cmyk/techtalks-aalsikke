@@ -19,6 +19,7 @@ const API_BASE = window.location.origin;
 
 
 const TOKEN_KEY = 'aalsikke_token';
+const REQUEST_TIMEOUT_MS = 15000;
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -50,10 +51,26 @@ document.addEventListener('DOMContentLoaded', () => {
       ...(options.headers || {})
     };
 
-    const response = await fetch(url, {
-      ...options,
-      headers
-    });
+    // A request that never answers must not leave the page on "Loading..."
+    // forever: abort after REQUEST_TIMEOUT_MS so the normal error UI shows.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    let response;
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers,
+        signal: controller.signal
+      });
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        throw new Error('The server took too long to respond.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (response.status === 401) {
       redirectToLogin();
@@ -144,10 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('edit-task-category');
   const editTaskStatus =
       document.getElementById('edit-task-status');
-  // KAN-265: optional start time (time window)
-  const editTaskHasStart = document.getElementById('edit-task-has-start');
-  const editTaskStart = document.getElementById('edit-task-start');
-  const editTaskStartField = document.getElementById('field-edit-task-start');
 
   const closeTaskBtn =
       document.getElementById('close-task-modal');
@@ -278,10 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return date.toISOString();
   }
 
-  // KAN-265: the due time is the deadline; tasks with only a time window
-  // (e.g. recurring classes) are due when the window ends.
   function getTaskDate(task) {
-    return task.deadline || task.endTime || task.startTime;
+    return task.deadline || task.startTime;
   }
 
   // ============================================================
@@ -610,68 +621,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (cancelTaskBtn && taskForm) {
     cancelTaskBtn.addEventListener('click', () => {
       taskForm.reset();
-      createStartToggle?.presetFromCategory();
       taskForm.hidden = true;
     });
   }
-
-  // ============================================================
-  // TASK TIME WINDOW (KAN-265)
-  // "Has a start time" shows the Start field. For new tasks it is pre-ticked
-  // by category (Class / Shift / Study) until the user changes it themselves.
-  // ============================================================
-
-  const WINDOW_TYPES = new Set(['CLASS', 'SHIFT', 'STUDY']);
-
-  function setupStartToggle(checkbox, startField, categorySelect) {
-    if (!checkbox || !startField) {
-      return null;
-    }
-
-    let userChose = false;
-    const sync = () => { startField.hidden = !checkbox.checked; };
-
-    checkbox.addEventListener('change', () => {
-      userChose = true;
-      sync();
-    });
-
-    if (categorySelect) {
-      categorySelect.addEventListener('change', () => {
-        if (!userChose) {
-          checkbox.checked = WINDOW_TYPES.has(categorySelect.value);
-          sync();
-        }
-      });
-    }
-
-    return {
-      // New task: follow the category until the user ticks/unticks.
-      presetFromCategory() {
-        userChose = false;
-        checkbox.checked = Boolean(categorySelect && WINDOW_TYPES.has(categorySelect.value));
-        sync();
-      },
-      // Existing task: keep what it already is; category changes don't flip it.
-      set(checked) {
-        userChose = true;
-        checkbox.checked = checked;
-        sync();
-      },
-      isChecked: () => checkbox.checked
-    };
-  }
-
-  const createStartToggle = setupStartToggle(
-      document.getElementById('task-has-start'),
-      document.getElementById('field-task-start'),
-      document.getElementById('task-category')
-  );
-  createStartToggle?.presetFromCategory();
-
-  const editStartToggle = setupStartToggle(
-      editTaskHasStart, editTaskStartField, editTaskCategory
-  );
 
   // ============================================================
   // FILTER TABS
@@ -1528,7 +1480,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const hasConflict = conflictPartners.length > 0;
 
-      li.className = `task-card${hasConflict ? ' is-conflict' : ''}`;
+      li.className = `task-card priority-${priorityClass(task.priority)}${hasConflict ? ' is-conflict' : ''}`;
       li.dataset.id = task.id;
 
       const completed =
@@ -1554,6 +1506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span
               class="priority-dot ${priorityClass(task.priority)}"
             ></span>
+            <span class="priority-label ${priorityClass(task.priority)}">${escapeHtml(priorityClass(task.priority))}</span>
 
             ${
           task.itemType
@@ -1991,41 +1944,39 @@ document.addEventListener('DOMContentLoaded', () => {
           if (new Date(deadline) <= new Date()) {
 
             alert(
-                'Due date must be in the future.'
+                'Deadline must be in the future.'
             );
             return;
           }
 
           /*
-           * KAN-265: a task is either deadline-only (no start/end) or a
-           * time window: startTime = Start, endTime = deadline = Due.
+           * ScheduleItemRequest requires:
+           * title
+           * itemType
+           * startTime
+           * endTime
+           *
+           * We use the deadline as the start time and
+           * 30 minutes later as the end time.
            */
+
+          const startTime = deadline;
+
+          const endTime =
+              new Date(
+                  new Date(deadline).getTime() +
+                  30 * 60 * 1000
+              ).toISOString();
+
           const payload = {
             title,
             itemType,
             priority,
+            startTime,
+            endTime,
             deadline,
             isRecurring: false
           };
-
-          if (createStartToggle?.isChecked()) {
-            const startTime = toISOStringFromLocal(
-                document.getElementById('task-start')?.value || ''
-            );
-
-            if (!startTime) {
-              alert('Please enter a start time, or untick "Has a start time".');
-              return;
-            }
-
-            if (new Date(startTime) >= new Date(deadline)) {
-              alert('Start must be before the due time.');
-              return;
-            }
-
-            payload.startTime = startTime;
-            payload.endTime = deadline;
-          }
 
           saveTaskBtn.disabled = true;
           saveTaskBtn.textContent =
@@ -2079,7 +2030,6 @@ document.addEventListener('DOMContentLoaded', () => {
             announceConflictsIfAny(createdTask.id);
 
             taskForm.reset();
-            createStartToggle?.presetFromCategory();
             taskForm.hidden = true;
 
           } catch (error) {
@@ -2230,13 +2180,9 @@ document.addEventListener('DOMContentLoaded', () => {
         task.description || '';
 
     editTaskDeadline.value =
-        toDateTimeLocal(getTaskDate(task));
-
-    // KAN-265: show the start time if the task is a time window
-    if (editTaskStart) {
-      editTaskStart.value = toDateTimeLocal(task.startTime);
-    }
-    editStartToggle?.set(Boolean(task.startTime));
+        toDateTimeLocal(
+            task.deadline || task.startTime
+        );
 
     editTaskPriority.value =
         task.priority || 'MEDIUM';
@@ -2355,22 +2301,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return false;
     }
 
-    // KAN-265: a past due date is allowed when editing (overdue tasks).
+    if (deadlineDate <= new Date()) {
 
-    if (editStartToggle?.isChecked()) {
-      const startDate = new Date(editTaskStart ? editTaskStart.value : '');
+      alert(
+          'Deadline must be in the future.'
+      );
 
-      if (Number.isNaN(startDate.getTime())) {
-        alert('Please enter a start time, or untick "Has a start time".');
-        editTaskStart?.focus();
-        return false;
-      }
+      editTaskDeadline.focus();
 
-      if (startDate >= deadlineDate) {
-        alert('Start must be before the due time.');
-        editTaskStart?.focus();
-        return false;
-      }
+      return false;
     }
 
     return true;
@@ -2449,19 +2388,17 @@ document.addEventListener('DOMContentLoaded', () => {
             priority:
             editTaskPriority.value,
 
+            startTime:
+            existingTask.startTime,
+
+            endTime:
+            existingTask.endTime,
+
             deadline,
 
             isRecurring:
                 existingTask.isRecurring ?? false
           };
-
-          // KAN-265: time window (Start → Due) or deadline-only
-          if (editStartToggle?.isChecked()) {
-            payload.startTime = toISOStringFromLocal(editTaskStart.value);
-            payload.endTime = deadline;
-          } else if (existingTask.startTime || existingTask.endTime) {
-            payload.clearTimeSlot = true;
-          }
 
           /*
            * Preserve relationships if they already exist.

@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
             activeView = VIEWS[tab.dataset.boardView] ? tab.dataset.boardView : 'TIME';
             saveView(activeView);
             syncTabs();
-            if (app.getTasksState() === 'ready') render();
+            if (app.getTasksState() === 'ready') safeRender();
         });
     });
 
@@ -362,7 +362,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // WIRING
     // ============================================================
 
-    document.addEventListener('aalsikke:tasks-loaded', render);
+    function safeRender() {
+        try {
+            render();
+        } catch (error) {
+            console.error('Failed to render the task board:', error);
+            boardEl.innerHTML = '';
+            showState("Couldn't display your tasks.", true);
+        }
+    }
+
+    document.addEventListener('aalsikke:tasks-loaded', safeRender);
     document.addEventListener('aalsikke:tasks-error', () => {
         boardEl.innerHTML = '';
         showState("Couldn't load your tasks.", true);
@@ -372,6 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // If dashboard.js already finished loading before this ran, render now.
     if (app.getTasksState() === 'ready') {
-        render();
+        safeRender();
+    } else if (app.getTasksState() === 'error') {
+        boardEl.innerHTML = '';
+        showState("Couldn't load your tasks.", true);
     }
 });

@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/",
+                                "/index.html",
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/register.html",
@@ -55,6 +57,7 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/*.js",
                                 "/*.css",
+                                "/*.svg",
                                 "/favicon.ico",
                                 "/error"
                         ).permitAll()

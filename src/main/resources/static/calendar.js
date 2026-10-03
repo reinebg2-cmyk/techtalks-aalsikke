@@ -211,6 +211,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return { student: 'Student', work: 'Work', personal: 'Personal' }[role];
     }
 
+    // Priority drives the stripe color. Missing/unknown = MEDIUM (the backend default).
+    function priorityOf(item) {
+        const value = String(item.priority || 'MEDIUM').toLowerCase();
+        return ['low', 'medium', 'high', 'urgent'].includes(value) ? value : 'medium';
+    }
+
     function hasTimeSlot(item) {
         return Boolean(item.startTime && item.endTime);
     }
@@ -341,11 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const index = days.findIndex(day => sameDay(day, due));
             if (index === -1) continue;
             const role = roleOf(item);
-            const marker = el('div', `cal-deadline-marker cal-${role}`);
+            const marker = el('div', `cal-deadline-marker cal-${role} prio-${priorityOf(item)}`);
             if (item.status === 'COMPLETED') marker.classList.add('is-completed');
             if (!hasTimeSlot(item)) marker.classList.add('is-unscheduled');
             marker.append(el('span', 'cal-deadline-text', `${formatTime(due)} ${item.title}`));
-            const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)})`
+            const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)}, ${priorityOf(item)} priority)`
                 + (hasTimeSlot(item) ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
             marker.title = label;
             marker.setAttribute('aria-label', label);
@@ -439,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildEvent(seg, conflictMap) {
         const { item } = seg;
         const role = roleOf(item);
-        const block = el('div', `cal-event cal-${role}`);
+        const block = el('div', `cal-event cal-${role} prio-${priorityOf(item)}`);
 
         const top = seg.start / 60 * HOUR_HEIGHT;
         const height = Math.max((seg.end - seg.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
@@ -454,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeText = `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`;
         block.append(el('span', 'cal-event-title', titleText), el('span', 'cal-event-time', timeText));
 
-        let description = `${item.title}, ${timeText}, ${roleLabel(role)}`;
+        let description = `${item.title}, ${timeText}, ${roleLabel(role)}, ${priorityOf(item)} priority`;
 
         // Conflicts are computed for the real item only, so a repeat never shows the original's badge
         const clashes = item.occurrence ? null : conflictMap.get(item.id);

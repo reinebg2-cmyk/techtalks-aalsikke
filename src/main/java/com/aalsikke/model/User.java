@@ -51,6 +51,10 @@ public class User {
     @Column(length = 50)
     private String status;
 
+    /** KAN-291: selected color palette preset (see ColorPaletteRequest for the allowed ids). */
+    @Column(name = "color_palette", nullable = false, length = 30)
+    private String colorPalette = "brand";
+
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
 

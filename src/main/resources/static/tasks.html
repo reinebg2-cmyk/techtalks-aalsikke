@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="theme-init.js"></script>
+    <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
     <title>Aal Sikke — Tasks</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="tasks.css">
@@ -14,7 +15,7 @@
 
     <!-- Top bar (same shell as dashboard.html, so the bell/reminders and profile menu work here too) -->
     <header class="topbar dash-topbar">
-        <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
+        <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
         <div class="topbar-actions">
             <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
             <div class="profile-menu" id="notif-menu">
@@ -34,7 +35,7 @@
                     <a href="#" id="edit-profile-link">Edit Profile</a>
                     <a href="#" id="change-password-link">Change password</a>
                     <a href="#" id="notification-prefs-link">Notification preferences</a>
-                    <a href="login.html" id="logout-link">Log out</a>
+                    <a href="index.html" id="logout-link">Log out</a>
                 </div>
             </div>
         </div>
@@ -99,7 +100,7 @@
                     </div>
                     <div class="form-grid">
                         <div class="field">
-                            <label for="task-due">Due</label>
+                            <label for="task-due">Deadline</label>
                             <div class="input-wrap"><input type="datetime-local" id="task-due" name="due" required></div>
                         </div>
                         <div class="field">
@@ -126,14 +127,6 @@
                                 <option value="PERSONAL">Personal</option>
                             </select>
                         </div>
-                    </div>
-                    <!-- KAN-265: optional start time (time window) -->
-                    <div class="field">
-                        <label class="check-row"><input type="checkbox" id="task-has-start"> Has a start time</label>
-                    </div>
-                    <div class="field" id="field-task-start" hidden>
-                        <label for="task-start">Start</label>
-                        <div class="input-wrap"><input type="datetime-local" id="task-start" name="start"></div>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn-secondary" id="cancel-task-btn">Cancel</button>
@@ -415,22 +408,20 @@
             <div class="field"><label for="edit-task-title">Task title</label><div class="input-wrap"><input id="edit-task-title" required></div></div>
             <div class="field"><label for="edit-task-description">Description</label><div class="input-wrap"><textarea id="edit-task-description"></textarea></div></div>
             <div class="form-grid">
-                <div class="field"><label for="edit-task-deadline">Due</label><div class="input-wrap"><input type="datetime-local" id="edit-task-deadline" required></div></div>
+                <div class="field"><label for="edit-task-deadline">Deadline</label><div class="input-wrap"><input type="datetime-local" id="edit-task-deadline" required></div></div>
                 <div class="field"><label for="edit-task-priority">Priority</label><div class="input-wrap"><select id="edit-task-priority"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select></div></div>
             </div>
             <div class="form-grid">
                 <div class="field"><label for="edit-task-category">Category / role</label><div class="input-wrap"><select id="edit-task-category"><option value="ASSIGNMENT">Assignment</option><option value="EXAM">Exam</option><option value="CLASS">Class</option><option value="STUDY">Study</option><option value="SHIFT">Work shift</option><option value="PERSONAL">Personal</option></select></div></div>
                 <div class="field"><label for="edit-task-status">Status</label><div class="input-wrap"><select id="edit-task-status"><option value="PENDING">Pending</option><option value="COMPLETED">Completed</option></select></div></div>
             </div>
-            <!-- KAN-265: optional start time (time window) -->
-            <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-has-start"> Has a start time</label></div>
-            <div class="field" id="field-edit-task-start" hidden><label for="edit-task-start">Start</label><div class="input-wrap"><input type="datetime-local" id="edit-task-start"></div></div>
             <div class="form-actions"><button type="button" class="btn-secondary" id="cancel-edit-btn">Cancel</button><button type="submit" class="btn-primary" id="update-task-btn">Save changes</button></div>
         </form>
     </div>
 </div>
 
 <script src="theme-toggle.js"></script>
+<script src="palette.js"></script>
 <script src="dashboard.js"></script>
 <script src="tasks.js"></script>
 </body>
