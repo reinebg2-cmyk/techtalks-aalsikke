@@ -317,13 +317,16 @@
       <div class="field"><label for="edit-task-title">Task title</label><div class="input-wrap"><input id="edit-task-title" required></div></div>
       <div class="field"><label for="edit-task-description">Description</label><div class="input-wrap"><textarea id="edit-task-description"></textarea></div></div>
       <div class="form-grid">
-        <div class="field"><label for="edit-task-deadline">Deadline</label><div class="input-wrap"><input type="datetime-local" id="edit-task-deadline" required></div></div>
+        <div class="field"><label for="edit-task-deadline">Due</label><div class="input-wrap"><input type="datetime-local" id="edit-task-deadline" required></div></div>
         <div class="field"><label for="edit-task-priority">Priority</label><div class="input-wrap"><select id="edit-task-priority"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select></div></div>
       </div>
       <div class="form-grid">
         <div class="field"><label for="edit-task-category">Category / role</label><div class="input-wrap"><select id="edit-task-category"><option value="ASSIGNMENT">Assignment</option><option value="EXAM">Exam</option><option value="CLASS">Class</option><option value="STUDY">Study</option><option value="SHIFT">Work shift</option><option value="PERSONAL">Personal</option></select></div></div>
         <div class="field"><label for="edit-task-status">Status</label><div class="input-wrap"><select id="edit-task-status"><option value="PENDING">Pending</option><option value="COMPLETED">Completed</option></select></div></div>
       </div>
+      <!-- KAN-265: optional start time (time window) -->
+      <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-has-start"> Has a start time</label></div>
+      <div class="field" id="field-edit-task-start" hidden><label for="edit-task-start">Start</label><div class="input-wrap"><input type="datetime-local" id="edit-task-start"></div></div>
       <div class="form-actions"><button type="button" class="btn-secondary" id="cancel-edit-btn">Cancel</button><button type="submit" class="btn-primary" id="update-task-btn">Save changes</button></div>
     </form>
   </div>
