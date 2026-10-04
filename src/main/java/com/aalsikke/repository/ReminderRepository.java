@@ -30,5 +30,6 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
             WHERE r.id = :id AND r.scheduleItem.user.email = :email
             """)
     Optional<Reminder> findByIdAndOwner(@Param("id") UUID id, @Param("email") String email);
+    List<Reminder> findByScheduleItemId(UUID scheduleItemId);
 }
 
