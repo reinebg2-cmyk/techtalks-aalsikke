@@ -10,6 +10,7 @@ import java.util.UUID;
 import com.aalsikke.model.Priority;
 import com.aalsikke.model.ItemType;
 import jakarta.validation.constraints.Future;
+import com.aalsikke.model.TimeType;
 
 @Getter
 @Setter
@@ -33,6 +34,11 @@ public class ScheduleItemRequest {
 
     @Future(message = "Deadline must be in the future.")
     private OffsetDateTime deadline;
+
+    private TimeType timeType;
+
+    public TimeType getTimeType() { return timeType; }
+    public void setTimeType(TimeType timeType) { this.timeType = timeType; }
 
     private Boolean isRecurring;
 

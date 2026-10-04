@@ -61,6 +61,10 @@ public class ScheduleItem {
     @Column(name = "deadline")
     private OffsetDateTime deadline;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "time_type", nullable = false, length = 20)
+    private TimeType timeType;
+
     @Column(name = "is_recurring")
     private boolean isRecurring = false;
 
@@ -105,6 +109,9 @@ public class ScheduleItem {
 
     public OffsetDateTime getDeadline() { return deadline; }
     public void setDeadline(OffsetDateTime deadline) { this.deadline = deadline; }
+
+    public TimeType getTimeType() { return timeType; }
+    public void setTimeType(TimeType timeType) { this.timeType = timeType; }
 
     public boolean isRecurring() { return isRecurring; }
     public void setRecurring(boolean recurring) { isRecurring = recurring; }
