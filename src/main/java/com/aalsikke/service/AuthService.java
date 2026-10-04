@@ -9,6 +9,7 @@ import com.aalsikke.dto.RemovePhoneRequest;
 import com.aalsikke.dto.UpdateProfileRequest;
 import com.aalsikke.dto.UserProfileResponse;
 import com.aalsikke.exception.EmailAlreadyExistsException;
+import com.aalsikke.exception.EmailNotVerifiedException;
 import com.aalsikke.model.User;
 import com.aalsikke.repository.UserRepository;
 import com.aalsikke.security.JwtService;
@@ -28,17 +29,21 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailVerificationService emailVerificationService; // KAN-262
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       AuthenticationManager authenticationManager) {
+                       AuthenticationManager authenticationManager,
+                       EmailVerificationService emailVerificationService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.emailVerificationService = emailVerificationService;
     }
 
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("This email is already registered.");
@@ -68,8 +73,10 @@ public class AuthService {
 
         userRepository.save(user);
 
-        String jwtToken = jwtService.generateToken(user.getEmail());
-        return new AuthResponse(jwtToken, "User registered successfully");
+        // KAN-272: new accounts start unverified and get a verification link.
+        // No token is returned: the user can log in once the email is verified (KAN-274).
+        emailVerificationService.sendVerification(user);
+        return new AuthResponse(null, "Account created. Check your email for a verification link, then log in.");
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -82,6 +89,12 @@ public class AuthService {
 
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // KAN-274: checked after the password, so this never reveals anything to someone
+        // who doesn't know the password.
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException(user.getEmail());
+        }
 
         String jwtToken = jwtService.generateToken(user.getEmail());
         return new AuthResponse(jwtToken, "User authenticated successfully");
@@ -166,6 +179,11 @@ public class AuthService {
         user.setFullName(newFullName);
         user.setProfileMode(request.getProfileMode());
         userRepository.save(user);
+
+        // KAN-262: a new email starts unverified, so send a link to the new address right away.
+        if (emailChanged) {
+            emailVerificationService.sendVerification(user);
+        }
 
         String newToken = emailChanged ? jwtService.generateToken(user.getEmail()) : null;
         return toProfileUpdateResponse(user, newToken);
