@@ -34,9 +34,56 @@ document.addEventListener('DOMContentLoaded', () => {
     try { body = await res.json(); } catch (_) { /* empty body */ }
 
     if (!res.ok) {
-      throw { message: (body && body.message) || (body && body.error) || 'Login failed. Please try again.' };
+      throw {
+        message: (body && body.message) || (body && body.error) || 'Login failed. Please try again.',
+        code: body && body.code,     // KAN-274: 'EMAIL_NOT_VERIFIED'
+        email: body && body.email
+      };
     }
     return body; // real AuthResponse: { token, message }
+  }
+
+  // ============================================================
+  // KAN-262: email verification notices + resend
+  // ============================================================
+
+  const notice = document.getElementById('login-notice');
+  const noticeText = document.getElementById('login-notice-text');
+  const resendBtn = document.getElementById('resend-verification-btn');
+  let unverifiedEmail = null;
+
+  function showNotice(text, { withResend = false } = {}) {
+    if (!notice) return;
+    noticeText.textContent = text;
+    resendBtn.hidden = !withResend;
+    notice.hidden = false;
+  }
+
+  // register.js sends new users here with ?check-email=1
+  if (new URLSearchParams(window.location.search).has('check-email')) {
+    showNotice('Account created. We sent you a verification link. Open it, then log in here.');
+  }
+
+  if (resendBtn) {
+    resendBtn.addEventListener('click', async () => {
+      if (!unverifiedEmail) return;
+      resendBtn.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: unverifiedEmail })
+        });
+        let body = null;
+        try { body = await res.json(); } catch (_) { /* empty body */ }
+        showNotice((body && body.message) || 'If this account still needs verifying, a new link is on its way.');
+      } catch (_) {
+        showNotice('Could not reach the server. Please try again.', { withResend: true });
+      } finally {
+        // The server allows one new link per minute.
+        setTimeout(() => { resendBtn.disabled = false; }, 60000);
+      }
+    });
   }
 
   form.addEventListener('submit', (e) => {
@@ -65,6 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch((err) => {
           loginBtn.disabled = false;
           loginBtn.textContent = 'Log in →';
+
+          // KAN-274: right password, email not verified yet
+          if (err.code === 'EMAIL_NOT_VERIFIED') {
+            unverifiedEmail = err.email || null;
+            showNotice(err.message, { withResend: Boolean(unverifiedEmail) });
+            return;
+          }
+
           loginError.textContent = err.message;
           passwordField.classList.add('is-error');
         });

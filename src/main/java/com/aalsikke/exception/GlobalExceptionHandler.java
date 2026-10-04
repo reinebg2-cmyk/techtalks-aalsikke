@@ -20,6 +20,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -59,6 +60,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleInvalidCurrentPassword(InvalidCurrentPasswordException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiError.of("currentPassword", ex.getMessage()));
+    }
+
+    // KAN-274: right password, email not verified yet. The email is included (the user has
+    // just proven the password) so the login page can offer "Resend verification email".
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<Map<String, String>> handleEmailNotVerified(EmailNotVerifiedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "code", "EMAIL_NOT_VERIFIED",
+                "field", "email",
+                "message", ex.getMessage(),
+                "email", ex.getEmail() == null ? "" : ex.getEmail()
+        ));
     }
 
     @ExceptionHandler({InvalidCredentialsException.class, BadCredentialsException.class})
