@@ -77,8 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
+    // KAN-265: due = deadline; window-only tasks (e.g. classes) are due when the window ends.
     function taskDate(task) {
-        const value = task.deadline || task.startTime;
+        const value = task.deadline || task.endTime || task.startTime;
         if (!value) return null;
         const date = new Date(value);
         return Number.isNaN(date.getTime()) ? null : date;
@@ -89,6 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toLocaleString(undefined, {
             month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
         });
+    }
+
+    // KAN-265: "Starts …" line for time-window tasks (null for deadline-only).
+    function startLabel(task) {
+        if (!task.startTime) return null;
+        const start = new Date(task.startTime);
+        return Number.isNaN(start.getTime()) ? null : formatDue(start);
     }
 
     function isCompleted(task) {
@@ -198,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${task.itemType ? `<span class="board-chip">${escapeHtml(titleCase(task.itemType))}</span>` : ''}
           <span class="board-priority">${titleCase(priority)} priority</span>
         </div>
+                ${startLabel(task) ? `<p class="board-start">Starts ${escapeHtml(startLabel(task))}</p>` : ''}
         <p class="board-due">${overdue ? 'Was due' : 'Due'} ${escapeHtml(formatDue(taskDate(task)))}</p>
         <div class="board-card-foot">
           <label class="board-done">

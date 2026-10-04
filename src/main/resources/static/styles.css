@@ -1321,7 +1321,6 @@ select:focus-visible {
   display: none;
 }
 
-
 /* KAN-262: email verification notice (login page) and verify-email page */
 .login-notice {
   margin: 0 0 1rem;
@@ -1355,4 +1354,18 @@ select:focus-visible {
 
 .verify-login-btn[hidden] {
   display: none;
+  
+/* KAN-265: "Has a start time" checkbox row in the task forms */
+.field label.check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.check-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--trust-blue);
+
 }

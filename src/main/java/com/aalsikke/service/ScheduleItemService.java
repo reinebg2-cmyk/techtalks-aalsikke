@@ -123,8 +123,14 @@ public class ScheduleItemService {
         if (request.getDescription() != null) item.setDescription(request.getDescription());
         if (request.getItemType() != null) item.setItemType(request.getItemType());
         if (request.getPriority() != null) item.setPriority(request.getPriority());
-        if (request.getStartTime() != null) item.setStartTime(request.getStartTime());
-        if (request.getEndTime() != null) item.setEndTime(request.getEndTime());
+        if (Boolean.TRUE.equals(request.getClearTimeSlot())) {
+            // KAN-270: turn a time-window task into a deadline-only task
+            item.setStartTime(null);
+            item.setEndTime(null);
+        } else {
+            if (request.getStartTime() != null) item.setStartTime(request.getStartTime());
+            if (request.getEndTime() != null) item.setEndTime(request.getEndTime());
+        }
         if (request.getDeadline() != null) item.setDeadline(request.getDeadline());
         if (request.getIsRecurring() != null) item.setRecurring(request.getIsRecurring());
 

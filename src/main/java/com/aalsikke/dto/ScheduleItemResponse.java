@@ -19,6 +19,8 @@ public class ScheduleItemResponse {
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private OffsetDateTime deadline;
+    /** KAN-270: when the task was added. Reminder start for deadline-only tasks. */
+    private OffsetDateTime createdAt;
     private boolean isRecurring;
     private Summary course;
     private Summary workplace;
@@ -36,6 +38,7 @@ public class ScheduleItemResponse {
         dto.startTime = item.getStartTime();
         dto.endTime = item.getEndTime();
         dto.deadline = item.getDeadline();
+        dto.createdAt = item.getCreatedAt();
         dto.isRecurring = item.isRecurring();
         if (item.getCourse() != null) {
             dto.course = new Summary(item.getCourse().getId(), item.getCourse().getCourseName());
@@ -89,6 +92,7 @@ public class ScheduleItemResponse {
     public OffsetDateTime getStartTime() { return startTime; }
     public OffsetDateTime getEndTime() { return endTime; }
     public OffsetDateTime getDeadline() { return deadline; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
     public boolean isRecurring() { return isRecurring; }
     public Summary getCourse() { return course; }
     public Summary getWorkplace() { return workplace; }

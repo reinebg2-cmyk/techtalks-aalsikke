@@ -341,10 +341,17 @@
     font-weight: 600;
 }
 
+.board-start {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--slate-light);
+}
+
 .board-card.is-overdue .board-due {
     color: var(--coral);
     font-weight: 600;
 }
+
 
 /* ---- Phones / narrow screens ---- */
 @media (max-width: 48rem) {
