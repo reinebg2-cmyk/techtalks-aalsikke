@@ -7,6 +7,7 @@ import com.aalsikke.repository.ReminderRepository;
 import com.aalsikke.repository.ScheduleItemRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.aalsikke.model.ScheduleItem;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -32,6 +33,7 @@ public class ReminderService {
         return scheduleItemRepository.findById(request.scheduleItemId())
                 .filter(item -> item.getUser().getEmail().equals(email))
                 .map(item -> {
+                    validateWithinTimeline(item, request.remindAt());
                     Reminder reminder = new Reminder();
                     reminder.setScheduleItem(item);
                     reminder.setRemindAt(request.remindAt());
@@ -57,6 +59,26 @@ public class ReminderService {
                     return true;
                 })
                 .orElse(false);
+    }
+    /**
+     * KAN-299: a reminder must fall inside the task's window.
+     * Window start = startTime, or createdAt for deadline-only tasks (no startTime).
+     * Window end = deadline, or endTime when there is no deadline.
+     * If the task has neither (start-only, no deadline) there is no upper limit.
+     */
+    private static void validateWithinTimeline(ScheduleItem item, OffsetDateTime remindAt) {
+        if (remindAt == null) {
+            throw new IllegalArgumentException("remindAt is required.");
+        }
+        OffsetDateTime from = item.getStartTime() != null ? item.getStartTime() : item.getCreatedAt();
+        OffsetDateTime to = item.getDeadline() != null ? item.getDeadline() : item.getEndTime();
+
+        if (from != null && remindAt.isBefore(from)) {
+            throw new IllegalArgumentException("A reminder cannot be set before the task's start time.");
+        }
+        if (to != null && remindAt.isAfter(to)) {
+            throw new IllegalArgumentException("A reminder cannot be set after the task's deadline.");
+        }
     }
 
     private ReminderResponseDTO toResponse(Reminder reminder) {
