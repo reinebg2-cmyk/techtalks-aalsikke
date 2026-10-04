@@ -7,6 +7,7 @@ import com.aalsikke.model.ScheduleItem;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.List;
+import com.aalsikke.model.TimeType;
 
 public class ScheduleItemResponse {
 
@@ -19,6 +20,7 @@ public class ScheduleItemResponse {
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private OffsetDateTime deadline;
+    private TimeType timeType;
     /** KAN-270: when the task was added. Reminder start for deadline-only tasks. */
     private OffsetDateTime createdAt;
     private boolean isRecurring;
@@ -38,6 +40,7 @@ public class ScheduleItemResponse {
         dto.startTime = item.getStartTime();
         dto.endTime = item.getEndTime();
         dto.deadline = item.getDeadline();
+        dto.timeType = item.getTimeType();
         dto.createdAt = item.getCreatedAt();
         dto.isRecurring = item.isRecurring();
         if (item.getCourse() != null) {
@@ -55,6 +58,7 @@ public class ScheduleItemResponse {
         dto.conflicts = clashingItems.stream().map(ConflictSummary::from).toList();
         return dto;
     }
+
 
     /**
      * KAN-248: a generated weekly repeat of a recurring item. Same id and details as the item,
@@ -92,6 +96,7 @@ public class ScheduleItemResponse {
     public OffsetDateTime getStartTime() { return startTime; }
     public OffsetDateTime getEndTime() { return endTime; }
     public OffsetDateTime getDeadline() { return deadline; }
+    public TimeType getTimeType() { return timeType; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public boolean isRecurring() { return isRecurring; }
     public Summary getCourse() { return course; }
