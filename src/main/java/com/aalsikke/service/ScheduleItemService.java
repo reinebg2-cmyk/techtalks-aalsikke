@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import com.aalsikke.model.TimeType;
 
 @Service
 public class ScheduleItemService {
@@ -102,6 +103,7 @@ public class ScheduleItemService {
         ScheduleItem item = new ScheduleItem();
         item.setUser(user); // ALWAYS set from the authenticated caller — never trust a client-supplied user
         applyRequestToItem(item, request);
+        item.setTimeType(request.getTimeType() != null ? request.getTimeType() : inferTimeType(item));
         validateTimes(item);
         ScheduleItem saved = scheduleItemRepository.save(item);
         return ScheduleItemResponse.from(saved, findConflictsFor(saved));
@@ -133,7 +135,13 @@ public class ScheduleItemService {
         }
         if (request.getDeadline() != null) item.setDeadline(request.getDeadline());
         if (request.getIsRecurring() != null) item.setRecurring(request.getIsRecurring());
-
+        boolean timesTouched = Boolean.TRUE.equals(request.getClearTimeSlot())
+                || request.getStartTime() != null || request.getEndTime() != null;
+        if (request.getTimeType() != null) {
+            item.setTimeType(request.getTimeType());
+        } else if (timesTouched || item.getTimeType() == null) {
+            item.setTimeType(inferTimeType(item));
+        }
         applyCourseAndWorkplace(item, request);
     }
 
@@ -213,19 +221,37 @@ public class ScheduleItemService {
      *  - end is after start,
      *  - the item has a time slot or a deadline.
      */
-    private static void validateTimes(ScheduleItem item) {
+    private static TimeType inferTimeType(ScheduleItem item) {
         boolean hasStart = item.getStartTime() != null;
         boolean hasEnd = item.getEndTime() != null;
-
-        if (hasStart != hasEnd) {
-            throw new IllegalArgumentException("startTime and endTime must be set together.");
-        }
-        if (hasStart && !item.getEndTime().isAfter(item.getStartTime())) {
-            throw new IllegalArgumentException("endTime must be after startTime.");
-        }
-        if (!hasStart && item.getDeadline() == null) {
-            throw new IllegalArgumentException("An item needs a time slot (startTime and endTime) or a deadline.");
-        }
+        if (hasStart && hasEnd) return TimeType.TIME_BLOCKED;
+        if (hasStart) return TimeType.START_ONLY;
+        return TimeType.DEADLINE_ONLY;
     }
 
+    /** Per-type rules (KAN-317), checked on the final state of the item. */
+    private static void validateTimes(ScheduleItem item) {
+        OffsetDateTime start = item.getStartTime();
+        OffsetDateTime end = item.getEndTime();
+        switch (item.getTimeType()) {
+            case DEADLINE_ONLY -> {
+                if (start != null || end != null)
+                    throw new IllegalArgumentException("A DEADLINE_ONLY item cannot have startTime or endTime.");
+                if (item.getDeadline() == null)
+                    throw new IllegalArgumentException("A DEADLINE_ONLY item needs a deadline.");
+            }
+            case TIME_BLOCKED -> {
+                if (start == null || end == null)
+                    throw new IllegalArgumentException("A TIME_BLOCKED item needs both startTime and endTime.");
+                if (!end.isAfter(start))
+                    throw new IllegalArgumentException("endTime must be after startTime.");
+            }
+            case START_ONLY -> {
+                if (start == null)
+                    throw new IllegalArgumentException("A START_ONLY item needs a startTime.");
+                if (end != null)
+                    throw new IllegalArgumentException("A START_ONLY item cannot have an endTime.");
+            }
+        }
+    }
 }
