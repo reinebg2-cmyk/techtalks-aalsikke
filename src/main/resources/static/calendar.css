@@ -489,3 +489,42 @@
     font-weight: 700;
     color: var(--slate);
 }
+/* KAN-315: Marker styling for START_ONLY tasks */
+.calendar-event-marker {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-color, #1f2937);
+    background-color: var(--marker-bg, rgba(59, 130, 246, 0.15));
+    border-left: 3px solid var(--accent-color, #3b82f6);
+    border-radius: 0 4px 4px 0;
+    z-index: 5;
+    pointer-events: auto;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.calendar-event-marker .marker-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--accent-color, #3b82f6);
+    flex-shrink: 0;
+}
+
+.calendar-event-marker .marker-time {
+    font-weight: 700;
+    opacity: 0.85;
+}
+
+.calendar-event-marker .marker-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

@@ -1,6 +1,7 @@
 // Aal Sikke — Calendar
 //   S3-11: day and week views
 //   S3-12: time-blocking (schedule a task into a time slot)
+//   KAN-315: Render START_ONLY tasks as markers instead of blocks
 //
 // Data:
 //   GET /api/schedule-items/range?from=&to=   items overlapping the visible days (S3-02)
@@ -76,38 +77,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // The backend returns { field, message } or a list of them (see README "Error responses")
     function errorMessageFrom(body, fallback) {
         if (Array.isArray(body) && body.length) return body.map(e => e.message).filter(Boolean).join(' ');
         if (body && body.message) return body.message;
         return fallback;
     }
 
-    document.getElementById('logout-link').addEventListener('click', () => {
-        localStorage.removeItem(TOKEN_KEY);
-    });
-// // ============================================================
-//     // THEME (KAN-239)
-//     // ============================================================
-//
-//     const THEME_KEY = 'aalsikke_theme';
-//
-//     function applyTheme(theme) {
-//         document.documentElement.setAttribute('data-theme', theme);
-//     }
-//
-//     const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
-//     applyTheme(savedTheme);
-//
-//     const themeToggle = document.getElementById('theme-toggle');
-//     if (themeToggle) {
-//         themeToggle.checked = savedTheme === 'dark';
-//         themeToggle.addEventListener('change', () => {
-//             const newTheme = themeToggle.checked ? 'dark' : 'light';
-//             localStorage.setItem(THEME_KEY, newTheme);
-//             applyTheme(newTheme);
-//         });
-//     }
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    const logoutLink = document.getElementById('logout-link');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', () => {
+            localStorage.removeItem(TOKEN_KEY);
+        });
+    }
+
     // ============================================================
     // DOM + STATE
     // ============================================================
@@ -118,12 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewButtons = document.querySelectorAll('.cal-view-toggle [data-view]');
 
     const state = {
-        // Phones start on the day view: seven columns do not fit a narrow screen.
         view: window.matchMedia('(max-width: 40rem)').matches ? 'day' : 'week',
         anchor: startOfDay(new Date()),
         requestId: 0,
         scrollPending: true,
-        flash: null,        // { message, isError } shown after the next load (e.g. "Scheduled …")
+        flash: null,        // { message, isError }
         itemsById: new Map()
     };
 
@@ -139,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
     }
 
-    // Monday-based weeks
     function startOfWeek(date) {
         const mondayOffset = (date.getDay() + 6) % 7;
         return addDays(startOfDay(date), -mondayOffset);
@@ -180,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pad = n => String(n).padStart(2, '0');
 
-    // Values for <input type="date"> and <input type="time"> (local time)
     function toDateInput(date) {
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
     }
@@ -189,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
 
-    // "2026-09-23" + "13:30" -> local Date
     function fromInputs(dateValue, timeValue) {
         const [y, m, d] = dateValue.split('-').map(Number);
         const [hh, mm] = timeValue.split(':').map(Number);
@@ -211,11 +199,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return { student: 'Student', work: 'Work', personal: 'Personal' }[role];
     }
 
-    function hasTimeSlot(item) {
-        return Boolean(item.startTime && item.endTime);
+    function isStartOnlyTask(item) {
+        return item.type === 'START_ONLY' ||
+               item.isStartOnly ||
+               Boolean(item.startTime && !item.endTime) ||
+               Boolean(item.start && !item.due && !item.end);
     }
 
-    // id -> titles of the items it clashes with
+    function hasTimeSlot(item) {
+        return Boolean(item.startTime || item.start);
+    }
+
     function buildConflictMap(pairs) {
         const map = new Map();
         const add = (id, otherTitle) => {
@@ -229,12 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return map;
     }
 
-    /*
-     * Side-by-side layout for overlapping blocks in one day column.
-     * Blocks are grouped into clusters of transitively overlapping blocks; inside a
-     * cluster each block gets the first free lane, and every block in the cluster is
-     * as wide as 1 / (lanes used by that cluster).
-     */
     function layoutLanes(segments) {
         const sorted = [...segments].sort((a, b) => a.start - b.start || b.end - a.end);
         let cluster = [];
@@ -268,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // RENDERING (DOM + textContent only: titles are user input)
+    // RENDERING
     // ============================================================
 
     function el(tag, className, text) {
@@ -282,12 +270,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return (date - dayStart) / 60000;
     }
 
-    // Enter/Space on a focused block or marker behaves like a click
     function makeActivatable(node, onActivate) {
         node.tabIndex = 0;
         node.setAttribute('role', 'button');
         node.addEventListener('click', event => {
-            event.stopPropagation(); // don't also trigger the empty-slot click on the column
+            event.stopPropagation();
             onActivate();
         });
         node.addEventListener('keydown', event => {
@@ -300,7 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function render(days, items, conflictMap) {
         const today = startOfDay(new Date());
-        // Remember the scroll position so ‹ / › keep the same hours in view
         const previousScrollTop = grid.querySelector('.cal-scroll')?.scrollTop ?? 0;
         grid.replaceChildren();
         grid.style.setProperty('--cal-days', days.length);
@@ -310,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const inner = el('div', 'cal-inner');
 
-        // --- Header row: weekday + date ---
+        // --- Header row ---
         const head = el('div', 'cal-row cal-head');
         head.append(el('div', 'cal-corner'));
         for (const day of days) {
@@ -323,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             head.append(cell);
         }
 
-        // --- Deadline row: a marker for every deadline that falls on a visible day ---
+        // --- Deadline row ---
         const deadlines = el('div', 'cal-row cal-deadlines');
         deadlines.append(el('div', 'cal-gutter-label', 'Due'));
         const deadlineCells = days.map(() => {
@@ -365,11 +351,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         body.append(times);
 
-        const timed = items.filter(hasTimeSlot).map(item => ({
-            item,
-            start: new Date(item.startTime),
-            end: new Date(item.endTime)
-        }));
+        const timed = items.filter(hasTimeSlot).map(item => {
+            const start = new Date(item.startTime || item.start);
+            const end = isStartOnlyTask(item)
+                ? new Date(start.getTime() + 15 * 60000) // 15-min window for lane collision logic
+                : new Date(item.endTime || item.end);
+            return { item, start, end };
+        });
 
         let earliestMinute = Infinity;
 
@@ -380,15 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (sameDay(day, today)) column.classList.add('is-today');
             column.title = 'Click an empty slot to schedule a task here';
 
-            // S3-12: click an empty slot -> schedule form for that day and time (snapped to the half hour)
             column.addEventListener('click', event => {
-                if (event.target !== column) return; // clicks on blocks are handled by the block
+                if (event.target !== column) return;
                 const minutes = Math.floor((event.offsetY / HOUR_HEIGHT) * 60 / SLOT_MINUTES) * SLOT_MINUTES;
                 const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, Math.max(0, minutes));
                 openScheduleForm({ start });
             });
 
-            // Clip each item to this day (an item from 23:00 to 01:00 shows in both days)
             const segments = timed
                 .filter(t => t.start < dayEnd && t.end > dayStart)
                 .map(t => ({
@@ -404,7 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 column.append(buildEvent(seg, conflictMap));
             }
 
-            // Current-time line on today's column
             if (sameDay(day, today)) {
                 const now = el('div', 'cal-now');
                 now.style.top = `${minutesSince(dayStart, new Date()) / 60 * HOUR_HEIGHT}px`;
@@ -419,12 +404,9 @@ document.addEventListener('DOMContentLoaded', () => {
         inner.append(head, deadlines, scroll);
         grid.append(inner);
 
-        // The body's vertical scrollbar takes width; give the header rows the same space so columns line up
         const scrollbarWidth = scroll.offsetWidth - scroll.clientWidth;
         grid.style.setProperty('--cal-scrollbar', `${scrollbarWidth}px`);
 
-        // First load, Today and Day/Week switch: show the first item (one hour before it),
-        // or 07:00 when there is nothing. Previous/next keep the hours the user was looking at.
         if (state.scrollPending) {
             const startHour = Number.isFinite(earliestMinute)
                 ? Math.floor(earliestMinute / 60) - 1
@@ -436,19 +418,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * KAN-315: Render task as either a point marker (START_ONLY) or standard duration block
+     */
     function buildEvent(seg, conflictMap) {
         const { item } = seg;
         const role = roleOf(item);
+
+        // --- KAN-315: START_ONLY tasks display as a marker at start time ---
+        if (isStartOnlyTask(item)) {
+            const marker = el('div', `calendar-event-marker cal-${role}`);
+            const top = (seg.start / 60) * HOUR_HEIGHT;
+
+            marker.style.top = `${top}px`;
+            marker.style.left = `calc(${(seg.lane / seg.lanes) * 100}% + 2px)`;
+            marker.style.width = `calc(${100 / seg.lanes}% - 4px)`;
+
+            const dot = el('span', 'marker-dot');
+            const timeSpan = el('span', 'marker-time', formatTime(seg.realStart));
+            const titleSpan = el('span', 'marker-title', item.title);
+
+            marker.append(dot, timeSpan, titleSpan);
+
+            let description = `${item.title} at ${formatTime(seg.realStart)}, ${roleLabel(role)} (Start time marker)`;
+            if (item.status === 'COMPLETED') {
+                marker.classList.add('is-completed');
+                description += '. Completed';
+            }
+            description += '. Click to reschedule';
+
+            marker.title = description;
+            marker.setAttribute('aria-label', description);
+            makeActivatable(marker, () => openScheduleForm({ item }));
+
+            return marker;
+        }
+
+        // --- Standard duration block rendering ---
         const block = el('div', `cal-event cal-${role}`);
 
-        const top = seg.start / 60 * HOUR_HEIGHT;
-        const height = Math.max((seg.end - seg.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
+        const top = (seg.start / 60) * HOUR_HEIGHT;
+        const height = Math.max(((seg.end - seg.start) / 60) * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
         block.style.top = `${top}px`;
         block.style.height = `${height}px`;
         block.style.left = `calc(${(seg.lane / seg.lanes) * 100}% + 2px)`;
         block.style.width = `calc(${100 / seg.lanes}% - 4px)`;
 
-        // KAN-248: "↻" marks items that repeat weekly (the original and its generated repeats)
         const repeats = item.recurring || item.occurrence;
         const titleText = repeats ? `↻ ${item.title}` : item.title;
         const timeText = `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`;
@@ -456,7 +471,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let description = `${item.title}, ${timeText}, ${roleLabel(role)}`;
 
-        // Conflicts are computed for the real item only, so a repeat never shows the original's badge
         const clashes = item.occurrence ? null : conflictMap.get(item.id);
         if (clashes && clashes.length) {
             block.classList.add('is-conflict');
@@ -471,7 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (item.occurrence) {
-            // A generated repeat is read-only: the series is changed through the original item
             block.classList.add('is-repeat');
             description += '. Weekly repeat';
             makeActivatable(block, () => setStatus(
@@ -488,8 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // KAN-249: WEEKLY REVIEW CARD (week view only)
-    // Data: GET /api/daily-reviews/weekly?start=YYYY-MM-DD&end=YYYY-MM-DD (KAN-248)
+    // KAN-249: WEEKLY REVIEW CARD
     // ============================================================
 
     const summaryEl = document.getElementById('cal-week-summary');
@@ -501,6 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderWeekSummary(data) {
+        if (!summaryEl) return;
         summaryEl.replaceChildren();
 
         const head = el('div', 'cal-summary-head');
@@ -519,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
             statTile('is-upcoming', data.upcomingTasks, 'Upcoming')
         );
 
-        // Completed vs missed bar (only when something was due)
         const bar = el('div', 'cal-summary-bar');
         bar.setAttribute('aria-hidden', 'true');
         if (due > 0) {
@@ -541,35 +553,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadWeekSummary(days, requestId) {
-        if (state.view !== 'week') {
-            summaryEl.hidden = true;
+        if (!summaryEl || state.view !== 'week') {
+            if (summaryEl) summaryEl.hidden = true;
             return;
         }
         try {
             const start = toDateInput(days[0]);
             const end = toDateInput(days[days.length - 1]);
             const data = await apiFetch(`/api/daily-reviews/weekly?start=${start}&end=${end}`);
-            if (requestId !== state.requestId) return; // user already moved to another week
+            if (requestId !== state.requestId) return;
             renderWeekSummary(data);
         } catch (error) {
-            // The card is extra information: if it fails, hide it and keep the calendar working
             if (!error.sessionExpired) console.error(error);
-            summaryEl.hidden = true;
+            if (summaryEl) summaryEl.hidden = true;
         }
     }
 
-
     // ============================================================
-    // LOADING
+    // LOADING & TOOLBAR
     // ============================================================
 
     function setStatus(message, isError = false) {
+        if (!statusEl) return;
         statusEl.textContent = message;
         statusEl.classList.toggle('is-error', isError);
     }
 
     function updateToolbar(days) {
-        titleEl.textContent = formatTitle(days);
+        if (titleEl) titleEl.textContent = formatTitle(days);
         viewButtons.forEach(button => {
             const active = button.dataset.view === state.view;
             button.classList.toggle('active', active);
@@ -585,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateToolbar(days);
         setStatus('Loading your calendar…');
-        grid.setAttribute('aria-busy', 'true');
+        if (grid) grid.setAttribute('aria-busy', 'true');
 
         try {
             const query = `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
@@ -594,7 +605,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 apiFetch('/api/schedule-conflicts/me')
             ]);
 
-            // Ignore an older response if the user already clicked next/previous again
             if (requestId !== state.requestId) return;
 
             render(days, items, buildConflictMap(conflicts));
@@ -613,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
             render(days, [], new Map());
             setStatus('Could not load your calendar. Please try again.', true);
         } finally {
-            if (requestId === state.requestId) grid.removeAttribute('aria-busy');
+            if (requestId === state.requestId && grid) grid.removeAttribute('aria-busy');
         }
     }
 
@@ -633,10 +643,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalMessage = document.getElementById('schedule-message');
     const saveButton = document.getElementById('schedule-save');
 
-    let fixedItem = null;          // the task being scheduled when opened from a block/marker
+    let fixedItem = null;
     let returnFocusTo = null;
 
     function setModalMessage(message, type = '') {
+        if (!modalMessage) return;
         modalMessage.textContent = message;
         modalMessage.className = `modal-message${type ? ` is-${type}` : ''}`;
     }
@@ -647,9 +658,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function fillTimes(start, end) {
-        dateInput.value = toDateInput(start);
-        startInput.value = toTimeInput(start);
-        endInput.value = toTimeInput(end);
+        if (dateInput) dateInput.value = toDateInput(start);
+        if (startInput) startInput.value = toTimeInput(start);
+        if (endInput) endInput.value = toTimeInput(end);
     }
 
     async function loadUnscheduledTasks() {
@@ -659,46 +670,51 @@ document.addEventListener('DOMContentLoaded', () => {
             .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     }
 
-    /*
-     * open({ item })  -> schedule / reschedule that task (from a block, a marker or ?schedule=id)
-     * open({ start }) -> empty slot or "+ Schedule": pick one of the unscheduled tasks
-     */
     async function openScheduleForm({ item = null, start = null } = {}) {
+        if (!modal) return;
         returnFocusTo = document.activeElement;
         fixedItem = item;
         setModalMessage('');
-        saveButton.disabled = false;
+        if (saveButton) saveButton.disabled = false;
 
         if (item) {
             const scheduled = hasTimeSlot(item);
-            modalTitle.textContent = scheduled ? 'Reschedule task' : 'Schedule task';
-            taskField.hidden = true;
-            taskName.hidden = false;
-            taskName.textContent = item.deadline
-                ? `${item.title} (due ${formatShortDate(new Date(item.deadline))}, ${formatTime(new Date(item.deadline))})`
-                : item.title;
+            if (modalTitle) modalTitle.textContent = scheduled ? 'Reschedule task' : 'Schedule task';
+            if (taskField) taskField.hidden = true;
+            if (taskName) {
+                taskName.hidden = false;
+                taskName.textContent = item.deadline
+                    ? `${item.title} (due ${formatShortDate(new Date(item.deadline))}, ${formatTime(new Date(item.deadline))})`
+                    : item.title;
+            }
             if (scheduled) {
-                fillTimes(new Date(item.startTime), new Date(item.endTime));
+                const sTime = new Date(item.startTime || item.start);
+                const eTime = (item.endTime || item.end)
+                    ? new Date(item.endTime || item.end)
+                    : new Date(sTime.getTime() + DEFAULT_BLOCK_MINUTES * 60000);
+                fillTimes(sTime, eTime);
             } else {
                 const begin = nextFullHour();
                 fillTimes(begin, new Date(begin.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
             }
         } else {
             const begin = start || nextFullHour();
-            modalTitle.textContent = 'Schedule a task';
-            taskField.hidden = false;
-            taskName.hidden = true;
+            if (modalTitle) modalTitle.textContent = 'Schedule a task';
+            if (taskField) taskField.hidden = false;
+            if (taskName) taskName.hidden = true;
             fillTimes(begin, new Date(begin.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
 
-            taskSelect.replaceChildren(new Option('Loading your tasks…', ''));
-            taskSelect.disabled = true;
-            saveButton.disabled = true;
+            if (taskSelect) {
+                taskSelect.replaceChildren(new Option('Loading your tasks…', ''));
+                taskSelect.disabled = true;
+            }
+            if (saveButton) saveButton.disabled = true;
         }
 
         modal.hidden = false;
-        (item ? startInput : taskSelect).focus();
+        (item ? startInput : taskSelect)?.focus();
 
-        if (!item) {
+        if (!item && taskSelect) {
             try {
                 const tasks = await loadUnscheduledTasks();
                 taskSelect.replaceChildren();
@@ -707,11 +723,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const dashboardLink = el('a', 'modal-link', 'add a task on the dashboard');
                     dashboardLink.href = 'dashboard.html';
                     setModalMessage('', 'info');
-                    modalMessage.append(
-                        'Every task already has a time slot. To schedule something new, ',
-                        dashboardLink,
-                        ' (a deadline is enough), or click a task in the calendar to reschedule it.'
-                    );
+                    if (modalMessage) {
+                        modalMessage.append(
+                            'Every task already has a time slot. To schedule something new, ',
+                            dashboardLink,
+                            ' (a deadline is enough), or click a task in the calendar to reschedule it.'
+                        );
+                    }
                     return;
                 }
                 for (const task of tasks) {
@@ -719,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     taskSelect.append(new Option(`${task.title}${due}`, task.id));
                 }
                 taskSelect.disabled = false;
-                saveButton.disabled = false;
+                if (saveButton) saveButton.disabled = false;
                 taskSelect.focus();
             } catch (error) {
                 if (error.sessionExpired) return;
@@ -731,121 +749,120 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function closeScheduleForm() {
+        if (!modal) return;
         modal.hidden = true;
         fixedItem = null;
         if (returnFocusTo && document.contains(returnFocusTo)) returnFocusTo.focus();
     }
 
-    form.addEventListener('submit', async event => {
-        event.preventDefault();
+    if (form) {
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
 
-        const itemId = fixedItem ? fixedItem.id : taskSelect.value;
-        const title = fixedItem ? fixedItem.title : taskSelect.selectedOptions[0]?.textContent;
+            const itemId = fixedItem ? fixedItem.id : taskSelect?.value;
+            const title = fixedItem ? fixedItem.title : taskSelect?.selectedOptions[0]?.textContent;
 
-        if (!itemId) {
-            setModalMessage('Choose a task to schedule.', 'error');
-            return;
-        }
-        if (!dateInput.value || !startInput.value || !endInput.value) {
-            setModalMessage('Pick a date, a start time and an end time.', 'error');
-            return;
-        }
-
-        const start = fromInputs(dateInput.value, startInput.value);
-        const end = fromInputs(dateInput.value, endInput.value);
-
-        // Client-side check required by S3-12 (the backend checks it too)
-        if (end <= start) {
-            setModalMessage('The end time must be after the start time.', 'error');
-            endInput.focus();
-            return;
-        }
-
-        saveButton.disabled = true;
-        setModalMessage('Saving…', 'info');
-
-        try {
-            // Partial update: only the slot is sent, so the deadline and all other fields are unchanged
-            const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(itemId)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ startTime: start.toISOString(), endTime: end.toISOString() })
-            });
-            const body = await readJsonSafely(response);
-
-            if (response.status === 403) {
-                setModalMessage('You can only schedule your own tasks.', 'error');
-                saveButton.disabled = false;
+            if (!itemId) {
+                setModalMessage('Choose a task to schedule.', 'error');
                 return;
             }
-            if (!response.ok) {
-                setModalMessage(errorMessageFrom(body, 'Could not save. Please try again.'), 'error');
-                saveButton.disabled = false;
+            if (!dateInput?.value || !startInput?.value || !endInput?.value) {
+                setModalMessage('Pick a date, a start time and an end time.', 'error');
                 return;
             }
 
-            // TODO(S3-09): show Yara's shared conflict warning here once it is merged,
-            // instead of this plain text. body.conflicts = [{ id, title, startTime, endTime }]
-            const conflicts = (body && body.conflicts) || [];
-            const slotText = `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`;
-            const savedTitle = (body && body.title) || title;
-            state.flash = conflicts.length
-                ? {
-                    message: `Scheduled "${savedTitle}" on ${slotText}. Heads-up: it overlaps with ${conflicts.map(c => `"${c.title}"`).join(', ')}.`,
-                    isError: true
+            const start = fromInputs(dateInput.value, startInput.value);
+            const end = fromInputs(dateInput.value, endInput.value);
+
+            if (end <= start) {
+                setModalMessage('The end time must be after the start time.', 'error');
+                if (endInput) endInput.focus();
+                return;
+            }
+
+            if (saveButton) saveButton.disabled = true;
+            setModalMessage('Saving…', 'info');
+
+            try {
+                const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(itemId)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ startTime: start.toISOString(), endTime: end.toISOString() })
+                });
+                const body = await readJsonSafely(response);
+
+                if (response.status === 403) {
+                    setModalMessage('You can only schedule your own tasks.', 'error');
+                    if (saveButton) saveButton.disabled = false;
+                    return;
                 }
-                : { message: `Scheduled "${savedTitle}" on ${slotText}.`, isError: false };
+                if (!response.ok) {
+                    setModalMessage(errorMessageFrom(body, 'Could not save. Please try again.'), 'error');
+                    if (saveButton) saveButton.disabled = false;
+                    return;
+                }
 
-            closeScheduleForm();
+                const conflicts = body?.conflicts || [];
+                const slotText = `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`;
+                const savedTitle = body?.title || title;
+                state.flash = conflicts.length
+                    ? {
+                        message: `Scheduled "${savedTitle}" on ${slotText}. Heads-up: it overlaps with ${conflicts.map(c => `"${c.title}"`).join(', ')}.`,
+                        isError: true
+                    }
+                    : { message: `Scheduled "${savedTitle}" on ${slotText}.`, isError: false };
 
-            // Jump to the day that was scheduled so the block is visible
-            state.anchor = startOfDay(start);
-            state.scrollPending = true;
-            load();
-        } catch (error) {
-            if (error.sessionExpired) return;
-            console.error(error);
-            setModalMessage('Could not save. Please check your connection and try again.', 'error');
-            saveButton.disabled = false;
-        }
-    });
+                closeScheduleForm();
 
-    // Keep the end after the start while the user changes the start time
-    startInput.addEventListener('change', () => {
-        if (!startInput.value || !endInput.value) return;
-        const start = fromInputs(dateInput.value || toDateInput(new Date()), startInput.value);
-        const end = fromInputs(dateInput.value || toDateInput(new Date()), endInput.value);
-        if (end <= start) {
-            const newEnd = new Date(start.getTime() + DEFAULT_BLOCK_MINUTES * 60000);
-            endInput.value = sameDay(newEnd, start) ? toTimeInput(newEnd) : '23:59';
-        }
-    });
+                state.anchor = startOfDay(start);
+                state.scrollPending = true;
+                await load();
+            } catch (error) {
+                if (error.sessionExpired) return;
+                console.error(error);
+                setModalMessage('Could not save. Please check your connection and try again.', 'error');
+                if (saveButton) saveButton.disabled = false;
+            }
+        });
+    }
 
-    document.getElementById('schedule-cancel').addEventListener('click', closeScheduleForm);
-    document.getElementById('schedule-close').addEventListener('click', closeScheduleForm);
-    modal.addEventListener('click', event => {
-        if (event.target === modal) closeScheduleForm(); // click on the dark backdrop
-    });
+    if (startInput) {
+        startInput.addEventListener('change', () => {
+            if (!startInput.value || !endInput?.value) return;
+            const start = fromInputs(dateInput?.value || toDateInput(new Date()), startInput.value);
+            const end = fromInputs(dateInput?.value || toDateInput(new Date()), endInput.value);
+            if (end <= start) {
+                const newEnd = new Date(start.getTime() + DEFAULT_BLOCK_MINUTES * 60000);
+                endInput.value = sameDay(newEnd, start) ? toTimeInput(newEnd) : '23:59';
+            }
+        });
+    }
+
+    // Modal controls
+    document.getElementById('schedule-cancel')?.addEventListener('click', closeScheduleForm);
+    document.getElementById('schedule-close')?.addEventListener('click', closeScheduleForm);
+    if (modal) {
+        modal.addEventListener('click', event => {
+            if (event.target === modal) closeScheduleForm();
+        });
+    }
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && !modal.hidden) closeScheduleForm();
+        if (event.key === 'Escape' && modal && !modal.hidden) closeScheduleForm();
     });
-    document.getElementById('cal-schedule-btn').addEventListener('click', () => openScheduleForm());
+    document.getElementById('cal-schedule-btn')?.addEventListener('click', () => openScheduleForm());
 
-    // ============================================================
-    // NAVIGATION
-    // ============================================================
-
-    document.getElementById('cal-prev').addEventListener('click', () => {
+    // Navigation handlers
+    document.getElementById('cal-prev')?.addEventListener('click', () => {
         state.anchor = addDays(state.anchor, state.view === 'week' ? -7 : -1);
         load();
     });
 
-    document.getElementById('cal-next').addEventListener('click', () => {
+    document.getElementById('cal-next')?.addEventListener('click', () => {
         state.anchor = addDays(state.anchor, state.view === 'week' ? 7 : 1);
         load();
     });
 
-    document.getElementById('cal-today').addEventListener('click', () => {
+    document.getElementById('cal-today')?.addEventListener('click', () => {
         state.anchor = startOfDay(new Date());
         state.scrollPending = true;
         load();
@@ -860,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // calendar.html?schedule=<id> opens the form for that task (e.g. from a dashboard "Schedule" link)
+    // Deep link from URL: calendar.html?schedule=<id>
     async function openFromUrl() {
         const params = new URLSearchParams(window.location.search);
         const id = params.get('schedule');

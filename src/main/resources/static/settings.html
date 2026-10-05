@@ -11,7 +11,7 @@
 
 <div class="app-shell">
 
-    <!-- Top bar (same shell as dashboard.html, so the bell/reminders and profile menu work here too) -->
+    <!-- Top bar -->
     <header class="topbar dash-topbar">
         <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
         <div class="topbar-actions">
@@ -41,7 +41,7 @@
 
     <div class="app-body">
 
-        <!-- Sidebar (Settings marked active instead of Dashboard) -->
+        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="profile-card">
                 <div class="avatar-lg" id="profile-avatar">AC</div>
@@ -78,7 +78,7 @@
                 </div>
             </section>
 
-            <!-- Profile panel. KAN-240 (Edit profile / change email UI) plugs its content in here. -->
+            <!-- Profile panel -->
             <section class="card settings-panel" id="settings-profile-panel">
                 <div class="row-between">
                     <div>
@@ -89,7 +89,7 @@
                 </div>
             </section>
 
-            <!-- Password panel. KAN-242 (Change password UI) plugs its content in here. -->
+            <!-- Password panel -->
             <section class="card settings-panel" id="settings-password-panel">
                 <div class="row-between">
                     <div>
@@ -100,15 +100,60 @@
                 </div>
             </section>
 
-            <!-- Notifications panel. KAN-244 (Notification preferences UI) plugs its content in here. -->
+            <!-- KAN-314: Rebuilt Manage Notifications Panel (WhatsApp & SMS Channels) -->
             <section class="card settings-panel" id="settings-notifications-panel">
                 <div class="row-between">
                     <div>
-                        <h2>Notifications</h2>
-                        <p class="card-subtitle">Choose which alerts Aal Sikke sends you.</p>
+                        <h2>Manage Notifications</h2>
+                        <p class="card-subtitle">Configure WhatsApp and SMS delivery channels for your alerts.</p>
                     </div>
-                    <button type="button" class="btn-secondary settings-panel-action" id="settings-notif-prefs-btn">Manage preferences</button>
+                    <button type="button" class="btn-secondary settings-panel-action" id="settings-notif-prefs-btn">Event alerts</button>
                 </div>
+
+                <form id="channel-prefs-form" style="margin-top: 1.5rem;">
+                    <!-- WhatsApp Channel Toggle -->
+                    <div class="toggle-row">
+                        <div class="toggle-text">
+                            <span class="toggle-title">WhatsApp Notifications</span>
+                            <span class="toggle-subtitle">Receive instant reminders and task updates directly on WhatsApp.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-whatsapp-enabled" name="whatsappEnabled">
+                            <span class="switch-track"></span>
+                        </label>
+                    </div>
+
+                    <!-- SMS Channel Toggle -->
+                    <div class="toggle-row">
+                        <div class="toggle-text">
+                            <span class="toggle-title">SMS Notifications</span>
+                            <span class="toggle-subtitle">Receive urgent alerts and system notifications via text message.</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="pref-sms-enabled" name="smsEnabled">
+                            <span class="switch-track"></span>
+                        </label>
+                    </div>
+
+                    <!-- Primary Channel Selection -->
+                    <div class="field" style="margin-top: 1rem;">
+                        <label for="pref-primary-channel">Primary Delivery Channel</label>
+                        <div class="input-wrap">
+                            <select id="pref-primary-channel" name="primaryChannel">
+                                <option value="WHATSAPP">WhatsApp (Recommended)</option>
+                                <option value="SMS">SMS</option>
+                                <option value="IN_APP">In-App Only</option>
+                            </select>
+                        </div>
+                        <p class="hint">This channel will be prioritized for deadline and schedule notifications.</p>
+                    </div>
+
+                    <p class="modal-message" id="channel-prefs-message" role="status" aria-live="polite"></p>
+
+                    <div class="form-actions" style="margin-top: 1rem;">
+                        <button type="submit" class="btn-primary" id="save-channel-prefs-btn">Save channels</button>
+                    </div>
+                </form>
             </section>
 
             <!-- Theme panel (KAN-239) -->
@@ -139,7 +184,7 @@
 
 </div>
 
-<!-- Profile edit modal (shared with dashboard.html; dashboard.js wires it up the same way here) -->
+<!-- Profile edit modal -->
 <div class="modal-backdrop" id="profile-modal" hidden>
     <div class="modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
         <div class="modal-header">
@@ -213,7 +258,7 @@
     </div>
 </div>
 
-<!-- Change password modal (shared with dashboard.html) -->
+<!-- Change password modal -->
 <div class="modal-backdrop" id="password-modal" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
         <div class="modal-header">
@@ -261,13 +306,13 @@
     </div>
 </div>
 
-<!-- Notification preferences modal (shared with dashboard.html) -->
+<!-- KAN-313: Relocated Activity Notification Preferences Modal -->
 <div class="modal-backdrop" id="notif-prefs-modal" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="notif-prefs-modal-title">
         <div class="modal-header">
             <div>
                 <h2 id="notif-prefs-modal-title">Notification preferences</h2>
-                <p>Choose which alerts Aal Sikke sends you.</p>
+                <p>Choose which activity alerts Aal Sikke sends you.</p>
             </div>
             <button type="button" class="modal-close" id="close-notif-prefs-modal" aria-label="Close">&#10005;</button>
         </div>
