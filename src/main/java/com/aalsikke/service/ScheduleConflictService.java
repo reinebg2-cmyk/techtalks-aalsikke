@@ -6,6 +6,7 @@ import com.aalsikke.model.User;
 import com.aalsikke.repository.ScheduleItemRepository;
 import com.aalsikke.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import com.aalsikke.model.TimeType; // Adjust the package path to match where TimeType lives
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,17 +29,16 @@ public class ScheduleConflictService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Only the caller's own items that have both a start and an end time, sorted by start.
+        // The caller's items that have a start time (TIME_BLOCKED and START_ONLY), sorted by start.
+        // DEADLINE_ONLY items have no start time, so they are never loaded.
         List<ScheduleItem> items = scheduleItemRepository
-                .findByUserIdAndStartTimeIsNotNullAndEndTimeIsNotNullOrderByStartTimeAsc(user.getId());
+                .findByUserIdAndStartTimeIsNotNullOrderByStartTimeAsc(user.getId());
 
         List<ConflictPairResponse> pairs = new ArrayList<>();
         for (int i = 0; i < items.size(); i++) {
             ScheduleItem current = items.get(i);
-            // Items are sorted by start, so once a later item starts at or after current ends,
-            // no further item can overlap current and we can stop looking.
-            for (int j = i + 1; j < items.size()
-                    && items.get(j).getStartTime().isBefore(current.getEndTime()); j++) {
+            // Sorted by start, so once a later item is out of current's reach we can stop looking.
+            for (int j = i + 1; j < items.size() && canReach(current, items.get(j)); j++) {
                 ScheduleItem other = items.get(j);
                 if (ConflictRules.overlaps(current, other)) {
                     pairs.add(ConflictPairResponse.of(current, other));
@@ -46,5 +46,16 @@ public class ScheduleConflictService {
             }
         }
         return pairs;
+    }
+
+    /**
+     * Can a later-starting item still conflict with current?
+     */
+    private static boolean canReach(ScheduleItem current, ScheduleItem next) {
+        if (current.getTimeType() == TimeType.TIME_BLOCKED) {
+            return next.getStartTime().isBefore(current.getEndTime());
+        }
+        // START_ONLY is a single instant: only an item starting at the same instant can still conflict
+        return !next.getStartTime().isAfter(current.getStartTime());
     }
 }

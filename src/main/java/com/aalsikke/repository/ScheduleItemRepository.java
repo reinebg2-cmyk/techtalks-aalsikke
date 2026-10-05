@@ -5,6 +5,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -13,7 +16,7 @@ import java.util.Optional;
 
 @Repository
 public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID> {
-
+    List<ScheduleItem> findByUserIdAndStartTimeIsNotNullOrderByStartTimeAsc(UUID userId);
     List<ScheduleItem> findByUserId(UUID userId);
 
     long countByUserId(UUID userId);
@@ -100,4 +103,17 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
                         @Param("status") String status,
                         @Param("now") OffsetDateTime now);
 
+    @Query("""
+    select s from ScheduleItem s
+    where s.user.id = :userId
+      and s.id <> :excludeId
+      and s.timeType <> com.aalsikke.model.TimeType.DEADLINE_ONLY
+      and s.startTime <= :to
+      and ((s.endTime is not null and s.endTime >= :from)
+        or (s.endTime is null and s.startTime >= :from))
+""")
+    List<ScheduleItem> findConflictCandidates(@Param("userId") UUID userId,
+                                              @Param("excludeId") UUID excludeId,
+                                              @Param("from") OffsetDateTime from,
+                                              @Param("to") OffsetDateTime to);
 }

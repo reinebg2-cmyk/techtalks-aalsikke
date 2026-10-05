@@ -1,6 +1,7 @@
 // Aal Sikke — Calendar
 //   S3-11: day and week views
 //   S3-12: time-blocking (schedule a task into a time slot)
+//   KAN-315: Render START_ONLY tasks as markers instead of blocks
 //
 // Data:
 //   GET /api/schedule-items/range?from=&to=   items overlapping the visible days (S3-02)
@@ -211,12 +212,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { student: 'Student', work: 'Work', personal: 'Personal' }[role];
     }
 
-    // Priority drives the stripe color. Missing/unknown = MEDIUM (the backend default).
-    function priorityOf(item) {
-        const value = String(item.priority || 'MEDIUM').toLowerCase();
-        return ['low', 'medium', 'high', 'urgent'].includes(value) ? value : 'medium';
-    }
-
     function hasTimeSlot(item) {
         return Boolean(item.startTime && item.endTime);
     }
@@ -347,11 +342,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const index = days.findIndex(day => sameDay(day, due));
             if (index === -1) continue;
             const role = roleOf(item);
-            const marker = el('div', `cal-deadline-marker cal-${role} prio-${priorityOf(item)}`);
+            const marker = el('div', `cal-deadline-marker cal-${role}`);
             if (item.status === 'COMPLETED') marker.classList.add('is-completed');
             if (!hasTimeSlot(item)) marker.classList.add('is-unscheduled');
             marker.append(el('span', 'cal-deadline-text', `${formatTime(due)} ${item.title}`));
-            const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)}, ${priorityOf(item)} priority)`
+            const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)})`
                 + (hasTimeSlot(item) ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
             marker.title = label;
             marker.setAttribute('aria-label', label);
@@ -442,10 +437,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * KAN-315: Render task as either a point marker (START_ONLY) or standard duration block
+     */
     function buildEvent(seg, conflictMap) {
         const { item } = seg;
         const role = roleOf(item);
-        const block = el('div', `cal-event cal-${role} prio-${priorityOf(item)}`);
+
+        // --- KAN-315: START_ONLY tasks display as a marker at start time ---
+        if (isStartOnlyTask(item)) {
+            const marker = el('div', `calendar-event-marker cal-${role}`);
+            const top = (seg.start / 60) * HOUR_HEIGHT;
+
+            marker.style.top = `${top}px`;
+            marker.style.left = `calc(${(seg.lane / seg.lanes) * 100}% + 2px)`;
+            marker.style.width = `calc(${100 / seg.lanes}% - 4px)`;
+
+            const dot = el('span', 'marker-dot');
+            const timeSpan = el('span', 'marker-time', formatTime(seg.realStart));
+            const titleSpan = el('span', 'marker-title', item.title);
+
+            marker.append(dot, timeSpan, titleSpan);
+
+            let description = `${item.title} at ${formatTime(seg.realStart)}, ${roleLabel(role)} (Start time marker)`;
+            if (item.status === 'COMPLETED') {
+                marker.classList.add('is-completed');
+                description += '. Completed';
+            }
+            description += '. Click to reschedule';
+
+            marker.title = description;
+            marker.setAttribute('aria-label', description);
+            makeActivatable(marker, () => openScheduleForm({ item }));
+
+            return marker;
+        }
+
+        // --- Standard duration block rendering ---
+        const block = el('div', `cal-event cal-${role}`);
 
         const top = seg.start / 60 * HOUR_HEIGHT;
         const height = Math.max((seg.end - seg.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
@@ -460,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeText = `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`;
         block.append(el('span', 'cal-event-title', titleText), el('span', 'cal-event-time', timeText));
 
-        let description = `${item.title}, ${timeText}, ${roleLabel(role)}, ${priorityOf(item)} priority`;
+        let description = `${item.title}, ${timeText}, ${roleLabel(role)}`;
 
         // Conflicts are computed for the real item only, so a repeat never shows the original's badge
         const clashes = item.occurrence ? null : conflictMap.get(item.id);
