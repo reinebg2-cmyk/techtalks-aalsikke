@@ -3,3 +3,4 @@
 
 ALTER TABLE users ALTER COLUMN color_palette SET DEFAULT 'brand';
 UPDATE users SET color_palette = 'brand' WHERE color_palette = 'ocean';
+
