@@ -24,6 +24,7 @@ public class ScheduleItemResponse {
     /** KAN-270: when the task was added. Reminder start for deadline-only tasks. */
     private OffsetDateTime createdAt;
     private boolean isRecurring;
+    private boolean reminderEnabled;
     private Summary course;
     private Summary workplace;
     private List<ConflictSummary> conflicts = List.of();
@@ -43,6 +44,8 @@ public class ScheduleItemResponse {
         dto.timeType = item.getTimeType();
         dto.createdAt = item.getCreatedAt();
         dto.isRecurring = item.isRecurring();
+        dto.reminderEnabled = item.isReminderEnabled();
+
         if (item.getCourse() != null) {
             dto.course = new Summary(item.getCourse().getId(), item.getCourse().getCourseName());
         }
@@ -103,5 +106,6 @@ public class ScheduleItemResponse {
     public Summary getWorkplace() { return workplace; }
     public List<ConflictSummary> getConflicts() { return conflicts; }
     public boolean isOccurrence() { return occurrence; }
+    public boolean isReminderEnabled() { return reminderEnabled; }
 
 }

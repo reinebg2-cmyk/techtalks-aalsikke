@@ -114,6 +114,15 @@
                                 </select>
                             </div>
                         </div>
+                        <!-- KAN-265: optional start time (time window) -->
+                        <!-- KAN-306: reminder opt-in -->
+                        <div class="field">
+                            <label class="check-row"><input type="checkbox" id="task-wants-reminder"> Remind me about this task</label>
+                        </div>
+                        <div class="field" id="field-task-reminder" hidden>
+                            <label for="task-reminder-at">Remind me at</label>
+                            <div class="input-wrap"><input type="datetime-local" id="task-reminder-at" name="reminderAt"></div>
+                        </div>
                     </div>
                     <div class="field">
                         <label for="task-category">Category</label>

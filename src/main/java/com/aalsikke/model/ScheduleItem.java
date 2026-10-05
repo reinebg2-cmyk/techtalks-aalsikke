@@ -65,6 +65,9 @@ public class ScheduleItem {
     @Column(name = "time_type", nullable = false, length = 20)
     private TimeType timeType;
 
+    @Column(name = "reminder_enabled", nullable = false)
+    private boolean reminderEnabled = false;
+
     @Column(name = "is_recurring")
     private boolean isRecurring = false;
 
@@ -118,4 +121,7 @@ public class ScheduleItem {
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+
+    public boolean isReminderEnabled() { return reminderEnabled; }
+    public void setReminderEnabled(boolean reminderEnabled) { this.reminderEnabled = reminderEnabled; }
 }
