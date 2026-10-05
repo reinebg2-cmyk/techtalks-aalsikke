@@ -5,23 +5,18 @@
 
 /* ===== Global + Authentication styles ===== */
 
-/* KAN-294: default palette extracted from the Aal Sikke logo.
- *   logo navy   #0F203E  -> brand / ink
- *   logo orange #F48A40  -> accent
- * Light/dark neutrals are tinted toward the navy. Customizable presets (KAN-290)
- * layer on top of these through :root[data-palette="..."] further down. */
 :root {
-  --trust-blue: #0F203E;
-  --trust-blue-bg: #E6EAF2;
-  --navy: #0F203E;
-  --ink-strong: #081528;
-  --bg-mist: #F5F6F8;
-  --card-mist: #E9EDF3;
+  --trust-blue: #2C6E9E;
+  --trust-blue-bg: #E3EEF7;
+  --navy: #0F4C75;
+  --ink-strong: #0F4C75;
+  --bg-mist: #F4F7FA;
+  --card-mist: #E8EEF3;
   --white: #FFFFFF;
   --surface: #FFFFFF;
-  --slate: #1C2740;
-  --slate-light: #5B6679;
-  --border: #D9DFE9;
+  --slate: #2D3748;
+  --slate-light: #64748B;
+  --border: #D8E1E8;
   --success: #2F9E6E;
   --success-bg: #EAF7F1;
   --amber: #F0A202;
@@ -29,28 +24,6 @@
   --coral: #E4572E;
   --coral-bg: #FCEDE8;
   --radius: 0.75rem;
-
-  /* Second brand color (logo orange). Each palette preset sets its own --accent.
-   * The logo reads --logo-ink / --logo-accent, so it follows light/dark AND the chosen palette. */
-  --accent: #F48A40;
-  --logo-ink: var(--navy);
-  --logo-accent: var(--accent);
-
-  /* Task priority colors, one mapping used by the task list, calendar and dashboard.
-   * Not part of the selectable palettes on purpose: a priority must mean the same thing in every theme. */
-  --prio-low: #6B778C;
-  --prio-low-bg: #EEF0F4;
-  --prio-medium: #2F6FBF;
-  --prio-medium-bg: #E7F0FB;
-  --prio-high: #DB6A12;
-  --prio-high-bg: #FDEFE3;
-  --prio-urgent: #C62828;
-  --prio-urgent-bg: #FBE9E9;
-
-  /* Calendar roles. Fixed (not part of the palettes) so Student / Work / Personal stay
-   * distinguishable whichever palette is selected. */
-  --role-student: #8E5BD0;
-  --role-student-bg: #F0E8FA;
 }
 
 /*
@@ -64,36 +37,21 @@
  * usages throughout this file).
  */
 :root[data-theme="dark"] {
-  --trust-blue: #4272DB;
-  --trust-blue-bg: #16233F;
-  --navy: #E8EEF8;
-  --bg-mist: #0B1220;
-  --card-mist: #17233A;
-  --surface: #111B2E;
-  --slate: #E6EBF4;
-  --slate-light: #9AA7BD;
-  --border: #26344F;
+  --trust-blue: #4A9FD8;
+  --trust-blue-bg: #16283A;
+  --navy: #E8F1F8;
+  --bg-mist: #131A22;
+  --card-mist: #1E2833;
+  --surface: #1A232D;
+  --slate: #E8EEF3;
+  --slate-light: #94A3B8;
+  --border: #2D3B48;
   --success: #3FBF8F;
   --success-bg: #12291F;
   --amber: #F0A202;
   --amber-bg: #2E2410;
   --coral: #E4572E;
   --coral-bg: #2E1712;
-
-  --accent: #F79A57;
-  --ink-strong: #2A4FA8;
-
-  --prio-low: #9AA7BD;
-  --prio-low-bg: #1B2538;
-  --prio-medium: #6FA3F0;
-  --prio-medium-bg: #14243D;
-  --prio-high: #F79A57;
-  --prio-high-bg: #2F1E10;
-  --prio-urgent: #FF6B5B;
-  --prio-urgent-bg: #331618;
-
-  --role-student: #B493EE;
-  --role-student-bg: #251B3A;
 }
 
 * { box-sizing: border-box; }
@@ -139,17 +97,12 @@ body {
   font-size: 1rem;
 }
 
-.topbar a.brand { text-decoration: none; }
-
-/* Logo (logo-sprite.svg): colors come from --logo-ink / --logo-accent. */
-.brand-logo {
-  display: block;
-  height: 1.75rem;
-  width: auto;
-  flex: none;
+.topbar .brand .logo-dot {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.375rem;
+  background: var(--trust-blue);
 }
-
-.brand-logo--mark { height: 1.5rem; }
 
 .topbar .help-link {
   color: var(--slate-light);
@@ -187,14 +140,18 @@ body {
   padding: 0.75rem 0 1.25rem;
 }
 
-.center-brand h1 {
-  margin: 0 0 0.375rem;
-  line-height: 0;
+.center-brand .logo-dot {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: var(--trust-blue);
+  margin: 0 auto 0.75rem;
 }
 
-.center-brand .brand-logo--lg {
-  height: 3.25rem;
-  margin: 0 auto;
+.center-brand h1 {
+  font-size: 1.25rem;
+  margin: 0 0 0.125rem;
+  color: var(--navy);
 }
 
 .center-brand p {
@@ -557,7 +514,7 @@ body {
   background: var(--surface);
   border: 0.0625rem solid var(--border);
   border-radius: 0.625rem;
-  box-shadow: 0 0.25rem 0.75rem rgba(15, 32, 62, 0.12);
+  box-shadow: 0 0.25rem 0.75rem rgba(15, 76, 117, 0.12);
   min-width: 9rem;
   overflow: hidden;
   z-index: 20;
@@ -815,9 +772,9 @@ body {
   flex-shrink: 0;
 }
 
-.priority-dot.low { background: var(--prio-low); }
-.priority-dot.medium { background: var(--prio-medium); }
-.priority-dot.high { background: var(--prio-high); }
+.priority-dot.low { background: var(--success); }
+.priority-dot.medium { background: var(--amber); }
+.priority-dot.high { background: var(--coral); }
 
 /* ---- Conflict marking (S3-07 / KAN-233) ---- */
 .task-card.is-conflict {
@@ -927,7 +884,7 @@ select:focus-visible {
 
 /* The task form also supports an URGENT priority. */
 .priority-dot.urgent {
-  background: var(--prio-urgent);
+  background: var(--coral);
 }
 
 /* Prevent long task titles from overflowing their cards. */
@@ -996,7 +953,7 @@ select:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(15, 32, 62, 0.45);
+  background: rgba(15, 76, 117, 0.45);
   overflow-y: auto;
 }
 
@@ -1013,7 +970,7 @@ select:focus-visible {
   background: var(--surface);
   border-radius: var(--radius);
   padding: 1.5rem;
-  box-shadow: 0 1rem 2.5rem rgba(15, 32, 62, 0.25);
+  box-shadow: 0 1rem 2.5rem rgba(15, 76, 117, 0.25);
 }
 
 .profile-modal-card {
@@ -1198,7 +1155,7 @@ select:focus-visible {
   background: var(--white);
   border-radius: 50%;
   transition: transform 0.15s ease;
-  box-shadow: 0 0.0625rem 0.125rem rgba(15, 32, 62, 0.25);
+  box-shadow: 0 0.0625rem 0.125rem rgba(15, 76, 117, 0.25);
 }
 
 .switch input:checked + .switch-track { background: var(--trust-blue); }
@@ -1223,7 +1180,7 @@ select:focus-visible {
   color: var(--white);
   font-size: 0.875rem;
   font-weight: 600;
-  box-shadow: 0 0.5rem 1.5rem rgba(15, 32, 62, 0.3);
+  box-shadow: 0 0.5rem 1.5rem rgba(15, 76, 117, 0.3);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 0.75rem);
@@ -1364,203 +1321,51 @@ select:focus-visible {
   display: none;
 }
 
-/*
- * KAN-290: color palettes. Each preset overrides only the four brand variables
- * (--trust-blue, --trust-blue-bg, --navy, --ink-strong); everything else in the
- * app already reads those, so a palette recolors the whole UI. "brand" (the
- * Aal Sikke logo palette, KAN-294) is the default and is defined at the top of
- * this file and in :root[data-theme="dark"], so it needs no override. "ocean" is
- * the previous blue look, kept as a regular preset below. The dark rules have higher specificity than the
- * light ones so palette + dark mode combine correctly.
- */
-/* "ocean": the original blue look from before the logo palette became the default. */
-:root[data-palette="ocean"] {
-  --accent: #2E9BD6;
-  --trust-blue: #2C6E9E;
-  --trust-blue-bg: #E3EEF7;
-  --navy: #0F4C75;
-  --ink-strong: #0F4C75;
-}
-
-:root[data-theme="dark"][data-palette="ocean"] {
-  --accent: #5BB8EC;
-  --trust-blue: #4A9FD8;
-  --trust-blue-bg: #16283A;
-  --navy: #E8F1F8;
-  --ink-strong: #0F4C75;
-}
-
-:root[data-palette="forest"] {
-  --accent: #7DBB3C;
-  --trust-blue: #2F7D5B;
-  --trust-blue-bg: #E4F3EC;
-  --navy: #14513A;
-  --ink-strong: #14513A;
-}
-:root[data-theme="dark"][data-palette="forest"] {
-  --accent: #A3D96B;
-  --trust-blue: #4CBF8B;
-  --trust-blue-bg: #14281F;
-  --navy: #E6F5EE;
-  --ink-strong: #14513A;
-}
-:root[data-palette="sunset"] {
-  --accent: #F2A81D;
-  --trust-blue: #C2571A;
-  --trust-blue-bg: #FCEBDD;
-  --navy: #7A3410;
-  --ink-strong: #7A3410;
-}
-:root[data-theme="dark"][data-palette="sunset"] {
-  --accent: #F7BE4A;
-  --trust-blue: #E07B3F;
-  --trust-blue-bg: #2E1C12;
-  --navy: #FBEBDD;
-  --ink-strong: #7A3410;
-}
-:root[data-palette="violet"] {
-  --accent: #9B7BEA;
-  --trust-blue: #6B4FBB;
-  --trust-blue-bg: #ECE8F8;
-  --navy: #3F2C7A;
-  --ink-strong: #3F2C7A;
-}
-:root[data-theme="dark"][data-palette="violet"] {
-  --accent: #B79CF5;
-  --trust-blue: #9B84E8;
-  --trust-blue-bg: #1E1832;
-  --navy: #EFEBFB;
-  --ink-strong: #3F2C7A;
-}
-:root[data-palette="rose"] {
-  --accent: #F0709F;
-  --trust-blue: #C0356A;
-  --trust-blue-bg: #FBE7EF;
-  --navy: #7A1F45;
-  --ink-strong: #7A1F45;
-}
-:root[data-theme="dark"][data-palette="rose"] {
-  --accent: #F58FB5;
-  --trust-blue: #E8699A;
-  --trust-blue-bg: #2E1520;
-  --navy: #FBE9F1;
-  --ink-strong: #7A1F45;
-}
-:root[data-palette="graphite"] {
-  --accent: #8B97A6;
-  --trust-blue: #4B5563;
-  --trust-blue-bg: #E8EBEF;
-  --navy: #1F2937;
-  --ink-strong: #1F2937;
-}
-:root[data-theme="dark"][data-palette="graphite"] {
-  --accent: #A6B1BF;
-  --trust-blue: #7B8794;
-  --trust-blue-bg: #1F242B;
-  --navy: #F1F3F5;
-  --ink-strong: #1F2937;
-}
-
-/* KAN-290: palette picker in Settings */
-.palette-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.palette-option {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.625rem;
-  padding: 0.75rem;
-  background: var(--surface);
+/* KAN-262: email verification notice (login page) and verify-email page */
+.login-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 0.0625rem solid var(--trust-blue);
+  border-radius: 0.625rem;
+  background: var(--trust-blue-bg);
+  font-size: 0.8125rem;
   color: var(--slate);
-  border: 2px solid var(--border);
-  border-radius: 0.75rem;
-  cursor: pointer;
-  font: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.palette-option:hover { border-color: var(--trust-blue); }
-
-.palette-option:focus-visible {
-  outline: 2px solid var(--trust-blue);
-  outline-offset: 2px;
+.login-notice[hidden] {
+  display: none;
 }
 
-.palette-option.is-selected {
-  border-color: var(--trust-blue);
-  box-shadow: 0 0 0 1px var(--trust-blue);
+.login-notice p {
+  margin: 0 0 0.25rem;
 }
 
-/* Each option previews the logo in that palette's own colors (set inline as --logo-ink / --logo-accent). */
-.palette-preview {
-  display: flex;
+.notice-text {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.verify-login-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.verify-login-btn[hidden] {
+  display: none;
+
+/* KAN-265: "Has a start time" checkbox row in the task forms */
+.field label.check-row {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 2.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
+  gap: 0.5rem;
+  cursor: pointer;
 }
 
-.palette-preview svg { height: 1.5rem; width: auto; }
+.check-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--trust-blue);
 
-.palette-name {
-  font-size: 0.875rem;
-  font-weight: 600;
 }
-
-.palette-option.is-selected .palette-name::after {
-  content: " \2713";
-  color: var(--trust-blue);
-}
-
-/* ==== Priority colors ====
- * One mapping (--prio-low / medium / high / urgent, defined at the top of this
- * file for light and dark) drives every view. The color is never the only cue:
- * lists print the priority word and calendar blocks carry it in their label. */
-.task-card.priority-low,
-.task-card.priority-medium,
-.task-card.priority-high,
-.task-card.priority-urgent { border-left-width: 0.3125rem; }
-
-.task-card.priority-low { border-left-color: var(--prio-low); }
-.task-card.priority-medium { border-left-color: var(--prio-medium); }
-.task-card.priority-high { border-left-color: var(--prio-high); }
-.task-card.priority-urgent { border-left-color: var(--prio-urgent); }
-
-.priority-label {
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.priority-label.low { color: var(--prio-low); }
-.priority-label.medium { color: var(--prio-medium); }
-.priority-label.high { color: var(--prio-high); }
-.priority-label.urgent { color: var(--prio-urgent); }
-
-/* Calendar: the stripe on blocks and the diamond on deadline markers show the priority.
- * The role color stays as the tint, so both pieces of information are kept. */
-.cal-event.prio-low { border-left: 4px solid var(--prio-low); }
-.cal-event.prio-medium { border-left: 4px solid var(--prio-medium); }
-.cal-event.prio-high { border-left: 4px solid var(--prio-high); }
-.cal-event.prio-urgent { border-left: 4px solid var(--prio-urgent); }
-
-.cal-deadline-marker.prio-low { border-left: 4px solid var(--prio-low); }
-.cal-deadline-marker.prio-medium { border-left: 4px solid var(--prio-medium); }
-.cal-deadline-marker.prio-high { border-left: 4px solid var(--prio-high); }
-.cal-deadline-marker.prio-urgent { border-left: 4px solid var(--prio-urgent); }
-
-.cal-deadline-marker.prio-low::before { background: var(--prio-low); }
-.cal-deadline-marker.prio-medium::before { background: var(--prio-medium); }
-.cal-deadline-marker.prio-high::before { background: var(--prio-high); }
-.cal-deadline-marker.prio-urgent::before { background: var(--prio-urgent); }
-
-.cal-swatch.prio-low { background: var(--prio-low); }
-.cal-swatch.prio-medium { background: var(--prio-medium); }
-.cal-swatch.prio-high { background: var(--prio-high); }
-.cal-swatch.prio-urgent { background: var(--prio-urgent); }

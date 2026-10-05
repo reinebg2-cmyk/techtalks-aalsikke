@@ -171,7 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     }).then(() => {
       submitBtn.textContent = 'Account created ✓';
-      window.location.href = 'login.html';
+      // KAN-272: the account must be verified before the first login
+      window.location.href = 'login.html?check-email=1';
     }).catch((err) => {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Create account →';
