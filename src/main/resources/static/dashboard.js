@@ -365,8 +365,32 @@ document.addEventListener('DOMContentLoaded', () => {
   editTaskWantsReminder?.addEventListener('change', syncEditReminderField);
 
   // ============================================================
-  // EDIT TASK MODAL OPEN & SUBMIT LOGIC
+  // NEW TASK & EDIT TASK MODAL HANDLERS
   // ============================================================
+
+  function setupCreateTaskButton() {
+    const newTaskBtn = document.querySelector('.task-create-card button') ||
+                       document.getElementById('new-task-btn') ||
+                       toggleFormBtn;
+
+    const createCardForm = document.querySelector('.task-create-card form') ||
+                           taskForm;
+
+    if (newTaskBtn) {
+      newTaskBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (createCardForm) {
+          createCardForm.hidden = !createCardForm.hidden;
+          if (!createCardForm.hidden) {
+            createCardForm.querySelector('input')?.focus();
+          }
+        } else if (taskModal) {
+          taskModal.hidden = false;
+          taskModal.querySelector('input')?.focus();
+        }
+      });
+    }
+  }
 
   function openEditModal(task) {
     if (!taskModal || !task) return;
@@ -618,6 +642,34 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Initial loads
-  loadTasks();
+  async function initPage() {
+    // 1. Get profile element safely
+    const profileEl = document.querySelector('.greeting-row') || document.querySelector('.profile-name');
+
+    try {
+      const response = await apiFetch(`${API_BASE}/api/auth/me`);
+      if (response.ok) {
+        const user = await response.json();
+        if (profileEl) profileEl.textContent = user.fullName || user.email || 'Workspace';
+      }
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Failed loading profile:', error);
+      if (profileEl) profileEl.textContent = 'Workspace';
+    }
+
+    // 2. Load tasks safely
+    try {
+      await loadTasks();
+    } catch (error) {
+      console.error('Failed loading tasks:', error);
+    }
+  }
+
+  // ============================================================
+  // INITIALIZATION
+  // ============================================================
+
+  initPage();
+  setupCreateTaskButton();
 });
