@@ -683,7 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     taskWantsReminder?.addEventListener('change', syncReminderField);
     syncReminderField();
-  );
+
 
   const editStartToggle = setupStartToggle(
       editTaskHasStart, editTaskStartField, editTaskCategory
@@ -1379,7 +1379,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setProfileSaving(true);
 
       try {
-=-aw
+
         const response = await apiFetch(`${API_BASE}/api/auth/profile`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

@@ -294,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('aalsikke:tasks-loaded', render);
     document.addEventListener('aalsikke:tasks-error', () => {
         groupsEl.innerHTML = '';
+        if (countEl) countEl.textContent = '';
         showState("Couldn't load your tasks. Please refresh the page.");
     });
 
