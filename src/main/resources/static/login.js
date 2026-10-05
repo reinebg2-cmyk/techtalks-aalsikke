@@ -5,6 +5,9 @@ const API_BASE = window.location.origin;
 const TOKEN_KEY = 'aalsikke_token'; // dashboard.js will read this to authenticate requests
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('.back-btn')?.addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
   const form = document.getElementById('login-form');
   const identifierField = document.getElementById('field-identifier');
   const identifierInput = document.getElementById('identifier');

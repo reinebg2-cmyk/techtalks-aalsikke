@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="theme-init.js"></script>
+    <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
     <title>Aal Sikke — Tasks</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="tasks.css">
@@ -14,7 +15,7 @@
 
     <!-- Top bar (same shell as dashboard.html, so the bell/reminders and profile menu work here too) -->
     <header class="topbar dash-topbar">
-        <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
+        <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
         <div class="topbar-actions">
             <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
             <div class="profile-menu" id="notif-menu">
@@ -42,7 +43,7 @@
 
     <div class="app-body">
 
-        <!-- Sidebar (Tasks marked active) -->
+        <!-- Sidebar (Settings marked active instead of Dashboard) -->
         <aside class="sidebar">
             <div class="profile-card">
                 <div class="avatar-lg" id="profile-avatar">AC</div>
@@ -228,7 +229,78 @@
 </div>
 
 <!-- Profile edit modal (shared with dashboard.html; dashboard.js wires it up the same way here) -->
-<!-- Change password modal -->
+<div class="modal-backdrop" id="profile-modal" hidden>
+    <div class="modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+        <div class="modal-header">
+            <div>
+                <h2 id="profile-modal-title">Edit profile</h2>
+                <p id="profile-modal-subtitle">Update your details and how you use Aal Sikke.</p>
+            </div>
+            <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close">&#10005;</button>
+        </div>
+
+        <form id="profile-form" novalidate>
+            <div class="profile-modal-avatar" id="modal-profile-avatar" aria-hidden="true">AC</div>
+
+            <fieldset class="role-field" id="field-profile-mode">
+                <legend class="field-label">I use Aal Sikke primarily for</legend>
+                <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role">
+                    <input type="radio" name="profile-role" id="profile-role-student" value="STUDENT">
+                    <label for="profile-role-student">Student</label>
+                    <input type="radio" name="profile-role" id="profile-role-work" value="WORK">
+                    <label for="profile-role-work">Work</label>
+                    <input type="radio" name="profile-role" id="profile-role-dual" value="HYBRID">
+                    <label for="profile-role-dual">Dual</label>
+                </div>
+                <p class="role-hint" id="profile-role-hint"></p>
+                <p class="hint error-text" role="alert"></p>
+            </fieldset>
+
+            <div class="form-grid">
+                <div class="field" id="field-profile-fullname">
+                    <label for="profile-fullname">Full name</label>
+                    <div class="input-wrap"><input id="profile-fullname" type="text" autocomplete="name" maxlength="255"></div>
+                    <p class="hint error-text" role="alert"></p>
+                </div>
+                <div class="field">
+                    <label for="profile-username">Username</label>
+                    <div class="input-wrap"><input id="profile-username" type="text" readonly aria-readonly="true"></div>
+                </div>
+            </div>
+
+            <div class="field" id="field-profile-email">
+                <label for="profile-email">Email</label>
+                <div class="input-wrap"><input id="profile-email" type="email" autocomplete="email" maxlength="255"></div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <div class="form-grid">
+                <div class="field">
+                    <label for="profile-dob">Date of birth</label>
+                    <div class="input-wrap"><input id="profile-dob" type="date" readonly aria-readonly="true"></div>
+                </div>
+                <div class="field" id="field-profile-phone">
+                    <label for="profile-phone">Phone number</label>
+                    <div class="input-wrap"><input id="profile-phone" type="tel" autocomplete="tel" maxlength="50"></div>
+                    <p class="hint error-text" role="alert"></p>
+                </div>
+            </div>
+            <div class="field" id="field-profile-current-password">
+                <label for="profile-current-password">Current password <span class="role-hint">(only needed to change your name, email or phone)</span></label>
+                <div class="input-wrap"><input id="profile-current-password" type="password" autocomplete="current-password"></div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+            <p class="modal-message" id="profile-message" role="status" aria-live="polite"></p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-profile-btn">Cancel</button>
+                <button type="submit" class="btn-primary" id="save-profile-btn">Save profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change password modal (shared with dashboard.html) -->
 <div class="modal-backdrop" id="password-modal" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
         <div class="modal-header">
@@ -275,6 +347,104 @@
         </form>
     </div>
 </div>
-<!-- Make sure this line exists at the bottom of tasks.html -->
+
+<!-- Notification preferences modal (shared with dashboard.html) -->
+<div class="modal-backdrop" id="notif-prefs-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="notif-prefs-modal-title">
+        <div class="modal-header">
+            <div>
+                <h2 id="notif-prefs-modal-title">Notification preferences</h2>
+                <p>Choose which alerts Aal Sikke sends you.</p>
+            </div>
+            <button type="button" class="modal-close" id="close-notif-prefs-modal" aria-label="Close">&#10005;</button>
+        </div>
+
+        <form id="notif-prefs-form">
+            <div class="toggle-row">
+                <div class="toggle-text">
+                    <span class="toggle-title">Deadline reminders</span>
+                    <span class="toggle-subtitle">Get notified as a task's deadline approaches.</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="pref-deadline-reminders">
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div class="toggle-text">
+                    <span class="toggle-title">Overdue alerts</span>
+                    <span class="toggle-subtitle">Get notified when a task passes its deadline.</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="pref-overdue-alerts">
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div class="toggle-text">
+                    <span class="toggle-title">Schedule conflicts</span>
+                    <span class="toggle-subtitle">Get notified when two items overlap on your calendar.</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="pref-schedule-conflicts">
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div class="toggle-text">
+                    <span class="toggle-title">Weekly review readiness</span>
+                    <span class="toggle-subtitle">Get notified when your weekly summary is ready.</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="pref-weekly-review-ready">
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <p class="modal-message" id="notif-prefs-message" role="status" aria-live="polite"></p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-notif-prefs-btn">Close</button>
+                <button type="submit" class="btn-primary" id="save-notif-prefs-btn">Save preferences</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Task edit modal (same as dashboard.html; dashboard.js wires it up) -->
+<div class="modal-backdrop" id="task-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+        <div class="modal-header">
+            <div><h2 id="task-modal-title">Edit task</h2><p>Update the task and save it to the backend.</p></div>
+            <button type="button" class="modal-close" id="close-task-modal" aria-label="Close">&#10005;</button>
+        </div>
+        <form id="edit-task-form">
+            <input type="hidden" id="edit-task-id">
+            <div class="field"><label for="edit-task-title">Task title</label><div class="input-wrap"><input id="edit-task-title" required></div></div>
+            <div class="field"><label for="edit-task-description">Description</label><div class="input-wrap"><textarea id="edit-task-description"></textarea></div></div>
+            <div class="form-grid">
+                <div class="field"><label for="edit-task-deadline">Due</label><div class="input-wrap"><input type="datetime-local" id="edit-task-deadline" required></div></div>
+                <div class="field"><label for="edit-task-priority">Priority</label><div class="input-wrap"><select id="edit-task-priority"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select></div></div>
+            </div>
+            <div class="form-grid">
+                <div class="field"><label for="edit-task-category">Category / role</label><div class="input-wrap"><select id="edit-task-category"><option value="ASSIGNMENT">Assignment</option><option value="EXAM">Exam</option><option value="CLASS">Class</option><option value="STUDY">Study</option><option value="SHIFT">Work shift</option><option value="PERSONAL">Personal</option></select></div></div>
+                <div class="field"><label for="edit-task-status">Status</label><div class="input-wrap"><select id="edit-task-status"><option value="PENDING">Pending</option><option value="COMPLETED">Completed</option></select></div></div>
+            </div>
+            <!-- KAN-265: optional start time (time window) -->
+            <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-has-start"> Has a start time</label></div>
+            <div class="field" id="field-edit-task-start" hidden><label for="edit-task-start">Start</label><div class="input-wrap"><input type="datetime-local" id="edit-task-start"></div></div>
+            <div class="form-actions"><button type="button" class="btn-secondary" id="cancel-edit-btn">Cancel</button><button type="submit" class="btn-primary" id="update-task-btn">Save changes</button></div>
+        </form>
+    </div>
+</div>
+
+<script src="theme-toggle.js"></script>
 <script src="dashboard.js"></script>
+<script src="tasks.js"></script>
 </body>
+</html>

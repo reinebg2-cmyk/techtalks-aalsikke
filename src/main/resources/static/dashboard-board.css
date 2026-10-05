@@ -213,16 +213,20 @@
     padding: 0.75rem 0.5rem 0.625rem 0.875rem;
     background: var(--surface);
     border: 0.0625rem solid var(--border);
-    border-left: 0.3125rem solid var(--amber);
+    border-left: 0.3125rem solid var(--prio-medium);
     border-radius: 0.5rem;
 }
 
-.board-card.priority-low { border-left-color: var(--success); }
-.board-card.priority-medium { border-left-color: var(--amber); }
-.board-card.priority-high { border-left-color: var(--coral); }
-.board-card.priority-urgent { border-left-color: #B42318; }
+.board-card.priority-low { border-left-color: var(--prio-low); }
+.board-card.priority-medium { border-left-color: var(--prio-medium); }
+.board-card.priority-high { border-left-color: var(--prio-high); }
+.board-card.priority-urgent { border-left-color: var(--prio-urgent); }
 
-:root[data-theme="dark"] .board-card.priority-urgent { border-left-color: #FF6B5B; }
+/* The priority word on the card takes the same color as the stripe. */
+.board-card.priority-low .board-priority { color: var(--prio-low); }
+.board-card.priority-medium .board-priority { color: var(--prio-medium); }
+.board-card.priority-high .board-priority { color: var(--prio-high); }
+.board-card.priority-urgent .board-priority { color: var(--prio-urgent); }
 
 .board-card.is-conflict {
     background: var(--coral-bg);
@@ -272,7 +276,7 @@
     background: var(--surface);
     border: 0.0625rem solid var(--border);
     border-radius: 0.5rem;
-    box-shadow: 0 0.5rem 1.5rem rgba(15, 76, 117, 0.15);
+    box-shadow: 0 0.5rem 1.5rem rgba(15, 32, 62, 0.15);
 }
 
 .board-card .task-menu[hidden] {
@@ -341,17 +345,10 @@
     font-weight: 600;
 }
 
-.board-start {
-    margin: 0;
-    font-size: 0.75rem;
-    color: var(--slate-light);
-}
-
 .board-card.is-overdue .board-due {
     color: var(--coral);
     font-weight: 600;
 }
-
 
 /* ---- Phones / narrow screens ---- */
 @media (max-width: 48rem) {

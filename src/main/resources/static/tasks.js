@@ -52,9 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
-    // KAN-265: due = deadline; window-only tasks (e.g. classes) are due when the window ends.
     function taskDate(task) {
-        const value = task.deadline || task.endTime || task.startTime;
+        const value = task.deadline || task.startTime;
         if (!value) return null;
         const date = new Date(value);
         return Number.isNaN(date.getTime()) ? null : date;
@@ -65,13 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toLocaleString(undefined, {
             month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
         });
-    }
-
-    // KAN-265: "Starts …" line for time-window tasks (null for deadline-only).
-    function startLabel(task) {
-        if (!task.startTime) return null;
-        const start = new Date(task.startTime);
-        return Number.isNaN(start.getTime()) ? null : formatDue(start);
     }
 
     function isCompleted(task) {
@@ -149,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `<span class="conflict-badge" title="Clashes with ${escapeHtml(partners.map(p => p.title).join(', '))}">&#9888; Conflict</span>`;
 
         return `
-      <li class="task-card${partners.length ? ' is-conflict' : ''}${completed ? ' is-complete' : ''}"
+      <li class="task-card priority-${priorityOf(task).toLowerCase()}${partners.length ? ' is-conflict' : ''}${completed ? ' is-complete' : ''}"
           data-id="${escapeHtml(String(task.id))}">
         <input type="checkbox" class="task-checkbox"
                aria-label="Mark ${escapeHtml(task.title)} complete" ${completed ? 'checked' : ''}>
@@ -157,8 +149,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <p class="task-title">${escapeHtml(task.title)}</p>
           <div class="task-meta">
             <span class="priority-dot ${priorityOf(task).toLowerCase()}"></span>
+            <span class="priority-label ${priorityOf(task).toLowerCase()}">${escapeHtml(priorityOf(task).toLowerCase())}</span>
             ${task.itemType ? escapeHtml(task.itemType) + ' &middot; ' : ''}
-            ${startLabel(task) ? `Starts ${escapeHtml(startLabel(task))} &middot; ` : ''}Due ${escapeHtml(formatDue(taskDate(task)))}
+            Due ${escapeHtml(formatDue(taskDate(task)))}
             ${badge}
           </div>
         </div>

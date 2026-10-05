@@ -1354,7 +1354,7 @@ select:focus-visible {
 
 .verify-login-btn[hidden] {
   display: none;
-  
+
 /* KAN-265: "Has a start time" checkbox row in the task forms */
 .field label.check-row {
   display: inline-flex;

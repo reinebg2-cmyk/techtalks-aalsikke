@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="theme-init.js"></script>
+    <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
     <title>Aal Sikke — Settings</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,7 +14,7 @@
 
     <!-- Top bar -->
     <header class="topbar dash-topbar">
-        <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
+        <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
         <div class="topbar-actions">
             <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
             <div class="profile-menu" id="notif-menu">
@@ -33,7 +34,7 @@
                     <a href="#" id="edit-profile-link">Edit Profile</a>
                     <a href="#" id="change-password-link">Change password</a>
                     <a href="#" id="notification-prefs-link">Notification preferences</a>
-                    <a href="login.html" id="logout-link">Log out</a>
+                    <a href="index.html" id="logout-link">Log out</a>
                 </div>
             </div>
         </div>
@@ -168,6 +169,16 @@
                         <span class="switch-track"></span>
                     </label>
                 </div>
+            </section>
+
+            <!-- Color palette panel (KAN-290). Options are rendered by palette.js into #palette-grid. -->
+            <section class="card settings-panel" id="settings-palette-panel">
+                <div>
+                    <h2>Color palette</h2>
+                    <p class="card-subtitle">Pick the accent colors Aal Sikke uses everywhere. Works with both light and dark mode.</p>
+                </div>
+                <div class="palette-grid" id="palette-grid" role="radiogroup" aria-label="Color palette"></div>
+                <p class="modal-message is-error" id="palette-message" role="alert"></p>
             </section>
 
         </main>
@@ -375,6 +386,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="theme-toggle.js"></script>
+<script src="palette.js"></script>
 <script src="dashboard.js"></script>
 </body>
 </html>

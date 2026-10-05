@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="theme-init.js"></script>
+    <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+    <title>Aal Sikke — Adaptive Life Management</title>
+    <meta name="description" content="One calendar, one task list and one daily flow for studying, working, or both.">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="welcome.css">
+</head>
+<body class="welcome-body">
+
+<header class="wl-nav">
+    <a class="wl-brand" href="index.html" aria-label="Aal Sikke home">
+        <svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg>
+    </a>
+    <nav class="wl-nav-actions" aria-label="Primary">
+        <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
+        <a class="wl-link" id="wl-nav-login" href="login.html">Log in</a>
+        <a class="wl-btn wl-btn-primary" id="wl-nav-cta" href="register.html">Get started</a>
+    </nav>
+</header>
+
+<main>
+
+    <section class="wl-hero">
+        <p class="wl-eyebrow">Adaptive Life Management</p>
+        <h1>Classes, shifts and deadlines in <span class="wl-accent">one calm place</span>.</h1>
+        <p class="wl-lead">
+            Aal Sikke brings your calendar, tasks and daily review together, whether you are a student,
+            working, or doing both at once.
+        </p>
+        <div class="wl-hero-actions">
+            <a class="wl-btn wl-btn-primary wl-btn-lg" id="wl-hero-primary" href="register.html">Create your account &#8594;</a>
+            <a class="wl-btn wl-btn-secondary wl-btn-lg" id="wl-hero-secondary" href="login.html">I already have an account</a>
+        </div>
+        <p class="wl-note">&#128274; Secured for academic and work workspaces</p>
+    </section>
+
+    <section class="wl-section" aria-labelledby="wl-features-title">
+        <h2 id="wl-features-title">Everything you need to stay on top of the week</h2>
+        <div class="wl-grid">
+            <article class="wl-card">
+                <span class="wl-icon" aria-hidden="true">&#128197;</span>
+                <h3>Unified calendar</h3>
+                <p>Classes, exams, assignments and shifts on a single calendar, including recurring items.</p>
+            </article>
+            <article class="wl-card">
+                <span class="wl-icon" aria-hidden="true">&#9745;</span>
+                <h3>Focused task list</h3>
+                <p>See what is overdue, due today and coming up, with filters and sorting to cut the noise.</p>
+            </article>
+            <article class="wl-card">
+                <span class="wl-icon" aria-hidden="true">&#9888;&#65039;</span>
+                <h3>Conflict detection</h3>
+                <p>Get warned when two items overlap, before the clash catches you by surprise.</p>
+            </article>
+            <article class="wl-card">
+                <span class="wl-icon" aria-hidden="true">&#128276;</span>
+                <h3>Smart reminders</h3>
+                <p>Deadline reminders and overdue alerts, with notification preferences you control.</p>
+            </article>
+            <article class="wl-card">
+                <span class="wl-icon" aria-hidden="true">&#128221;</span>
+                <h3>Daily &amp; weekly review</h3>
+                <p>Look back on what you finished and plan the next week with a short guided review.</p>
+            </article>
+            <article class="wl-card">
+                <span class="wl-icon" aria-hidden="true">&#127912;</span>
+                <h3>Made to feel yours</h3>
+                <p>Light or dark mode plus your own color palette, saved to your account.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="wl-section wl-roles" aria-labelledby="wl-roles-title">
+        <h2 id="wl-roles-title">Built for how you actually live</h2>
+        <div class="wl-grid wl-grid-3">
+            <article class="wl-card">
+                <h3>Student</h3>
+                <p>Courses, assignments, exams and study blocks.</p>
+            </article>
+            <article class="wl-card">
+                <h3>Work</h3>
+                <p>Shifts, workplaces and everything on your plate.</p>
+            </article>
+            <article class="wl-card">
+                <h3>Dual</h3>
+                <p>Both worlds in one view, with conflicts surfaced for you.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="wl-cta">
+        <h2>Ready for a calmer week?</h2>
+        <p>It takes about a minute to set up.</p>
+        <a class="wl-btn wl-btn-light wl-btn-lg" id="wl-cta-primary" href="register.html">Get started</a>
+    </section>
+
+</main>
+
+<footer class="wl-footer">
+    <span>Aal Sikke v2.4 &middot; Structured daily focus</span>
+    <span class="wl-footer-links">
+    <a id="wl-footer-login" href="login.html">Log in</a>
+    <a id="wl-footer-register" href="register.html">Register</a>
+  </span>
+</footer>
+
+<script src="theme-toggle.js"></script>
+<script src="welcome.js"></script>
+</body>
+</html>

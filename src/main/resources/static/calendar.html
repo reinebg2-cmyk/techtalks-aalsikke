@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="theme-init.js"></script>
+    <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
     <title>Aal Sikke — Calendar</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="calendar.css">
@@ -13,10 +14,10 @@
 <div class="app-shell">
 
     <header class="topbar dash-topbar">
-        <div class="brand"><span class="logo-dot"></span> Aal Sikke</div>
+        <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
         <div class="topbar-actions">
             <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
-            <a href="login.html" class="btn-secondary cal-logout" id="logout-link">Log out</a>
+            <a href="index.html" class="btn-secondary cal-logout" id="logout-link">Log out</a>
         </div>
     </header>
 
@@ -62,6 +63,10 @@
                     <span class="cal-legend-item"><span class="cal-swatch cal-student"></span> Student</span>
                     <span class="cal-legend-item"><span class="cal-swatch cal-work"></span> Work</span>
                     <span class="cal-legend-item"><span class="cal-swatch cal-personal"></span> Personal</span>
+                    <span class="cal-legend-item"><span class="cal-swatch prio-low"></span> Low priority</span>
+                    <span class="cal-legend-item"><span class="cal-swatch prio-medium"></span> Medium</span>
+                    <span class="cal-legend-item"><span class="cal-swatch prio-high"></span> High</span>
+                    <span class="cal-legend-item"><span class="cal-swatch prio-urgent"></span> Urgent</span>
                     <span class="cal-legend-item"><span class="cal-deadline-dot"></span> Deadline</span>
                     <span class="cal-legend-item"><span class="cal-conflict-badge">!</span> Conflict</span>
                     <span class="cal-legend-item"><span class="cal-repeat-icon">&#8635;</span> Repeats weekly</span>
@@ -79,11 +84,11 @@
 
     <!-- Mobile bottom nav -->
     <nav class="bottom-nav">
-    <a href="dashboard.html"><span>&#9635;</span>Dashboard</a>
-    <a href="calendar.html" class="active"><span>&#128197;</span>Calendar</a>
-    <a href="tasks.html"><span>&#9745;</span>Tasks</a>
-    <a href="settings.html" id="settings-bottom-link"><span>&#9881;</span>Settings</a>
-</nav>
+        <a href="dashboard.html"><span>&#9635;</span>Dashboard</a>
+        <a href="calendar.html" class="active"><span>&#128197;</span>Calendar</a>
+        <a href="tasks.html"><span>&#9745;</span>Tasks</a>
+        <a href="settings.html" id="settings-bottom-link"><span>&#9881;</span>Settings</a>
+    </nav>
 </div>
 
 <!-- S3-12: schedule a task into a time slot (same modal styles as the dashboard) -->
@@ -131,6 +136,7 @@
 </div>
 
 <script src="theme-toggle.js"></script>
+<script src="palette.js"></script>
 <script src="calendar.js"></script>
 </body>
 </html>
