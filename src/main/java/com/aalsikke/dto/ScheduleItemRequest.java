@@ -41,6 +41,7 @@ public class ScheduleItemRequest {
     public void setTimeType(TimeType timeType) { this.timeType = timeType; }
 
     private Boolean isRecurring;
+    private Boolean reminderEnabled;
 
     /**
      * KAN-270: on update, true removes the time window (startTime/endTime) so the

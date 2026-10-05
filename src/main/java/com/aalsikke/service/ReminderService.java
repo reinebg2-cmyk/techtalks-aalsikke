@@ -13,11 +13,13 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Duration;
 
 @Service
 public class ReminderService {
     private final ReminderRepository reminderRepository;
     private final ScheduleItemRepository scheduleItemRepository;
+    private static final Duration MIN_REMINDER_GAP = Duration.ofMinutes(10);
 
     public ReminderService(ReminderRepository reminderRepository, ScheduleItemRepository scheduleItemRepository) {
         this.reminderRepository = reminderRepository;
@@ -34,6 +36,7 @@ public class ReminderService {
                 .filter(item -> item.getUser().getEmail().equals(email))
                 .map(item -> {
                     validateWithinTimeline(item, request.remindAt());
+                    validateMinGap(request.remindAt(), reminderRepository.findByScheduleItemId(item.getId()));
                     Reminder reminder = new Reminder();
                     reminder.setScheduleItem(item);
                     reminder.setRemindAt(request.remindAt());
@@ -78,6 +81,15 @@ public class ReminderService {
         }
         if (to != null && remindAt.isAfter(to)) {
             throw new IllegalArgumentException("A reminder cannot be set after the task's deadline.");
+        }
+    }
+    /** KAN-298: at least 10 minutes between any two reminders on the same task. */
+    static void validateMinGap(OffsetDateTime remindAt, List<Reminder> existing) {
+        for (Reminder other : existing) {
+            Duration gap = Duration.between(other.getRemindAt(), remindAt).abs();
+            if (gap.compareTo(MIN_REMINDER_GAP) < 0) {
+                throw new IllegalArgumentException("Reminders on the same task must be at least 10 minutes apart.");
+            }
         }
     }
 

@@ -135,6 +135,7 @@ public class ScheduleItemService {
         }
         if (request.getDeadline() != null) item.setDeadline(request.getDeadline());
         if (request.getIsRecurring() != null) item.setRecurring(request.getIsRecurring());
+        if (request.getReminderEnabled() != null) item.setReminderEnabled(request.getReminderEnabled());
         boolean timesTouched = Boolean.TRUE.equals(request.getClearTimeSlot())
                 || request.getStartTime() != null || request.getEndTime() != null;
         if (request.getTimeType() != null) {
@@ -189,6 +190,7 @@ public class ScheduleItemService {
         item.setEndTime(request.getEndTime());
         item.setDeadline(request.getDeadline());
         item.setRecurring(Boolean.TRUE.equals(request.getIsRecurring()));
+        item.setReminderEnabled(Boolean.TRUE.equals(request.getReminderEnabled()));
 
         applyCourseAndWorkplace(item, request);
     }
