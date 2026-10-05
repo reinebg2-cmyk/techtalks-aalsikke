@@ -1,12 +1,8 @@
 // Aal Sikke — Dashboard task board (card view)
 //
-// Replaces the old dashboard task list with a board of task cards, grouped
-// into columns. The user switches the grouping with the "By time / By status /
-// By role" toggle; the choice is remembered in this browser.
-//
-// Like tasks.js, this reuses dashboard.js (loaded first) through
-// window.AalSikke for the task data, edit modal and delete, and re-renders on
-// 'aalsikke:tasks-loaded', which dashboard.js fires after every task change.
+// Task cards grouped into columns ("By time / By status / By role").
+// Uses dashboard.js (loaded first) through window.AalSikke and re-renders on
+// 'aalsikke:tasks-loaded'.
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -30,12 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const PRIORITY_RANK = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
 
-    /*
-     * Columns for each view. keyOf(task) decides which column a task goes in.
-     * "optional" columns are hidden while empty (most users never have
-     * undated or personal tasks); the others always show so the board keeps
-     * its shape.
-     */
     const VIEWS = {
         TIME: {
             keyOf: timeGroupOf,
@@ -68,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeView = readSavedView();
 
     // ============================================================
-    // HELPERS (same rules as dashboard.js / tasks.js)
+    // HELPERS
     // ============================================================
 
     function escapeHtml(value) {
@@ -77,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
-    // KAN-265: due = deadline; window-only tasks (e.g. classes) are due when the window ends.
+    // Due = deadline; window-only tasks (e.g. classes) are due when the window ends.
     function taskDate(task) {
         const value = task.deadline || task.endTime || task.startTime;
         if (!value) return null;
@@ -92,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // KAN-265: "Starts …" line for time-window tasks (null for deadline-only).
     function startLabel(task) {
         if (!task.startTime) return null;
         const start = new Date(task.startTime);
@@ -110,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'PERSONAL';
     }
 
-    // Missing/unknown priority = MEDIUM (the backend's default).
     function priorityOf(task) {
         const priority = String(task.priority || 'MEDIUM').toUpperCase();
         return PRIORITY_RANK[priority] ? priority : 'MEDIUM';
@@ -125,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function timeGroupOf(task) {
         const status = statusOf(task);
-        if (status !== 'PENDING') return status; // COMPLETED or OVERDUE
+        if (status !== 'PENDING') return status;
         const date = taskDate(task);
         if (!date) return 'NO_DATE';
         return date.toDateString() === new Date().toDateString() ? 'TODAY' : 'UPCOMING';
@@ -152,7 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return app.getConflicts().get(String(task.id)) || [];
     }
 
-    // localStorage can throw (private mode, blocked storage) - fall back quietly.
+    function firstReminder(task) {
+        return Array.isArray(task.reminders) && task.reminders.length ? task.reminders[0] : null;
+    }
+
     function readSavedView() {
         try {
             const saved = localStorage.getItem(VIEW_KEY);
@@ -177,9 +168,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const overdue = statusOf(task) === 'OVERDUE';
         const priority = priorityOf(task);
         const partners = conflictPartners(task);
+        const reminder = firstReminder(task);
 
-        const badge = partners.length === 0 ? '' :
+        const conflictBadge = partners.length === 0 ? '' :
             `<span class="conflict-badge" title="Clashes with ${escapeHtml(partners.map(p => p.title).join(', '))}">&#9888; Conflict</span>`;
+
+        // The pencil reuses the Edit handler: it opens the edit popup with the reminder filled in.
+        const reminderBadge = reminder && reminder.remindAt
+            ? `<span class="reminder-badge" title="Reminder">
+                 &#128276; ${escapeHtml(formatDue(new Date(reminder.remindAt)))}
+                 <button type="button" class="edit-reminder-btn task-action-edit" aria-label="Edit reminder">&#9998;</button>
+               </span>`
+            : '';
 
         const classes = [
             'board-card',
@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${task.itemType ? `<span class="board-chip">${escapeHtml(titleCase(task.itemType))}</span>` : ''}
           <span class="board-priority">${titleCase(priority)} priority</span>
         </div>
-                ${startLabel(task) ? `<p class="board-start">Starts ${escapeHtml(startLabel(task))}</p>` : ''}
+        ${startLabel(task) ? `<p class="board-start">Starts ${escapeHtml(startLabel(task))}</p>` : ''}
         <p class="board-due">${overdue ? 'Was due' : 'Due'} ${escapeHtml(formatDue(taskDate(task)))}</p>
         <div class="board-card-foot">
           <label class="board-done">
@@ -214,7 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
                    aria-label="Mark ${escapeHtml(task.title)} complete" ${completed ? 'checked' : ''}>
             Done
           </label>
-          ${badge}
+          ${reminderBadge}
+          ${conflictBadge}
         </div>
       </li>`;
     }
@@ -273,36 +274,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // ACTIONS (edit/delete reuse dashboard.js; status is one PATCH)
+    // ACTIONS
     // ============================================================
 
     async function setStatus(task, checkbox) {
         const next = checkbox.checked ? 'COMPLETED' : 'PENDING';
         checkbox.disabled = true;
 
-        try {
-            const response = await app.apiFetch(
-                `${app.API_BASE}/api/schedule-items/${task.id}/status`,
-                {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: next })
-                }
-            );
+        // setTaskStatus reloads the tasks (which re-renders the board) on success.
+        const ok = await app.setTaskStatus(task, next);
 
-            if (!response.ok) {
-                throw new Error(`Server responded ${response.status}`);
-            }
-
-            await app.reloadTasks(); // fires 'aalsikke:tasks-loaded' -> render()
-
-        } catch (error) {
-            if (error.sessionExpired) return;
-            console.error('Failed to update task status:', error);
+        if (!ok) {
             checkbox.checked = !checkbox.checked;
             checkbox.disabled = false;
-            alert('Could not update the task status. Please try again.');
         }
+    }
+
+    function closeMenus(except) {
+        document.querySelectorAll('.task-menu').forEach(menu => {
+            if (menu !== except) menu.hidden = true;
+        });
     }
 
     // One listener for every card (cards are re-created on each render).
@@ -315,9 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const menuBtn = card.querySelector('.task-menu-btn');
 
         if (event.target.closest('.task-menu-btn')) {
-            document.querySelectorAll('.task-menu').forEach(other => {
-                if (other !== menu) other.hidden = true;
-            });
+            closeMenus(menu);
             menu.hidden = !menu.hidden;
             menuBtn.setAttribute('aria-expanded', String(!menu.hidden));
             return;
@@ -333,6 +322,11 @@ document.addEventListener('DOMContentLoaded', () => {
             menu.hidden = true;
             app.deleteTask(task.id);
         }
+    });
+
+    // Click anywhere else closes open card menus
+    document.addEventListener('click', event => {
+        if (!event.target.closest('.task-actions')) closeMenus();
     });
 
     boardEl.addEventListener('change', event => {

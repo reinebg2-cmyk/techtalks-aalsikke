@@ -1,39 +1,31 @@
-// Aal Sikke — Dashboard
-// Connected to the current Spring Boot backend.
+// Aal Sikke — shared dashboard script (loaded on dashboard.html and tasks.html)
 //
-// Schedule endpoints:
-// GET    /api/schedule-items/me
-// POST   /api/schedule-items
-// PUT    /api/schedule-items/{id}
-// DELETE /api/schedule-items/{id}
+// Handles: auth, task create / edit / delete / status, reminders (create, edit,
+// delete), conflicts, profile card, modals, bell, and exposes window.AalSikke
+// for dashboard-board.js and tasks.js.
 //
-// Profile endpoints:
-// GET    /api/auth/me
-// PUT    /api/auth/profile
-//
-// Reminder endpoints:
-// POST   /api/reminders
-// PUT    /api/reminders/{id}
-// DELETE /api/reminders/{id}
+// Endpoints used:
+// GET/POST        /api/schedule-items/me | /api/schedule-items
+// PUT/DELETE      /api/schedule-items/{id}
+// GET             /api/schedule-conflicts/me
+// GET             /api/auth/me
+// POST/PUT/DELETE /api/reminders[/{id}]
 
 const API_BASE = window.location.origin;
 const TOKEN_KEY = 'aalsikke_token';
 
+const DONE_STATUS = 'COMPLETED';
+const PENDING_STATUS = 'PENDING';
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // ============================================================
-  // AUTHENTICATION
+  // AUTH
   // ============================================================
 
-  const token = localStorage.getItem(TOKEN_KEY);
-
-  if (!token) {
+  if (!localStorage.getItem(TOKEN_KEY)) {
     window.location.href = 'login.html';
     return;
-  }
-
-  function authHeaders() {
-    return { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` };
   }
 
   function redirectToLogin() {
@@ -43,14 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function apiFetch(url, options = {}) {
     const headers = {
-      ...authHeaders(),
+      Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
       ...(options.headers || {})
     };
 
-    const response = await fetch(url, {
-      ...options,
-      headers
-    });
+    const response = await fetch(url, { ...options, headers });
 
     if (response.status === 401) {
       redirectToLogin();
@@ -58,78 +47,14 @@ document.addEventListener('DOMContentLoaded', () => {
       expired.sessionExpired = true;
       throw expired;
     }
-
     return response;
   }
 
   // ============================================================
-  // DOM ELEMENTS
+  // HELPERS
   // ============================================================
 
-  const taskList = document.getElementById('task-list');
-  const emptyState = document.getElementById('empty-state');
-
-  const toggleFormBtn = document.getElementById('toggle-form-btn');
-  const cancelTaskBtn = document.getElementById('cancel-task-btn');
-  const taskForm = document.getElementById('task-form');
-  const saveTaskBtn = document.getElementById('save-task-btn');
-
-  const filterTabs = document.querySelectorAll('.filter-tab');
-
-  const roleFilterSelect = document.getElementById('role-filter');
-  const statusFilterSelect = document.getElementById('status-filter');
-  const sortSelect = document.getElementById('sort-select');
-  const taskCount = document.getElementById('task-count');
-
-  const avatarBtn = document.getElementById('avatar-btn');
-  const profileDropdown = document.getElementById('profile-dropdown');
-  const editProfileLink = document.getElementById('edit-profile-link');
-
-  // Edit task modal & fields
-  const taskModal = document.getElementById('task-modal');
-  const editTaskForm = document.getElementById('edit-task-form');
-
-  const editTaskId = document.getElementById('edit-task-id');
-  const editTaskTitle = document.getElementById('edit-task-title');
-  const editTaskDescription = document.getElementById('edit-task-description');
-  const editTaskDeadline = document.getElementById('edit-task-deadline');
-  const editTaskPriority = document.getElementById('edit-task-priority');
-  const editTaskCategory = document.getElementById('edit-task-category');
-  const editTaskStatus = document.getElementById('edit-task-status');
-
-  const editTaskHasStart = document.getElementById('edit-task-has-start');
-  const editTaskStart = document.getElementById('edit-task-start');
-  const editTaskStartField = document.getElementById('field-edit-task-start');
-
-  // Edit Task Reminder fields
-  const editTaskWantsReminder = document.getElementById('edit-task-wants-reminder');
-  const editTaskReminderField = document.getElementById('field-edit-task-reminder');
-  const editTaskReminderAt = document.getElementById('edit-task-reminder-at');
-  const editReminderId = document.getElementById('edit-reminder-id');
-
-  const closeTaskBtn = document.getElementById('close-task-modal');
-  const cancelEditBtn = document.getElementById('cancel-edit-btn');
-  const updateTaskBtn = document.getElementById('update-task-btn');
-
-  // ============================================================
-  // STATE
-  // ============================================================
-
-  let allTasks = [];
-  let conflictPartnersByTaskId = new Map();
-
-  let activeFilter = 'all';
-  let activeRoleFilter = 'ALL';
-  let activeStatusFilter = 'ALL';
-  let activeSort = 'DEFAULT';
-  let currentProfile = null;
-
-  const studentTypes = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY']);
-  const workTypes = new Set(['SHIFT']);
-
-  // ============================================================
-  // BASIC HELPERS
-  // ============================================================
+  const $ = id => document.getElementById(id);
 
   function escapeHtml(value) {
     const div = document.createElement('div');
@@ -141,12 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!dateStr) return 'No deadline';
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) return 'Invalid date';
-
     return date.toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
     });
   }
 
@@ -154,86 +75,241 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) return '';
-
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - offset * 60000);
-    return localDate.toISOString().slice(0, 16);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
   }
 
   function toISOStringFromLocal(value) {
     if (!value) return null;
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toISOString();
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
   }
 
   function getTaskDate(task) {
     return task.deadline || task.endTime || task.startTime;
   }
 
+  function isDone(task) {
+    return String(task.status || '').toUpperCase() === DONE_STATUS;
+  }
+
+  function firstReminder(task) {
+    return Array.isArray(task.reminders) && task.reminders.length ? task.reminders[0] : null;
+  }
+
   let toastTimer = null;
   function showToast(message) {
-    const toast = document.getElementById('toast');
-    if (!toast) return;
-
+    const toast = $('toast');
+    if (!toast) { alert(message); return; }
     toast.textContent = message;
-    toast.classList.add('is-visible');
-
+    toast.classList.add('is-visible', 'show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toast.classList.remove('is-visible');
-    }, 4000);
+    toastTimer = setTimeout(() => toast.classList.remove('is-visible', 'show'), 4000);
   }
 
   async function readJsonSafely(response) {
-    try {
-      return await response.json();
-    } catch (_) {
-      return null;
-    }
+    try { return await response.json(); } catch (_) { return null; }
+  }
+
+  async function errorMessage(response, fallback) {
+    const data = await readJsonSafely(response);
+    return (data && data.message) || `${fallback} (${response.status})`;
   }
 
   // ============================================================
-  // REMINDER BADGE & EDIT HANDLER
+  // STATE
   // ============================================================
 
-  function renderReminderBadge(task) {
-    const existingReminder = Array.isArray(task.reminders) && task.reminders.length > 0
-      ? task.reminders[0]
-      : null;
+  let allTasks = [];
+  let conflictPartnersByTaskId = new Map();
+  let tasksState = 'loading';
+  let currentProfile = null;
+  let originalRemindAtLocal = '';
 
-    if (!existingReminder) return '';
+  // ============================================================
+  // MODALS (profile / password / notification prefs / task edit)
+  // ============================================================
 
-    return `
-      <span class="reminder-badge" title="Reminder set for ${formatDue(existingReminder.remindAt)}">
-        🔔 ${formatDue(existingReminder.remindAt)}
-        <button type="button"
-                class="edit-reminder-btn"
-                data-action="edit-reminder"
-                data-task-id="${task.id}"
-                data-reminder-id="${existingReminder.id}"
-                aria-label="Edit reminder">
-          ✏️
-        </button>
-      </span>
-    `;
+  function openModal(modal) {
+    if (modal) modal.hidden = false;
   }
 
-  document.getElementById('task-list')?.addEventListener('click', event => {
-    const editBtn = event.target.closest('[data-action="edit-reminder"]');
-    if (!editBtn) return;
+  function closeModal(modal) {
+    if (modal) modal.hidden = true;
+  }
 
+  const taskModal = $('task-modal');
+  const profileModal = $('profile-modal');
+  const passwordModal = $('password-modal');
+  const notifPrefsModal = $('notif-prefs-modal');
+
+  function closeAllModals() {
+    [taskModal, profileModal, passwordModal, notifPrefsModal].forEach(closeModal);
+    if (taskModal) { $('edit-task-form')?.reset(); originalRemindAtLocal = ''; }
+  }
+
+  [taskModal, profileModal, passwordModal, notifPrefsModal].forEach(modal => {
+    modal?.addEventListener('click', event => {
+      if (event.target === modal) {
+        closeModal(modal);
+        if (modal === taskModal) { $('edit-task-form')?.reset(); originalRemindAtLocal = ''; }
+      }
+    });
+  });
+
+  $('close-profile-modal')?.addEventListener('click', () => closeModal(profileModal));
+  $('cancel-profile-btn')?.addEventListener('click', () => closeModal(profileModal));
+  $('close-password-modal')?.addEventListener('click', () => closeModal(passwordModal));
+  $('cancel-password-btn')?.addEventListener('click', () => closeModal(passwordModal));
+  $('close-notif-prefs-modal')?.addEventListener('click', () => closeModal(notifPrefsModal));
+  $('cancel-notif-prefs-btn')?.addEventListener('click', () => closeModal(notifPrefsModal));
+
+  // ============================================================
+  // TOP BAR MENUS
+  // ============================================================
+
+  const avatarBtn = $('avatar-btn');
+  const profileDropdown = $('profile-dropdown');
+  const notifBtn = $('notif-btn');
+  const notifDropdown = $('notif-dropdown');
+
+  function closeDropdowns() {
+    if (profileDropdown) profileDropdown.hidden = true;
+    if (notifDropdown) notifDropdown.hidden = true;
+  }
+
+  avatarBtn?.addEventListener('click', event => {
     event.stopPropagation();
-    const taskId = editBtn.dataset.taskId;
-    const task = allTasks.find(t => String(t.id) === String(taskId));
+    const open = profileDropdown.hidden;
+    closeDropdowns();
+    profileDropdown.hidden = !open;
+  });
 
-    if (task) {
-      openEditModal(task);
-    }
+  notifBtn?.addEventListener('click', event => {
+    event.stopPropagation();
+    const open = notifDropdown.hidden;
+    closeDropdowns();
+    notifDropdown.hidden = !open;
+  });
+
+  document.addEventListener('click', event => {
+    if (profileDropdown?.contains(event.target) || notifDropdown?.contains(event.target)) return;
+    closeDropdowns();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { closeDropdowns(); closeAllModals(); }
+  });
+
+  function openProfileModal() {
+    closeDropdowns();
+    fillProfileModal();
+    openModal(profileModal);
+  }
+
+  $('edit-profile-link')?.addEventListener('click', event => { event.preventDefault(); openProfileModal(); });
+  $('sidebar-profile-btn')?.addEventListener('click', openProfileModal);
+
+  $('change-password-link')?.addEventListener('click', event => {
+    event.preventDefault();
+    closeDropdowns();
+    openModal(passwordModal);
+  });
+
+  $('notification-prefs-link')?.addEventListener('click', event => {
+    event.preventDefault();
+    closeDropdowns();
+    openModal(notifPrefsModal);
+  });
+
+  $('logout-link')?.addEventListener('click', () => {
+    localStorage.removeItem(TOKEN_KEY);
   });
 
   // ============================================================
-  // REMINDER API HELPERS
+  // PROFILE
+  // ============================================================
+
+  const ROLE_LABELS = { STUDENT: 'Student', WORK: 'Work', HYBRID: 'Dual' };
+
+  function profileRole() {
+    return String(currentProfile?.role || currentProfile?.mode || currentProfile?.userMode || '').toUpperCase();
+  }
+
+  function profileName() {
+    return currentProfile?.fullName || currentProfile?.name || currentProfile?.username || '';
+  }
+
+  function initials(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+  }
+
+  async function loadProfile() {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/auth/me`);
+      if (!response.ok) return;
+      currentProfile = await response.json();
+      renderProfile();
+    } catch (error) {
+      if (!error.sessionExpired) console.error('Failed to load profile:', error);
+    }
+  }
+
+  function renderProfile() {
+    const name = profileName();
+    const ini = initials(name);
+
+    ['avatar-btn', 'profile-avatar', 'modal-profile-avatar'].forEach(id => {
+      const el = $(id);
+      if (el) el.textContent = ini;
+    });
+
+    if ($('profile-name')) $('profile-name').textContent = name || 'Your profile';
+
+    const role = ROLE_LABELS[profileRole()];
+    if ($('profile-role')) $('profile-role').textContent = role ? `${role} profile` : 'Profile';
+
+    const greeting = $('greeting-text');
+    if (greeting) {
+      const hour = new Date().getHours();
+      const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+      const first = name.trim().split(/\s+/)[0];
+      greeting.textContent = first ? `${part}, ${first}` : part;
+    }
+  }
+
+  function fillProfileModal() {
+    if (!currentProfile) return;
+    const set = (id, value) => { const el = $(id); if (el) el.value = value ?? ''; };
+
+    set('profile-fullname', currentProfile.fullName || currentProfile.name);
+    set('profile-username', currentProfile.username);
+    set('profile-email', currentProfile.email);
+    set('profile-phone', currentProfile.phoneNumber || currentProfile.phone);
+    set('profile-dob', String(currentProfile.dateOfBirth || currentProfile.dob || '').slice(0, 10));
+    set('profile-current-password', '');
+
+    const role = profileRole();
+    const radio = document.querySelector(`input[name="profile-role"][value="${role}"]`);
+    if (radio) radio.checked = true;
+  }
+
+  // Saving profile / password / notification preferences is not part of this
+  // script (their endpoints are not documented here) - tell the user plainly.
+  [['profile-form', 'profile-message'],
+   ['password-form', 'password-message'],
+   ['notif-prefs-form', 'notif-prefs-message']].forEach(([formId, messageId]) => {
+    $(formId)?.addEventListener('submit', event => {
+      event.preventDefault();
+      const message = $(messageId);
+      if (message) message.textContent = 'Saving is not connected in this script yet.';
+    });
+  });
+
+  // ============================================================
+  // REMINDER API
   // ============================================================
 
   async function createReminderFor(scheduleItemId, remindAt) {
@@ -243,15 +319,11 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scheduleItemId, remindAt })
       });
-
-      if (!response.ok) {
-        const data = await readJsonSafely(response);
-        showToast((data && data.message) || 'Task saved, but reminder could not be set.');
-      }
+      if (!response.ok) showToast(await errorMessage(response, 'Task saved, but the reminder could not be set'));
     } catch (error) {
       if (error.sessionExpired) return;
       console.error('Failed to create reminder:', error);
-      showToast('Task saved, but reminder could not be set.');
+      showToast('Task saved, but the reminder could not be set.');
     }
   }
 
@@ -262,35 +334,25 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ remindAt })
       });
-
-      if (!response.ok) {
-        const data = await readJsonSafely(response);
-        showToast((data && data.message) || 'Task updated, but reminder could not be updated.');
-      }
+      if (!response.ok) showToast(await errorMessage(response, 'Task updated, but the reminder could not be updated'));
     } catch (error) {
       if (error.sessionExpired) return;
       console.error('Failed to update reminder:', error);
-      showToast('Task updated, but reminder could not be updated.');
+      showToast('Task updated, but the reminder could not be updated.');
     }
   }
 
   async function deleteReminderFor(reminderId) {
     try {
-      const response = await apiFetch(`${API_BASE}/api/reminders/${reminderId}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok && response.status !== 204) {
-        console.error('Failed to delete reminder:', response.status);
-      }
+      const response = await apiFetch(`${API_BASE}/api/reminders/${reminderId}`, { method: 'DELETE' });
+      if (!response.ok && response.status !== 204) console.error('Failed to delete reminder:', response.status);
     } catch (error) {
-      if (error.sessionExpired) return;
-      console.error('Failed to delete reminder:', error);
+      if (!error.sessionExpired) console.error('Failed to delete reminder:', error);
     }
   }
 
   // ============================================================
-  // TIME WINDOW & REMINDER FIELD TOGGLES
+  // START-TIME + REMINDER TOGGLES
   // ============================================================
 
   const WINDOW_TYPES = new Set(['CLASS', 'SHIFT', 'STUDY']);
@@ -301,19 +363,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let userChose = false;
     const sync = () => { startField.hidden = !checkbox.checked; };
 
-    checkbox.addEventListener('change', () => {
-      userChose = true;
-      sync();
-    });
+    checkbox.addEventListener('change', () => { userChose = true; sync(); });
 
-    if (categorySelect) {
-      categorySelect.addEventListener('change', () => {
-        if (!userChose) {
-          checkbox.checked = WINDOW_TYPES.has(categorySelect.value);
-          sync();
-        }
-      });
-    }
+    categorySelect?.addEventListener('change', () => {
+      if (!userChose) {
+        checkbox.checked = WINDOW_TYPES.has(categorySelect.value);
+        sync();
+      }
+    });
 
     return {
       presetFromCategory() {
@@ -321,187 +378,222 @@ document.addEventListener('DOMContentLoaded', () => {
         checkbox.checked = Boolean(categorySelect && WINDOW_TYPES.has(categorySelect.value));
         sync();
       },
-      set(checked) {
-        userChose = true;
-        checkbox.checked = checked;
-        sync();
-      },
+      set(checked) { userChose = true; checkbox.checked = checked; sync(); },
       isChecked: () => checkbox.checked
     };
   }
 
-  const createStartToggle = setupStartToggle(
-    document.getElementById('task-has-start'),
-    document.getElementById('field-task-start'),
-    document.getElementById('task-category')
-  );
+  // Create form
+  const taskForm = $('task-form');
+  const taskTitleInput = $('task-title');
+  const taskDescriptionInput = $('task-description');
+  const taskDueInput = $('task-due') || $('task-deadline');
+  const taskStartInput = $('task-start');
+  const taskPriorityInput = $('task-priority');
+  const taskCategoryInput = $('task-category');
+  const saveTaskBtn = $('save-task-btn');
+
+  const createStartToggle = setupStartToggle($('task-has-start'), $('field-task-start'), taskCategoryInput);
   createStartToggle?.presetFromCategory();
 
-  // Create form reminder opt-in
-  const taskWantsReminder = document.getElementById('task-wants-reminder');
-  const taskReminderField = document.getElementById('field-task-reminder');
-  const taskReminderAt = document.getElementById('task-reminder-at');
+  const taskWantsReminder = $('task-wants-reminder');
+  const taskReminderField = $('field-task-reminder');
+  const taskReminderAt = $('task-reminder-at');
 
   function syncReminderField() {
-    if (taskWantsReminder && taskReminderField) {
-      taskReminderField.hidden = !taskWantsReminder.checked;
-    }
+    if (taskWantsReminder && taskReminderField) taskReminderField.hidden = !taskWantsReminder.checked;
   }
-
   taskWantsReminder?.addEventListener('change', syncReminderField);
   syncReminderField();
 
-  // Edit form reminder opt-in
-  const editStartToggle = setupStartToggle(
-    editTaskHasStart, editTaskStartField, editTaskCategory
-  );
+  // Edit form
+  const editTaskForm = $('edit-task-form');
+  const editTaskCategory = $('edit-task-category');
+  const editStartToggle = setupStartToggle($('edit-task-has-start'), $('field-edit-task-start'), editTaskCategory);
+
+  const editTaskWantsReminder = $('edit-task-wants-reminder');
+  const editTaskReminderField = $('field-edit-task-reminder');
+  const editTaskReminderAt = $('edit-task-reminder-at');
+  const editReminderId = $('edit-reminder-id');
 
   function syncEditReminderField() {
     if (editTaskWantsReminder && editTaskReminderField) {
       editTaskReminderField.hidden = !editTaskWantsReminder.checked;
     }
   }
-
   editTaskWantsReminder?.addEventListener('change', syncEditReminderField);
 
   // ============================================================
-  // NEW TASK & EDIT TASK MODAL HANDLERS
+  // CREATE TASK
   // ============================================================
 
-  function setupCreateTaskButton() {
-    const newTaskBtn = document.querySelector('.task-create-card button') ||
-                       document.getElementById('new-task-btn') ||
-                       toggleFormBtn;
-
-    const createCardForm = document.querySelector('.task-create-card form') ||
-                           taskForm;
-
-    if (newTaskBtn) {
-      newTaskBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (createCardForm) {
-          createCardForm.hidden = !createCardForm.hidden;
-          if (!createCardForm.hidden) {
-            createCardForm.querySelector('input')?.focus();
-          }
-        } else if (taskModal) {
-          taskModal.hidden = false;
-          taskModal.querySelector('input')?.focus();
-        }
-      });
-    }
+  function openCreateForm() {
+    if (!taskForm) return;
+    taskForm.hidden = false;
+    createStartToggle?.presetFromCategory();
+    syncReminderField();
+    taskForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    taskTitleInput?.focus({ preventScroll: true });
   }
+
+  function closeCreateForm() {
+    if (!taskForm) return;
+    taskForm.reset();
+    taskForm.hidden = true;
+    createStartToggle?.presetFromCategory();
+    syncReminderField();
+  }
+
+  $('toggle-form-btn')?.addEventListener('click', () => {
+    if (!taskForm) return;
+    if (taskForm.hidden) openCreateForm(); else closeCreateForm();
+  });
+  $('cancel-task-btn')?.addEventListener('click', closeCreateForm);
+
+  taskForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+
+    const title = taskTitleInput?.value.trim();
+    if (!title) { alert('Please enter a task title.'); return; }
+
+    const deadline = toISOStringFromLocal(taskDueInput?.value);
+    if (!deadline) { alert('Please select a due time or deadline.'); return; }
+
+    let startTime = null;
+    let endTime = null;
+
+    if (createStartToggle?.isChecked()) {
+      startTime = toISOStringFromLocal(taskStartInput?.value);
+      if (!startTime) { alert('Please select a start time, or untick "Has a start time".'); return; }
+      if (new Date(startTime) >= new Date(deadline)) { alert('Start time must be before the due time.'); return; }
+      endTime = deadline;
+    }
+
+    let remindAt = null;
+    if (taskWantsReminder?.checked) {
+      remindAt = toISOStringFromLocal(taskReminderAt?.value);
+      if (!remindAt) { alert('Please choose when to be reminded, or untick "Remind me".'); return; }
+      if (new Date(remindAt) <= new Date()) { alert('The reminder must be in the future.'); return; }
+      if (new Date(remindAt) > new Date(deadline)) { alert('The reminder cannot be after the due time.'); return; }
+    }
+
+    const payload = {
+      title,
+      description: taskDescriptionInput?.value.trim() || null,
+      itemType: taskCategoryInput?.value || 'PERSONAL',
+      priority: taskPriorityInput?.value || 'MEDIUM',
+      status: PENDING_STATUS,
+      startTime,
+      endTime,
+      deadline
+    };
+
+    if (saveTaskBtn) saveTaskBtn.disabled = true;
+
+    try {
+      const response = await apiFetch(`${API_BASE}/api/schedule-items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error(await errorMessage(response, 'Failed to create task'));
+
+      const created = await response.json();
+      if (remindAt) await createReminderFor(created.id, remindAt);
+
+      closeCreateForm();
+      await loadTasks();
+      showToast('Task created.');
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Error creating task:', error);
+      alert(error.message || 'Unable to create task. Please try again.');
+    } finally {
+      if (saveTaskBtn) saveTaskBtn.disabled = false;
+    }
+  });
+
+  // ============================================================
+  // EDIT TASK
+  // ============================================================
 
   function openEditModal(task) {
     if (!taskModal || !task) return;
 
-    if (editTaskId) editTaskId.value = task.id;
-    if (editTaskTitle) editTaskTitle.value = task.title || '';
-    if (editTaskDescription) editTaskDescription.value = task.description || '';
-    if (editTaskPriority) editTaskPriority.value = task.priority || 'MEDIUM';
-    if (editTaskCategory) editTaskCategory.value = task.itemType || 'PERSONAL';
-    if (editTaskStatus) editTaskStatus.value = task.status || 'PENDING';
+    const set = (id, value) => { const el = $(id); if (el) el.value = value; };
 
-    const deadline = task.deadline || task.endTime || '';
-    if (editTaskDeadline) editTaskDeadline.value = toDateTimeLocal(deadline);
+    set('edit-task-id', task.id);
+    set('edit-task-title', task.title || '');
+    set('edit-task-description', task.description || '');
+    set('edit-task-priority', task.priority || 'MEDIUM');
+    set('edit-task-category', task.itemType || 'PERSONAL');
+    set('edit-task-status', task.status || PENDING_STATUS);
+    set('edit-task-deadline', toDateTimeLocal(task.deadline || task.endTime || ''));
 
     const hasStart = Boolean(task.startTime);
     editStartToggle?.set(hasStart);
-    if (editTaskStart) editTaskStart.value = hasStart ? toDateTimeLocal(task.startTime) : '';
+    set('edit-task-start', hasStart ? toDateTimeLocal(task.startTime) : '');
 
-    // Populate existing reminder into edit form
-    const existingReminder = Array.isArray(task.reminders) && task.reminders.length > 0
-      ? task.reminders[0]
-      : null;
+    const reminder = firstReminder(task);
+    if (editTaskWantsReminder) editTaskWantsReminder.checked = Boolean(reminder);
 
-    if (editTaskWantsReminder) {
-      editTaskWantsReminder.checked = Boolean(existingReminder);
-    }
-
-    if (editTaskReminderAt) {
-      editTaskReminderAt.value = existingReminder && existingReminder.remindAt
-        ? toDateTimeLocal(existingReminder.remindAt)
-        : '';
-    }
-
-    if (editReminderId) {
-      editReminderId.value = existingReminder ? existingReminder.id : '';
-    }
+    originalRemindAtLocal = reminder && reminder.remindAt ? toDateTimeLocal(reminder.remindAt) : '';
+    if (editTaskReminderAt) editTaskReminderAt.value = originalRemindAtLocal;
+    if (editReminderId) editReminderId.value = reminder ? reminder.id : '';
 
     syncEditReminderField();
-    taskModal.hidden = false;
+    openModal(taskModal);
   }
 
   function closeEditModal() {
-    if (taskModal) {
-      taskModal.hidden = true;
-      if (editTaskForm) editTaskForm.reset();
-      if (editReminderId) editReminderId.value = '';
-    }
+    closeModal(taskModal);
+    editTaskForm?.reset();
+    if (editReminderId) editReminderId.value = '';
+    originalRemindAtLocal = '';
   }
 
-  closeTaskBtn?.addEventListener('click', closeEditModal);
-  cancelEditBtn?.addEventListener('click', closeEditModal);
+  $('close-task-modal')?.addEventListener('click', closeEditModal);
+  $('cancel-edit-btn')?.addEventListener('click', closeEditModal);
 
-  // Edit task submit listener
   editTaskForm?.addEventListener('submit', async event => {
     event.preventDefault();
 
-    const id = editTaskId?.value;
+    const id = $('edit-task-id')?.value;
     if (!id) return;
 
-    const title = editTaskTitle?.value.trim();
-    if (!title) {
-      alert('Please enter a task title.');
-      return;
-    }
+    const title = $('edit-task-title')?.value.trim();
+    if (!title) { alert('Please enter a task title.'); return; }
 
-    const deadlineVal = editTaskDeadline?.value;
-    const deadline = toISOStringFromLocal(deadlineVal);
-
-    if (!deadline) {
-      alert('Please select a due time or deadline.');
-      return;
-    }
+    const deadline = toISOStringFromLocal($('edit-task-deadline')?.value);
+    if (!deadline) { alert('Please select a due time or deadline.'); return; }
 
     let startTime = null;
     let endTime = null;
 
     if (editStartToggle?.isChecked()) {
-      const startVal = editTaskStart?.value;
-      startTime = toISOStringFromLocal(startVal);
-
-      if (!startTime) {
-        alert('Please select a start time, or untick "Has a start time".');
-        return;
-      }
-
-      if (new Date(startTime) >= new Date(deadline)) {
-        alert('Start time must be before the due time.');
-        return;
-      }
-
+      startTime = toISOStringFromLocal($('edit-task-start')?.value);
+      if (!startTime) { alert('Please select a start time, or untick "Has a start time".'); return; }
+      if (new Date(startTime) >= new Date(deadline)) { alert('Start time must be before the due time.'); return; }
       endTime = deadline;
     }
 
-    // Reminder processing validation
     const wantsReminder = Boolean(editTaskWantsReminder?.checked);
     const existingReminderId = editReminderId?.value || null;
     let remindAt = null;
+    let reminderChanged = false;
 
     if (wantsReminder) {
-      remindAt = toISOStringFromLocal(editTaskReminderAt?.value || '');
+      const remindAtLocal = editTaskReminderAt?.value || '';
+      remindAt = toISOStringFromLocal(remindAtLocal);
+      if (!remindAt) { alert('Please choose when to be reminded, or untick "Remind me".'); return; }
 
-      if (!remindAt) {
-        alert('Please choose when to be reminded, or untick "Remind me".');
-        return;
-      }
+      reminderChanged = !existingReminderId || remindAtLocal !== originalRemindAtLocal;
 
-      if (new Date(remindAt) <= new Date()) {
+      // Only insist on a future time when the reminder is new or was changed
+      if (reminderChanged && new Date(remindAt) <= new Date()) {
         alert('The reminder must be in the future.');
         return;
       }
-
       if (new Date(remindAt) > new Date(deadline)) {
         alert('The reminder cannot be after the due time.');
         return;
@@ -510,16 +602,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const payload = {
       title,
-      description: editTaskDescription?.value.trim() || null,
+      description: $('edit-task-description')?.value.trim() || null,
       itemType: editTaskCategory?.value || 'PERSONAL',
-      priority: editTaskPriority?.value || 'MEDIUM',
-      status: editTaskStatus?.value || 'PENDING',
+      priority: $('edit-task-priority')?.value || 'MEDIUM',
+      status: $('edit-task-status')?.value || PENDING_STATUS,
       startTime,
       endTime,
       deadline
     };
 
-    if (updateTaskBtn) updateTaskBtn.disabled = true;
+    const updateBtn = $('update-task-btn');
+    if (updateBtn) updateBtn.disabled = true;
 
     try {
       const response = await apiFetch(`${API_BASE}/api/schedule-items/${id}`, {
@@ -527,20 +620,15 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      if (!response.ok) throw new Error(await errorMessage(response, 'Failed to update task'));
 
-      if (!response.ok) {
-        const errorData = await readJsonSafely(response);
-        throw new Error((errorData && errorData.message) || `Failed to update task: ${response.status}`);
-      }
+      const updated = await readJsonSafely(response);
 
-      const updatedTask = await response.json();
-
-      // Handle Reminder CRUD operations based on choice
       if (wantsReminder && remindAt) {
         if (existingReminderId) {
-          await updateReminderFor(existingReminderId, remindAt);
+          if (reminderChanged) await updateReminderFor(existingReminderId, remindAt);
         } else {
-          await createReminderFor(updatedTask.id, remindAt);
+          await createReminderFor((updated && updated.id) || id, remindAt);
         }
       } else if (!wantsReminder && existingReminderId) {
         await deleteReminderFor(existingReminderId);
@@ -554,13 +642,93 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Error updating task:', error);
       alert(error.message || 'Unable to update task. Please try again.');
     } finally {
-      if (updateTaskBtn) updateTaskBtn.disabled = false;
+      if (updateBtn) updateBtn.disabled = false;
     }
   });
 
   // ============================================================
-  // LOAD TASKS & RENDER
+  // STATUS + DELETE
   // ============================================================
+
+  // Returns true on success. Uses the same PUT as the edit form.
+  async function setTaskStatus(task, status) {
+    const payload = {
+      title: task.title,
+      description: task.description || null,
+      itemType: task.itemType || 'PERSONAL',
+      priority: task.priority || 'MEDIUM',
+      status,
+      startTime: task.startTime || null,
+      endTime: task.endTime || null,
+      deadline: task.deadline || task.endTime || null
+    };
+
+    try {
+      const response = await apiFetch(`${API_BASE}/api/schedule-items/${task.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error(await errorMessage(response, 'Failed to update task'));
+
+      await loadTasks();
+      showToast(status === DONE_STATUS ? 'Task completed 🎉' : 'Task reopened.');
+      return true;
+    } catch (error) {
+      if (!error.sessionExpired) {
+        console.error('Error changing task status:', error);
+        showToast(error.message || 'Could not update the task.');
+      }
+      return false;
+    }
+  }
+
+  async function deleteTask(id) {
+    const task = allTasks.find(t => String(t.id) === String(id));
+    if (!confirm(`Delete "${task ? task.title : 'this task'}"?`)) return false;
+
+    try {
+      const response = await apiFetch(`${API_BASE}/api/schedule-items/${id}`, { method: 'DELETE' });
+      if (!response.ok && response.status !== 204) {
+        throw new Error(await errorMessage(response, 'Failed to delete task'));
+      }
+      await loadTasks();
+      showToast('Task deleted.');
+      return true;
+    } catch (error) {
+      if (!error.sessionExpired) {
+        console.error('Error deleting task:', error);
+        showToast(error.message || 'Could not delete the task.');
+      }
+      return false;
+    }
+  }
+
+  // ============================================================
+  // LOAD TASKS + CONFLICTS
+  // ============================================================
+
+  async function refreshConflicts() {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/schedule-conflicts/me`);
+      if (response.ok) applyConflictPairs(await response.json());
+    } catch (error) {
+      if (error.sessionExpired) throw error;
+    }
+  }
+
+  function applyConflictPairs(pairs) {
+    conflictPartnersByTaskId = new Map();
+    (Array.isArray(pairs) ? pairs : []).forEach(pair => {
+      if (!pair?.itemOne || !pair?.itemTwo) return;
+      const id1 = String(pair.itemOne.id);
+      const id2 = String(pair.itemTwo.id);
+      if (!conflictPartnersByTaskId.has(id1)) conflictPartnersByTaskId.set(id1, []);
+      if (!conflictPartnersByTaskId.has(id2)) conflictPartnersByTaskId.set(id2, []);
+      conflictPartnersByTaskId.get(id1).push(pair.itemTwo);
+      conflictPartnersByTaskId.get(id2).push(pair.itemOne);
+    });
+  }
 
   async function loadTasks() {
     try {
@@ -569,107 +737,128 @@ document.addEventListener('DOMContentLoaded', () => {
 
       allTasks = await response.json();
       await refreshConflicts();
-      renderTasks();
+      tasksState = 'ready';
+
+      renderSummary();
+      renderNotifications();
+      document.dispatchEvent(new CustomEvent('aalsikke:tasks-loaded'));
     } catch (error) {
       if (error.sessionExpired) return;
       console.error('Failed to load tasks:', error);
+      tasksState = 'error';
+      document.dispatchEvent(new CustomEvent('aalsikke:tasks-error'));
+      showToast('Could not load your tasks.');
     }
   }
 
-  function renderTasks() {
-    if (!taskList) return;
+  // ============================================================
+  // SUMMARY (greeting line, dashboard cards, sidebar meta)
+  // ============================================================
 
-    const visibleTasks = getVisibleTasks();
+  function renderSummary() {
+    const now = new Date();
+    let overdue = 0, today = 0, upcoming = 0, done = 0;
 
-    if (taskCount) {
-      taskCount.textContent = `${visibleTasks.length} task${visibleTasks.length === 1 ? '' : 's'}`;
-    }
-
-    if (visibleTasks.length === 0) {
-      taskList.innerHTML = '';
-      if (emptyState) emptyState.hidden = false;
-      return;
-    }
-
-    if (emptyState) emptyState.hidden = true;
-
-    taskList.innerHTML = visibleTasks.map(task => {
-      const reminderBadgeHtml = renderReminderBadge(task);
-      return `
-        <div class="task-card ${priorityClass(task.priority)}" data-id="${task.id}">
-          <div class="task-header">
-            <h3 class="task-title">${escapeHtml(task.title)}</h3>
-            <span class="task-priority">${escapeHtml(task.priority)}</span>
-          </div>
-          <p class="task-desc">${escapeHtml(task.description)}</p>
-          <div class="task-meta">
-            <span class="task-due">📅 ${formatDue(getTaskDate(task))}</span>
-            ${reminderBadgeHtml}
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function priorityClass(priority) {
-    return String(priority || 'MEDIUM').toLowerCase();
-  }
-
-  function getVisibleTasks() {
-    return [...allTasks];
-  }
-
-  async function refreshConflicts() {
-    try {
-      const response = await apiFetch(`${API_BASE}/api/schedule-conflicts/me`);
-      if (response.ok) {
-        applyConflictPairs(await response.json());
-      }
-    } catch (_) {}
-  }
-
-  function applyConflictPairs(pairs) {
-    conflictPartnersByTaskId = new Map();
-    (Array.isArray(pairs) ? pairs : []).forEach(pair => {
-      if (pair?.itemOne && pair?.itemTwo) {
-        const id1 = String(pair.itemOne.id);
-        const id2 = String(pair.itemTwo.id);
-        if (!conflictPartnersByTaskId.has(id1)) conflictPartnersByTaskId.set(id1, []);
-        if (!conflictPartnersByTaskId.has(id2)) conflictPartnersByTaskId.set(id2, []);
-        conflictPartnersByTaskId.get(id1).push(pair.itemTwo);
-        conflictPartnersByTaskId.get(id2).push(pair.itemOne);
-      }
+    allTasks.forEach(task => {
+      if (isDone(task)) { done++; return; }
+      const value = getTaskDate(task);
+      if (!value) return;
+      const date = new Date(value);
+      if (date < now) overdue++;
+      else if (date.toDateString() === now.toDateString()) today++;
+      else upcoming++;
     });
-  }
 
-  async function initPage() {
-    // 1. Get profile element safely
-    const profileEl = document.querySelector('.greeting-row') || document.querySelector('.profile-name');
+    const open = allTasks.length - done;
 
-    try {
-      const response = await apiFetch(`${API_BASE}/api/auth/me`);
-      if (response.ok) {
-        const user = await response.json();
-        if (profileEl) profileEl.textContent = user.fullName || user.email || 'Workspace';
-      }
-    } catch (error) {
-      if (error.sessionExpired) return;
-      console.error('Failed loading profile:', error);
-      if (profileEl) profileEl.textContent = 'Workspace';
+    const dateEl = $('current-date');
+    if (dateEl) {
+      dateEl.textContent = now.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'long', day: 'numeric'
+      });
     }
 
-    // 2. Load tasks safely
-    try {
-      await loadTasks();
-    } catch (error) {
-      console.error('Failed loading tasks:', error);
+    const summary = $('greeting-summary');
+    if (summary) {
+      summary.textContent = allTasks.length === 0
+        ? 'You have no tasks yet.'
+        : `${open} open task${open === 1 ? '' : 's'}` +
+          (overdue ? `, ${overdue} overdue` : '') +
+          (today ? `, ${today} due today` : '') + '.';
+    }
+
+    const meta = $('profile-meta');
+    if (meta) meta.textContent = `${open} open · ${done} completed`;
+
+    const cards = $('dashboard-cards');
+    if (cards) {
+      const items = [
+        ['Overdue', overdue],
+        ['Due today', today],
+        ['Upcoming', upcoming],
+        ['Completed', done]
+      ];
+      cards.innerHTML = items.map(([label, count]) => `
+        <div class="card dashboard-card">
+          <p class="dashboard-card-label">${label}</p>
+          <p class="dashboard-card-count">${count}</p>
+        </div>`).join('');
     }
   }
 
   // ============================================================
-  // INITIALIZATION
+  // BELL (reminders due within 24h, or already passed, on open tasks)
   // ============================================================
 
-  initPage();
-  setupCreateTaskButton();
+  function renderNotifications() {
+    const list = $('notif-list');
+    const empty = $('notif-empty');
+    const badge = $('notif-badge');
+    if (!list) return;
+
+    const limit = Date.now() + 24 * 60 * 60 * 1000;
+
+    const due = allTasks
+      .filter(task => !isDone(task))
+      .map(task => ({ task, reminder: firstReminder(task) }))
+      .filter(({ reminder }) => reminder && reminder.remindAt && new Date(reminder.remindAt).getTime() <= limit)
+      .sort((a, b) => new Date(a.reminder.remindAt) - new Date(b.reminder.remindAt));
+
+    list.innerHTML = due.map(({ task, reminder }) => `
+      <li class="notif-item">
+        <strong>${escapeHtml(task.title)}</strong>
+        <span>${escapeHtml(formatDue(reminder.remindAt))}</span>
+      </li>`).join('');
+
+    if (empty) empty.hidden = due.length > 0;
+    if (badge) badge.hidden = due.length === 0;
+  }
+
+  // ============================================================
+  // PUBLIC API for dashboard-board.js and tasks.js
+  // ============================================================
+
+  window.AalSikke = {
+    API_BASE,
+    apiFetch,
+    getTasks: () => allTasks,
+    getConflicts: () => conflictPartnersByTaskId,
+    getTasksState: () => tasksState,
+    reloadTasks: loadTasks,
+    openEditModal,
+    setTaskStatus,
+    deleteTask,
+    openCreateForm
+  };
+
+  // ============================================================
+  // START
+  // ============================================================
+
+  renderSummary();
+  loadProfile();
+  loadTasks();
+
+  // "+" button on the dashboard links to tasks.html#new-task
+  if (taskForm && location.hash === '#new-task') openCreateForm();
 });
