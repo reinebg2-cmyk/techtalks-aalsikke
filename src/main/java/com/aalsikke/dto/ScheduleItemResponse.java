@@ -25,6 +25,8 @@ public class ScheduleItemResponse {
     private OffsetDateTime createdAt;
     private boolean isRecurring;
     private boolean reminderEnabled;
+    /** Reminders on this task, soonest first. Used by the edit-task modal. */
+    private List<ReminderSummary> reminders = List.of();
     private Summary course;
     private Summary workplace;
     private List<ConflictSummary> conflicts = List.of();
@@ -45,7 +47,10 @@ public class ScheduleItemResponse {
         dto.createdAt = item.getCreatedAt();
         dto.isRecurring = item.isRecurring();
         dto.reminderEnabled = item.isReminderEnabled();
-
+        dto.reminders = item.getReminders().stream()
+                .sorted(java.util.Comparator.comparing(com.aalsikke.model.Reminder::getRemindAt))
+                .map(ReminderSummary::from)
+                .toList();
         if (item.getCourse() != null) {
             dto.course = new Summary(item.getCourse().getId(), item.getCourse().getCourseName());
         }
@@ -90,6 +95,27 @@ public class ScheduleItemResponse {
         public String getName() { return name; }
     }
 
+        /** What the frontend needs about one reminder (no entity leak). */
+        public static class ReminderSummary {
+            private final UUID id;
+            private final OffsetDateTime remindAt;
+            private final boolean triggered;
+
+            private ReminderSummary(UUID id, OffsetDateTime remindAt, boolean triggered) {
+                this.id = id;
+                this.remindAt = remindAt;
+                this.triggered = triggered;
+            }
+
+            public static ReminderSummary from(com.aalsikke.model.Reminder reminder) {
+                return new ReminderSummary(reminder.getId(), reminder.getRemindAt(), reminder.isTriggered());
+            }
+
+            public UUID getId() { return id; }
+            public OffsetDateTime getRemindAt() { return remindAt; }
+            public boolean isTriggered() { return triggered; }
+        }
+
     public UUID getId() { return id; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
@@ -107,5 +133,5 @@ public class ScheduleItemResponse {
     public List<ConflictSummary> getConflicts() { return conflicts; }
     public boolean isOccurrence() { return occurrence; }
     public boolean isReminderEnabled() { return reminderEnabled; }
-
+    public List<ReminderSummary> getReminders() { return reminders; }
 }

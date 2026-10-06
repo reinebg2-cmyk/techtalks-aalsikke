@@ -1,281 +1,331 @@
-// Aal Sikke — Tasks page
+// Aal Sikke — Tasks page (KAN-259)
 //
-// Grouped task list (Overdue / Today / Upcoming / No date / Completed) with
-// search and filters. Uses dashboard.js (loaded first) through window.AalSikke
-// and re-renders on 'aalsikke:tasks-loaded'.
+// Reuses dashboard.js (loaded first) for the task data, create form, edit modal,
+// delete, and the shared shell (bell, profile menu, theme). This file only adds
+// the grouped view, search and filters.
+//
+// dashboard.js fires 'aalsikke:tasks-loaded' after every task change (load,
+// create, edit, complete, delete), so this page re-renders by itself.
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  const app = window.AalSikke;
-  if (!app) return; // dashboard.js redirected to login
+    const app = window.AalSikke;
+    if (!app) {
+        return; // dashboard.js redirected to login (no token)
+    }
 
-  const groupsEl = document.getElementById('tasks-groups');
-  const stateEl = document.getElementById('tasks-state');
-  const countEl = document.getElementById('tasks-count');
+    const groupsEl = document.getElementById('tasks-groups');
+    const stateEl = document.getElementById('tasks-state');
+    const countEl = document.getElementById('tasks-count');
+    const searchInput = document.getElementById('tasks-search');
+    const roleSelect = document.getElementById('tasks-role-filter');
+    const categorySelect = document.getElementById('tasks-category-filter');
+    const prioritySelect = document.getElementById('tasks-priority-filter');
+    const statusSelect = document.getElementById('tasks-status-filter');
 
-  const searchInput = document.getElementById('tasks-search');
-  const roleFilter = document.getElementById('tasks-role-filter');
-  const categoryFilter = document.getElementById('tasks-category-filter');
-  const priorityFilter = document.getElementById('tasks-priority-filter');
-  const statusFilter = document.getElementById('tasks-status-filter');
+    if (!groupsEl) {
+        return;
+    }
 
-  if (!groupsEl) return;
+    const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY']);
+    const WORK_TYPES = new Set(['SHIFT']);
 
-  const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY']);
-  const WORK_TYPES = new Set(['SHIFT']);
+    // Display order. Completed starts collapsed so the page stays focused.
+    const GROUPS = [
+        { key: 'OVERDUE', title: 'Overdue', open: true },
+        { key: 'TODAY', title: 'Today', open: true },
+        { key: 'UPCOMING', title: 'Upcoming', open: true },
+        { key: 'NO_DATE', title: 'No date', open: true },
+        { key: 'COMPLETED', title: 'Completed', open: false }
+    ];
 
-  const GROUPS = [
-    { key: 'OVERDUE', title: 'Overdue' },
-    { key: 'TODAY', title: 'Today' },
-    { key: 'UPCOMING', title: 'Upcoming' },
-    { key: 'NO_DATE', title: 'No date' },
-    { key: 'COMPLETED', title: 'Completed' }
-  ];
+    // Remembers which groups the user opened/closed across re-renders.
+    const openGroups = new Map(GROUPS.map(group => [group.key, group.open]));
 
-  // ============================================================
-  // HELPERS
-  // ============================================================
+    // ============================================================
+    // HELPERS (same rules as the dashboard)
+    // ============================================================
 
-  function escapeHtml(value) {
-    const div = document.createElement('div');
-    div.textContent = value ?? '';
-    return div.innerHTML;
-  }
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value ?? '';
+        return div.innerHTML;
+    }
 
-  function taskDate(task) {
-    const value = task.deadline || task.endTime || task.startTime;
-    if (!value) return null;
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
+    function taskDate(task) {
+        const value = task.deadline || task.startTime;
+        if (!value) return null;
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
 
-  function formatDue(date) {
-    if (!date) return 'No deadline';
-    return date.toLocaleString(undefined, {
-      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-    });
-  }
+    function formatDue(date) {
+        if (!date) return 'No deadline';
+        return date.toLocaleString(undefined, {
+            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+        });
+    }
 
-  function titleCase(value) {
-    const text = String(value || '').toLowerCase();
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  }
+    function isCompleted(task) {
+        return String(task.status || '').toUpperCase() === 'COMPLETED';
+    }
 
-  function isCompleted(task) {
-    return String(task.status || '').toUpperCase() === 'COMPLETED';
-  }
+    function roleOf(task) {
+        const type = String(task.itemType || '').toUpperCase();
+        if (STUDENT_TYPES.has(type)) return 'STUDENT';
+        if (WORK_TYPES.has(type)) return 'WORK';
+        return 'PERSONAL';
+    }
 
-  function statusOf(task) {
-    if (isCompleted(task)) return 'COMPLETED';
-    const date = taskDate(task);
-    return date && date < new Date() ? 'OVERDUE' : 'PENDING';
-  }
+    // Missing priority = MEDIUM (the backend's default).
+    function priorityOf(task) {
+        return String(task.priority || 'MEDIUM').toUpperCase();
+    }
 
-  function groupOf(task) {
-    const status = statusOf(task);
-    if (status !== 'PENDING') return status;
-    const date = taskDate(task);
-    if (!date) return 'NO_DATE';
-    return date.toDateString() === new Date().toDateString() ? 'TODAY' : 'UPCOMING';
-  }
+    // Same three buckets as the dashboard's Status filter.
+    function statusOf(task) {
+        if (isCompleted(task)) return 'COMPLETED';
+        const date = taskDate(task);
+        return date && date < new Date() ? 'OVERDUE' : 'PENDING';
+    }
 
-  function roleOf(task) {
-    const type = String(task.itemType || '').toUpperCase();
-    if (STUDENT_TYPES.has(type)) return 'STUDENT';
-    if (WORK_TYPES.has(type)) return 'WORK';
-    return 'PERSONAL';
-  }
+    function groupOf(task) {
+        const status = statusOf(task);
+        if (status !== 'PENDING') return status; // COMPLETED or OVERDUE
+        const date = taskDate(task);
+        if (!date) return 'NO_DATE';
+        return date.toDateString() === new Date().toDateString() ? 'TODAY' : 'UPCOMING';
+    }
 
-  function priorityOf(task) {
-    return String(task.priority || 'MEDIUM').toUpperCase();
-  }
+    // Soonest first; undated tasks last.
+    function byDate(a, b) {
+        const ta = taskDate(a)?.getTime() ?? Infinity;
+        const tb = taskDate(b)?.getTime() ?? Infinity;
+        return ta === tb ? 0 : (ta < tb ? -1 : 1);
+    }
 
-  function firstReminder(task) {
-    return Array.isArray(task.reminders) && task.reminders.length ? task.reminders[0] : null;
-  }
+    function findTask(id) {
+        return app.getTasks().find(task => String(task.id) === String(id));
+    }
 
-  function findTask(id) {
-    return app.getTasks().find(task => String(task.id) === String(id));
-  }
+    function conflictPartners(task) {
+        return app.getConflicts().get(String(task.id)) || [];
+    }
 
-  function compareTasks(a, b) {
-    const ta = taskDate(a)?.getTime() ?? Infinity;
-    const tb = taskDate(b)?.getTime() ?? Infinity;
-    return ta === tb ? 0 : (ta < tb ? -1 : 1);
-  }
+    // ============================================================
+    // FILTERING (all local, no API calls)
+    // ============================================================
 
-  // ============================================================
-  // FILTERING
-  // ============================================================
+    function matchesFilters(task) {
+        const query = (searchInput?.value || '').trim().toLowerCase();
+        const role = roleSelect?.value || 'ALL';
+        const category = categorySelect?.value || 'ALL';
+        const priority = prioritySelect?.value || 'ALL';
+        const status = statusSelect?.value || 'ALL';
 
-  function matchesFilters(task) {
-    const query = (searchInput?.value || '').trim().toLowerCase();
-    if (query && !String(task.title || '').toLowerCase().includes(query)) return false;
+        return (!query || String(task.title || '').toLowerCase().includes(query))
+            && (role === 'ALL' || roleOf(task) === role)
+            && (category === 'ALL' || String(task.itemType || '').toUpperCase() === category)
+            && (priority === 'ALL' || priorityOf(task) === priority)
+            && (status === 'ALL' || statusOf(task) === status);
+    }
 
-    const role = roleFilter?.value || 'ALL';
-    if (role !== 'ALL' && roleOf(task) !== role) return false;
+    // ============================================================
+    // RENDERING (same card markup/classes as the dashboard)
+    // ============================================================
 
-    const category = categoryFilter?.value || 'ALL';
-    if (category !== 'ALL' && String(task.itemType || '').toUpperCase() !== category) return false;
+    function cardHtml(task) {
+        const completed = isCompleted(task);
+        const partners = conflictPartners(task);
+        const badge = partners.length === 0 ? '' :
+            `<span class="conflict-badge" title="Clashes with ${escapeHtml(partners.map(p => p.title).join(', '))}">&#9888; Conflict</span>`;
 
-    const priority = priorityFilter?.value || 'ALL';
-    if (priority !== 'ALL' && priorityOf(task) !== priority) return false;
-
-    const status = statusFilter?.value || 'ALL';
-    if (status !== 'ALL' && statusOf(task) !== status) return false;
-
-    return true;
-  }
-
-  // ============================================================
-  // RENDERING
-  // ============================================================
-
-  function rowHtml(task) {
-    const completed = isCompleted(task);
-    const overdue = statusOf(task) === 'OVERDUE';
-    const priority = priorityOf(task);
-    const partners = app.getConflicts().get(String(task.id)) || [];
-    const reminder = firstReminder(task);
-
-    const reminderBadge = reminder && reminder.remindAt
-      ? `<span class="reminder-badge" title="Reminder">&#128276; ${escapeHtml(formatDue(new Date(reminder.remindAt)))}
-           <button type="button" class="edit-reminder-btn" data-action="edit" aria-label="Edit reminder">&#9998;</button></span>`
-      : '';
-
-    const conflictBadge = partners.length
-      ? `<span class="conflict-badge" title="Clashes with ${escapeHtml(partners.map(p => p.title).join(', '))}">&#9888; Conflict</span>`
-      : '';
-
-    return `
-      <li class="task-row priority-${priority.toLowerCase()} ${completed ? 'is-complete' : ''} ${overdue ? 'is-overdue' : ''}"
+        return `
+      <li class="task-card priority-${priorityOf(task).toLowerCase()}${partners.length ? ' is-conflict' : ''}${completed ? ' is-complete' : ''}"
           data-id="${escapeHtml(String(task.id))}">
-        <label class="task-row-check">
-          <input type="checkbox" class="task-checkbox" aria-label="Mark ${escapeHtml(task.title)} complete" ${completed ? 'checked' : ''}>
-        </label>
-        <div class="task-row-main">
-          <p class="task-row-title" style="${completed ? 'text-decoration:line-through;opacity:.65;' : ''}">${escapeHtml(task.title)}</p>
-          <p class="task-row-meta">
-            ${task.itemType ? `<span class="board-chip">${escapeHtml(titleCase(task.itemType))}</span>` : ''}
-            <span>${titleCase(priority)} priority</span>
-            <span>${overdue ? 'Was due' : 'Due'} ${escapeHtml(formatDue(taskDate(task)))}</span>
-            ${reminderBadge}
-            ${conflictBadge}
-          </p>
+        <input type="checkbox" class="task-checkbox"
+               aria-label="Mark ${escapeHtml(task.title)} complete" ${completed ? 'checked' : ''}>
+        <div class="task-body">
+          <p class="task-title">${escapeHtml(task.title)}</p>
+          <div class="task-meta">
+            <span class="priority-dot ${priorityOf(task).toLowerCase()}"></span>
+            <span class="priority-label ${priorityOf(task).toLowerCase()}">${escapeHtml(priorityOf(task).toLowerCase())}</span>
+            ${task.itemType ? escapeHtml(task.itemType) + ' &middot; ' : ''}
+            Due ${escapeHtml(formatDue(taskDate(task)))}
+            ${badge}
+          </div>
         </div>
-        <div class="task-row-actions">
-          <button type="button" class="btn-secondary" data-action="edit">Edit</button>
-          <button type="button" class="btn-secondary" data-action="delete">Delete</button>
+        <div class="task-actions">
+          <button type="button" class="task-menu-btn" aria-label="Task actions"
+                  aria-expanded="false" title="Task actions">&#8942;</button>
+          <div class="task-menu" hidden>
+            <button type="button" class="task-action-edit">Edit</button>
+            <button type="button" class="task-action-delete">Delete</button>
+          </div>
         </div>
       </li>`;
-  }
-
-  function render() {
-    const all = app.getTasks();
-    const visible = all.filter(matchesFilters);
-
-    if (countEl) {
-      countEl.textContent = `${visible.length} of ${all.length} task${all.length === 1 ? '' : 's'}`;
     }
 
-    if (all.length === 0) {
-      groupsEl.innerHTML = '';
-      showState('No tasks yet. Press "+ New task" above to add your first one.');
-      return;
+    function showState(message) {
+        if (!stateEl) return;
+        stateEl.textContent = message;
+        stateEl.hidden = !message;
     }
 
-    if (visible.length === 0) {
-      groupsEl.innerHTML = '';
-      showState('No tasks match your search or filters.');
-      return;
+    function render() {
+        const all = app.getTasks();
+        const visible = all.filter(matchesFilters);
+
+        if (countEl) {
+            countEl.textContent = all.length === 0 ? '' :
+                `Showing ${visible.length} of ${all.length} task${all.length === 1 ? '' : 's'}`;
+        }
+
+        if (visible.length === 0) {
+            groupsEl.innerHTML = '';
+            showState(all.length === 0
+                ? 'No tasks yet. Add your first one above.'
+                : 'No tasks match these filters.');
+            return;
+        }
+
+        showState('');
+
+        groupsEl.innerHTML = GROUPS.map(group => {
+            const items = visible.filter(task => groupOf(task) === group.key).sort(byDate);
+            if (items.length === 0) return '';
+
+            return `
+        <details class="tasks-group" data-group="${group.key}"${openGroups.get(group.key) ? ' open' : ''}>
+          <summary>
+            <strong>${group.title}</strong>
+            <span class="tasks-group-count">(${items.length})</span>
+          </summary>
+          <ul class="task-list">${items.map(cardHtml).join('')}</ul>
+        </details>`;
+        }).join('');
     }
 
-    showState('');
+    // ============================================================
+    // ACTIONS (edit/delete reuse dashboard.js; status is one PATCH)
+    // ============================================================
 
-    const buckets = new Map(GROUPS.map(group => [group.key, []]));
-    visible.forEach(task => buckets.get(groupOf(task))?.push(task));
+    async function setStatus(task, checkbox) {
+        const next = checkbox.checked ? 'COMPLETED' : 'PENDING';
+        checkbox.disabled = true;
 
-    groupsEl.innerHTML = GROUPS
-      .filter(group => buckets.get(group.key).length > 0)
-      .map(group => {
-        const tasks = buckets.get(group.key).sort(compareTasks);
-        return `
-          <section class="task-group task-group--${group.key.toLowerCase()}">
-            <h3 class="task-group-head">${group.title} <span class="board-count">(${tasks.length})</span></h3>
-            <ul class="task-group-list" style="list-style:none;padding:0;margin:0;">${tasks.map(rowHtml).join('')}</ul>
-          </section>`;
-      })
-      .join('');
-  }
+        try {
+            const response = await app.apiFetch(
+                `${app.API_BASE}/api/schedule-items/${task.id}/status`,
+                {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: next })
+                }
+            );
 
-  function showState(message, withRetry = false) {
-    if (!stateEl) return;
-    stateEl.innerHTML = message
-      ? `${escapeHtml(message)}${withRetry ? ' <button type="button" class="link-btn" data-action="retry">Try again</button>' : ''}`
-      : '';
-    stateEl.hidden = !message;
-  }
+            if (!response.ok) {
+                throw new Error(`Server responded ${response.status}`);
+            }
 
-  function safeRender() {
-    try {
-      render();
-    } catch (error) {
-      console.error('Failed to render tasks:', error);
-      groupsEl.innerHTML = '';
-      showState("Couldn't display your tasks.", true);
+            await app.reloadTasks(); // fires 'aalsikke:tasks-loaded' -> render()
+
+        } catch (error) {
+            if (error.sessionExpired) return;
+            console.error('Failed to update task status:', error);
+            checkbox.checked = !checkbox.checked;
+            checkbox.disabled = false;
+            alert('Could not update the task status. Please try again.');
+        }
     }
-  }
 
-  // ============================================================
-  // EVENTS
-  // ============================================================
+    // One listener for every card (cards are re-created on each render).
+    groupsEl.addEventListener('click', event => {
+        const card = event.target.closest('.task-card');
+        if (!card) return;
 
-  groupsEl.addEventListener('click', event => {
-    const row = event.target.closest('.task-row');
-    if (!row) return;
-    const task = findTask(row.dataset.id);
-    if (!task) return;
+        const task = findTask(card.dataset.id);
+        const menu = card.querySelector('.task-menu');
+        const menuBtn = card.querySelector('.task-menu-btn');
 
-    const actionBtn = event.target.closest('[data-action]');
-    if (!actionBtn) return;
+        if (event.target.closest('.task-menu-btn')) {
+            document.querySelectorAll('.task-menu').forEach(other => {
+                if (other !== menu) other.hidden = true;
+            });
+            menu.hidden = !menu.hidden;
+            menuBtn.setAttribute('aria-expanded', String(!menu.hidden));
+            return;
+        }
 
-    if (actionBtn.dataset.action === 'edit') app.openEditModal(task);
-    if (actionBtn.dataset.action === 'delete') app.deleteTask(task.id);
-  });
+        if (event.target.closest('.task-action-edit') && task) {
+            menu.hidden = true;
+            app.openEditModal(task);
+            return;
+        }
 
-  groupsEl.addEventListener('change', async event => {
-    const checkbox = event.target.closest('.task-checkbox');
-    if (!checkbox) return;
+        if (event.target.closest('.task-action-delete') && task) {
+            menu.hidden = true;
+            app.deleteTask(task.id);
+        }
+    });
 
-    const task = findTask(checkbox.closest('.task-row').dataset.id);
-    if (!task) return;
+    groupsEl.addEventListener('change', event => {
+        const checkbox = event.target.closest('.task-checkbox');
+        if (!checkbox) return;
+        const task = findTask(checkbox.closest('.task-card').dataset.id);
+        if (task) setStatus(task, checkbox);
+    });
 
-    checkbox.disabled = true;
-    const ok = await app.setTaskStatus(task, checkbox.checked ? 'COMPLETED' : 'PENDING');
-    if (!ok) {
-      checkbox.checked = !checkbox.checked;
-      checkbox.disabled = false;
+    // 'toggle' doesn't bubble, so listen in the capture phase.
+    groupsEl.addEventListener('toggle', event => {
+        const group = event.target.closest('.tasks-group');
+        if (group) openGroups.set(group.dataset.group, group.open);
+    }, true);
+
+    // ============================================================
+    // WIRING
+    // ============================================================
+
+    searchInput?.addEventListener('input', render);
+    [roleSelect, categorySelect, prioritySelect, statusSelect].forEach(select => {
+        select?.addEventListener('change', render);
+    });
+
+    document.addEventListener('aalsikke:tasks-loaded', render);
+    document.addEventListener('aalsikke:tasks-error', () => {
+        groupsEl.innerHTML = '';
+        if (countEl) countEl.textContent = '';
+        showState("Couldn't load your tasks. Please refresh the page.");
+    });
+
+    // If dashboard.js already finished loading before this ran, render now.
+    if (app.getTasksState() === 'ready') {
+        render();
     }
-  });
 
-  [roleFilter, categoryFilter, priorityFilter, statusFilter].forEach(select => {
-    select?.addEventListener('change', safeRender);
-  });
-  searchInput?.addEventListener('input', safeRender);
 
-  stateEl?.addEventListener('click', event => {
-    if (event.target.closest('[data-action="retry"]')) {
-      showState('Loading your tasks...');
-      app.reloadTasks();
+    // ============================================================
+    // "+" ADD TASK LINK (tasks.html#new-task)
+    // The dashboard's top-bar "+" links here: open the New task form and put
+    // the cursor in the title field. Also works when already on this page.
+    // ============================================================
+
+    function openNewTaskFromHash() {
+        if (window.location.hash !== '#new-task') return;
+
+        const form = document.getElementById('task-form');
+        const titleInput = document.getElementById('task-title');
+        if (!form) return;
+
+        form.hidden = false;
+        form.closest('.card')?.scrollIntoView({ block: 'start' });
+        titleInput?.focus();
+
+        // Drop the hash so a refresh or a second "+" click opens it again.
+        history.replaceState(null, '', window.location.pathname + window.location.search);
     }
-  });
 
-  document.addEventListener('aalsikke:tasks-loaded', safeRender);
-  document.addEventListener('aalsikke:tasks-error', () => {
-    groupsEl.innerHTML = '';
-    showState("Couldn't load your tasks.", true);
-  });
+    window.addEventListener('hashchange', openNewTaskFromHash);
+    openNewTaskFromHash();
 
-  if (app.getTasksState() === 'ready') safeRender();
-  else if (app.getTasksState() === 'error') showState("Couldn't load your tasks.", true);
 });
