@@ -1,4 +1,4 @@
-// Aal Sikke — shared dashboard script (loaded on dashboard.html and tasks.html)
+// Aal Sikke — shared dashboard script (loaded on dashboard.html, tasks.html and settings.html)
 //
 // Handles: auth, task create / edit / delete / status, reminders (create, edit,
 // delete), conflicts, profile card, modals, bell, and exposes window.AalSikke
@@ -125,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let tasksState = 'loading';
   let currentProfile = null;
   let originalRemindAtLocal = '';
+  let editingTask = null;   // the task open in the edit modal (null when closed)
 
   // ============================================================
   // MODALS (profile / password / notification prefs / task edit)
@@ -145,14 +146,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeAllModals() {
     [taskModal, profileModal, passwordModal, notifPrefsModal].forEach(closeModal);
-    if (taskModal) { $('edit-task-form')?.reset(); originalRemindAtLocal = ''; }
+    if (taskModal) {
+      $('edit-task-form')?.reset();
+      originalRemindAtLocal = '';
+      editingTask = null;
+    }
   }
 
   [taskModal, profileModal, passwordModal, notifPrefsModal].forEach(modal => {
     modal?.addEventListener('click', event => {
       if (event.target === modal) {
         closeModal(modal);
-        if (modal === taskModal) { $('edit-task-form')?.reset(); originalRemindAtLocal = ''; }
+        if (modal === taskModal) {
+          $('edit-task-form')?.reset();
+          originalRemindAtLocal = '';
+          editingTask = null;
+        }
       }
     });
   });
@@ -475,6 +484,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!remindAt) { alert('Please choose when to be reminded, or untick "Remind me".'); return; }
       if (new Date(remindAt) <= new Date()) { alert('The reminder must be in the future.'); return; }
       if (new Date(remindAt) > new Date(deadline)) { alert('The reminder cannot be after the due time.'); return; }
+      if (startTime && new Date(remindAt) < new Date(startTime)) {
+        alert('The reminder cannot be before the start time.');
+        return;
+      }
     }
 
     const payload = {
@@ -519,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openEditModal(task) {
     if (!taskModal || !task) return;
+    editingTask = task;
 
     const set = (id, value) => { const el = $(id); if (el) el.value = value; };
 
@@ -550,6 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
     editTaskForm?.reset();
     if (editReminderId) editReminderId.value = '';
     originalRemindAtLocal = '';
+    editingTask = null;
   }
 
   $('close-task-modal')?.addEventListener('click', closeEditModal);
@@ -569,12 +584,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let startTime = null;
     let endTime = null;
+    // A start-only task (start, no end) stays one: this form has no end-time field
+    const keepStartOnly = Boolean(editingTask && editingTask.startTime && !editingTask.endTime);
 
     if (editStartToggle?.isChecked()) {
       startTime = toISOStringFromLocal($('edit-task-start')?.value);
       if (!startTime) { alert('Please select a start time, or untick "Has a start time".'); return; }
-      if (new Date(startTime) >= new Date(deadline)) { alert('Start time must be before the due time.'); return; }
-      endTime = deadline;
+      if (!keepStartOnly) {
+        if (new Date(startTime) >= new Date(deadline)) { alert('Start time must be before the due time.'); return; }
+        endTime = deadline;
+      }
     }
 
     const wantsReminder = Boolean(editTaskWantsReminder?.checked);
@@ -598,6 +617,10 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('The reminder cannot be after the due time.');
         return;
       }
+      if (startTime && new Date(remindAt) < new Date(startTime)) {
+        alert('The reminder cannot be before the start time.');
+        return;
+      }
     }
 
     const payload = {
@@ -608,7 +631,11 @@ document.addEventListener('DOMContentLoaded', () => {
       status: $('edit-task-status')?.value || PENDING_STATUS,
       startTime,
       endTime,
-      deadline
+      deadline,
+      // keep a start-only task as a marker (the backend clears any old end time)
+      ...(keepStartOnly && startTime ? { timeType: 'START_ONLY' } : {}),
+      // unticking "Has a start time" on a scheduled task turns it back into a deadline-only task
+      clearTimeSlot: !editStartToggle?.isChecked() && Boolean(editingTask?.startTime)
     };
 
     const updateBtn = $('update-task-btn');

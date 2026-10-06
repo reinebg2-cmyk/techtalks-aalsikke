@@ -8,6 +8,7 @@ import com.aalsikke.repository.ScheduleItemRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.aalsikke.model.ScheduleItem;
+import com.aalsikke.dto.UpdateReminderRequest;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -42,6 +43,33 @@ public class ReminderService {
                     reminder.setRemindAt(request.remindAt());
                     return toResponse(reminderRepository.save(reminder));
                 });
+    }
+    /** Change when a reminder fires. Empty = reminder missing or not owned by the caller. */
+    @Transactional
+    public Optional<ReminderResponseDTO> updateReminder(UUID id, UpdateReminderRequest request, String email) {
+        return reminderRepository.findByIdAndOwner(id, email)
+                .map(reminder -> {
+                    ScheduleItem item = reminder.getScheduleItem();
+                    validateWithinTimeline(item, request.remindAt());
+                    // The reminder being edited must not clash with itself
+                    List<Reminder> others = reminderRepository.findByScheduleItemId(item.getId()).stream()
+                            .filter(other -> !other.getId().equals(reminder.getId()))
+                            .toList();
+                    validateMinGap(request.remindAt(), others);
+                    reminder.setRemindAt(request.remindAt());
+                    reminder.setTriggered(false);   // a new time means it should fire again
+                    return toResponse(reminderRepository.save(reminder));
+                });
+    }
+
+    @Transactional
+    public boolean deleteReminder(UUID id, String email) {
+        return reminderRepository.findByIdAndOwner(id, email)
+                .map(reminder -> {
+                    reminderRepository.delete(reminder);
+                    return true;
+                })
+                .orElse(false);
     }
 
     /** KAN-236: the bell/panel calls this on app open. */

@@ -17,6 +17,7 @@ import java.util.Optional;
 @Repository
 public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID> {
     List<ScheduleItem> findByUserIdAndStartTimeIsNotNullOrderByStartTimeAsc(UUID userId);
+
     List<ScheduleItem> findByUserId(UUID userId);
 
     long countByUserId(UUID userId);
@@ -24,27 +25,30 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
     long countByUserIdAndStatus(UUID userId, String status);
 
     Optional<ScheduleItem> findByIdAndUserId(UUID id, UUID userId);
+
     /**
      * Calendar range (S3-02): the user's items that should appear between from (inclusive)
      * and to (exclusive). An item is included if
-     *  - its time slot overlaps the range (start < to AND end > from), which also catches
-     *    items that start before the range and end inside it, or
-     *  - its deadline falls inside the range, so the calendar can show a deadline marker.
+     * - its time slot overlaps the range (start < to AND end > from), which also catches
+     * items that start before the range and end inside it, or
+     * - its deadline falls inside the range, so the calendar can show a deadline marker.
      * Course and workplace are fetched in the same query to avoid one extra query per item.
      */
     @Query("""
-            SELECT s FROM ScheduleItem s
-            LEFT JOIN FETCH s.course
-            LEFT JOIN FETCH s.workplace
-            WHERE s.user.id = :userId
-              AND (
-                    (s.startTime IS NOT NULL AND s.endTime IS NOT NULL
-                        AND s.startTime < :to AND s.endTime > :from)
-                 OR (s.deadline IS NOT NULL
-                        AND s.deadline >= :from AND s.deadline < :to)
-              )
-            ORDER BY COALESCE(s.startTime, s.deadline) ASC
-            """)
+        SELECT s FROM ScheduleItem s
+        LEFT JOIN FETCH s.course
+        LEFT JOIN FETCH s.workplace
+        WHERE s.user.id = :userId
+          AND (
+                (s.startTime IS NOT NULL AND s.endTime IS NOT NULL
+                    AND s.startTime < :to AND s.endTime > :from)
+             OR (s.startTime IS NOT NULL AND s.endTime IS NULL
+                    AND s.startTime >= :from AND s.startTime < :to)
+             OR (s.deadline IS NOT NULL
+                    AND s.deadline >= :from AND s.deadline < :to)
+          )
+        ORDER BY COALESCE(s.startTime, s.deadline) ASC
+        """)
     List<ScheduleItem> findInRange(@Param("userId") UUID userId,
                                    @Param("from") OffsetDateTime from,
                                    @Param("to") OffsetDateTime to);
@@ -66,7 +70,9 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
                                                  @Param("start") OffsetDateTime start,
                                                  @Param("end") OffsetDateTime end);
 
-    /** All of the user's items that have both a start and an end time, earliest first (S3-07). */
+    /**
+     * All of the user's items that have both a start and an end time, earliest first (S3-07).
+     */
     List<ScheduleItem> findByUserIdAndStartTimeIsNotNullAndEndTimeIsNotNullOrderByStartTimeAsc(UUID userId);
 
 
@@ -116,4 +122,13 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
                                               @Param("excludeId") UUID excludeId,
                                               @Param("from") OffsetDateTime from,
                                               @Param("to") OffsetDateTime to);
+
+    @Query("select i from ScheduleItem i where i.user.id = :userId and i.id <> :excludeId "
+            + "and i.startTime is not null and i.startTime <= :windowEnd "
+            + "and coalesce(i.endTime, i.startTime) >= :windowStart")
+    List<ScheduleItem> findPossibleConflicts(@Param("userId") UUID userId,
+                                             @Param("excludeId") UUID excludeId,
+                                             @Param("windowStart") OffsetDateTime windowStart,
+                                             @Param("windowEnd") OffsetDateTime windowEnd);
+
 }

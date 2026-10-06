@@ -114,12 +114,18 @@
                 <div class="input-wrap"><input type="date" id="schedule-date" required></div>
             </div>
 
+            <div class="field">
+                <label class="check-label">
+                    <input type="checkbox" id="schedule-start-only"> Start time only (no end time)
+                </label>
+            </div>
+
             <div class="form-grid">
                 <div class="field">
                     <label for="schedule-start">Start</label>
                     <div class="input-wrap"><input type="time" id="schedule-start" step="300" required></div>
                 </div>
-                <div class="field">
+                <div class="field" id="schedule-end-field">
                     <label for="schedule-end">End</label>
                     <div class="input-wrap"><input type="time" id="schedule-end" step="300" required></div>
                 </div>

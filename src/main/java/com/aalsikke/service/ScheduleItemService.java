@@ -133,6 +133,9 @@ public class ScheduleItemService {
             if (request.getStartTime() != null) item.setStartTime(request.getStartTime());
             if (request.getEndTime() != null) item.setEndTime(request.getEndTime());
         }
+        if (request.getTimeType() == TimeType.START_ONLY) {
+            item.setEndTime(null);   // a start-only item has no end time
+        }
         if (request.getDeadline() != null) item.setDeadline(request.getDeadline());
         if (request.getIsRecurring() != null) item.setRecurring(request.getIsRecurring());
         if (request.getReminderEnabled() != null) item.setReminderEnabled(request.getReminderEnabled());
@@ -147,19 +150,19 @@ public class ScheduleItemService {
     }
 
     /**
-     * S3-07: the caller's other items whose time slot overlaps this one.
-     * Never blocks the save; the result is only returned as a warning.
-     * Items without both start and end times (deadline-only) never conflict.
+     * Conflicts for the saved item, using ConflictRules (TIME_BLOCKED, START_ONLY and
+     * DEADLINE_ONLY). Never blocks the save; the result is only returned as a warning.
+     * DEADLINE_ONLY items never conflict.
      */
     private List<ScheduleItem> findConflictsFor(ScheduleItem item) {
-        if (!ConflictRules.hasTimeSlot(item)) {
+        if (item.getTimeType() == TimeType.DEADLINE_ONLY || item.getStartTime() == null) {
             return List.of();
         }
-        List<ScheduleItem> candidates = scheduleItemRepository.findOverlappingTimedItems(
-                item.getUser().getId(), item.getId(), item.getStartTime(), item.getEndTime());
+        OffsetDateTime windowEnd = item.getEndTime() != null ? item.getEndTime() : item.getStartTime();
+        List<ScheduleItem> candidates = scheduleItemRepository.findPossibleConflicts(
+                item.getUser().getId(), item.getId(), item.getStartTime(), windowEnd);
         return ConflictRules.findConflicts(item, candidates);
     }
-
     /** Mark one of the caller's items PENDING or COMPLETED (dashboard checkbox, weekly review). */
     public Optional<ScheduleItemResponse> updateStatus(UUID id, String status, String email) {
         return scheduleItemRepository.findById(id)

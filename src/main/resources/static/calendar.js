@@ -27,6 +27,9 @@ const MIN_EVENT_HEIGHT = 22;  // px, so very short items stay readable
 const DEFAULT_SCROLL_HOUR = 7;
 const SLOT_MINUTES = 30;      // clicking an empty slot snaps to the half hour
 const DEFAULT_BLOCK_MINUTES = 60;
+const MARKER_MINUTES = 30;
+const startOnlyInput = document.getElementById('schedule-start-only');
+const endField = document.getElementById('schedule-end-field');// layout slot for START_ONLY markers (they have no end time)
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -215,6 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function hasTimeSlot(item) {
         return Boolean(item.startTime && item.endTime);
     }
+    function isStartOnlyTask(item) {
+        return Boolean(item.startTime && !item.endTime);
+    }
 
     // id -> titles of the items it clashes with
     function buildConflictMap(pairs) {
@@ -344,10 +350,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const role = roleOf(item);
             const marker = el('div', `cal-deadline-marker cal-${role}`);
             if (item.status === 'COMPLETED') marker.classList.add('is-completed');
-            if (!hasTimeSlot(item)) marker.classList.add('is-unscheduled');
+            if (!item.startTime) marker.classList.add('is-unscheduled');
             marker.append(el('span', 'cal-deadline-text', `${formatTime(due)} ${item.title}`));
             const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)})`
-                + (hasTimeSlot(item) ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
+                + (item.startTime ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
             marker.title = label;
             marker.setAttribute('aria-label', label);
             makeActivatable(marker, () => openScheduleForm({ item }));
@@ -366,11 +372,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         body.append(times);
 
-        const timed = items.filter(hasTimeSlot).map(item => ({
-            item,
-            start: new Date(item.startTime),
-            end: new Date(item.endTime)
-        }));
+        const timed = items.filter(item => item.startTime).map(item => {
+            const start = new Date(item.startTime);
+            // START_ONLY markers have no end time: give them a short slot so they lay out like a block
+            const end = item.endTime ? new Date(item.endTime) : new Date(start.getTime() + MARKER_MINUTES * 60000);
+            return { item, start, end };
+        });
 
         let earliestMinute = Infinity;
 
@@ -391,7 +398,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Clip each item to this day (an item from 23:00 to 01:00 shows in both days)
             const segments = timed
-                .filter(t => t.start < dayEnd && t.end > dayStart)
+               .filter(t => isStartOnlyTask(t.item)
+                   ? t.start >= dayStart && t.start < dayEnd      // a marker shows only on its own day
+                   : t.start < dayEnd && t.end > dayStart)
                 .map(t => ({
                     item: t.item,
                     realStart: t.start,
@@ -444,32 +453,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const { item } = seg;
         const role = roleOf(item);
 
-        // --- KAN-315: START_ONLY tasks display as a marker at start time ---
         if (isStartOnlyTask(item)) {
             const marker = el('div', `calendar-event-marker cal-${role}`);
-            const top = (seg.start / 60) * HOUR_HEIGHT;
-
-            marker.style.top = `${top}px`;
+            marker.style.top = `${(seg.start / 60) * HOUR_HEIGHT}px`;
             marker.style.left = `calc(${(seg.lane / seg.lanes) * 100}% + 2px)`;
             marker.style.width = `calc(${100 / seg.lanes}% - 4px)`;
+            marker.append(
+                el('span', 'marker-dot'),
+                el('span', 'marker-time', formatTime(seg.realStart)),
+                el('span', 'marker-title', item.title)
+            );
 
-            const dot = el('span', 'marker-dot');
-            const timeSpan = el('span', 'marker-time', formatTime(seg.realStart));
-            const titleSpan = el('span', 'marker-title', item.title);
-
-            marker.append(dot, timeSpan, titleSpan);
-
-            let description = `${item.title} at ${formatTime(seg.realStart)}, ${roleLabel(role)} (Start time marker)`;
+            let description = `${item.title} at ${formatTime(seg.realStart)}, ${roleLabel(role)} (start time marker)`;
+            const markerClashes = item.occurrence ? null : conflictMap.get(item.id);
+            if (markerClashes && markerClashes.length) {
+                marker.classList.add('is-conflict');
+                description += `. Conflicts with: ${markerClashes.join(', ')}`;
+            }
             if (item.status === 'COMPLETED') {
                 marker.classList.add('is-completed');
                 description += '. Completed';
             }
-            description += '. Click to reschedule';
-
+            if (item.occurrence) {
+                marker.classList.add('is-repeat');
+                description += '. Weekly repeat';
+                makeActivatable(marker, () => setStatus(
+                    `"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`));
+            } else {
+                description += '. Click to reschedule';
+                makeActivatable(marker, () => openScheduleForm({ item }));
+            }
             marker.title = description;
             marker.setAttribute('aria-label', description);
-            makeActivatable(marker, () => openScheduleForm({ item }));
-
             return marker;
         }
 
@@ -684,13 +699,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function fillTimes(start, end) {
         dateInput.value = toDateInput(start);
         startInput.value = toTimeInput(start);
-        endInput.value = toTimeInput(end);
+        endInput.value = sameDay(end, start) ? toTimeInput(end) : '23:59';
     }
+
+    function syncEndField() {
+        endField.hidden = startOnlyInput.checked;
+    }
+    startOnlyInput.addEventListener('change', syncEndField);
 
     async function loadUnscheduledTasks() {
         const all = await apiFetch('/api/schedule-items/me');
         return all
-            .filter(item => !hasTimeSlot(item) && item.status !== 'COMPLETED')
+            .filter(item => !item.startTime && item.status !== 'COMPLETED')
             .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     }
 
@@ -703,9 +723,11 @@ document.addEventListener('DOMContentLoaded', () => {
         fixedItem = item;
         setModalMessage('');
         saveButton.disabled = false;
+        startOnlyInput.checked = Boolean(item && isStartOnlyTask(item));
+        syncEndField();
 
         if (item) {
-            const scheduled = hasTimeSlot(item);
+           const scheduled = Boolean(item.startTime);
             modalTitle.textContent = scheduled ? 'Reschedule task' : 'Schedule task';
             taskField.hidden = true;
             taskName.hidden = false;
@@ -713,7 +735,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `${item.title} (due ${formatShortDate(new Date(item.deadline))}, ${formatTime(new Date(item.deadline))})`
                 : item.title;
             if (scheduled) {
-                fillTimes(new Date(item.startTime), new Date(item.endTime));
+               const markerStart = new Date(item.startTime);
+               fillTimes(markerStart, item.endTime
+                   ? new Date(item.endTime)
+                   : new Date(markerStart.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
             } else {
                 const begin = nextFullHour();
                 fillTimes(begin, new Date(begin.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
@@ -781,31 +806,38 @@ document.addEventListener('DOMContentLoaded', () => {
             setModalMessage('Choose a task to schedule.', 'error');
             return;
         }
-        if (!dateInput.value || !startInput.value || !endInput.value) {
-            setModalMessage('Pick a date, a start time and an end time.', 'error');
-            return;
-        }
+           const startOnly = startOnlyInput.checked;
 
-        const start = fromInputs(dateInput.value, startInput.value);
-        const end = fromInputs(dateInput.value, endInput.value);
+           if (!dateInput.value || !startInput.value || (!startOnly && !endInput.value)) {
+               setModalMessage(startOnly
+                   ? 'Pick a date and a start time.'
+                   : 'Pick a date, a start time and an end time.', 'error');
+               return;
+           }
 
-        // Client-side check required by S3-12 (the backend checks it too)
-        if (end <= start) {
-            setModalMessage('The end time must be after the start time.', 'error');
-            endInput.focus();
-            return;
-        }
+           const start = fromInputs(dateInput.value, startInput.value);
+           const end = startOnly ? null : fromInputs(dateInput.value, endInput.value);
 
-        saveButton.disabled = true;
-        setModalMessage('Saving…', 'info');
+           // Client-side check required by S3-12 (the backend checks it too)
+           if (end && end <= start) {
+               setModalMessage('The end time must be after the start time.', 'error');
+               endInput.focus();
+               return;
+           }
 
-        try {
-            // Partial update: only the slot is sent, so the deadline and all other fields are unchanged
-            const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(itemId)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ startTime: start.toISOString(), endTime: end.toISOString() })
-            });
+           saveButton.disabled = true;
+           setModalMessage('Saving…', 'info');
+
+           try {
+               // Partial update: only the slot and its type are sent, so the deadline and other fields are unchanged
+               const payload = startOnly
+                   ? { startTime: start.toISOString(), timeType: 'START_ONLY' }
+                   : { startTime: start.toISOString(), endTime: end.toISOString(), timeType: 'TIME_BLOCKED' };
+               const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(itemId)}`, {
+                   method: 'PUT',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify(payload)
+               });
             const body = await readJsonSafely(response);
 
             if (response.status === 403) {
@@ -822,7 +854,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // TODO(S3-09): show Yara's shared conflict warning here once it is merged,
             // instead of this plain text. body.conflicts = [{ id, title, startTime, endTime }]
             const conflicts = (body && body.conflicts) || [];
-            const slotText = `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`;
+                    const slotText = end
+                        ? `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`
+                        : `${formatShortDate(start)} at ${formatTime(start)}`;
             const savedTitle = (body && body.title) || title;
             state.flash = conflicts.length
                 ? {
@@ -847,6 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Keep the end after the start while the user changes the start time
     startInput.addEventListener('change', () => {
+        if (startOnlyInput.checked) return;   // End is hidden, leave it alone
         if (!startInput.value || !endInput.value) return;
         const start = fromInputs(dateInput.value || toDateInput(new Date()), startInput.value);
         const end = fromInputs(dateInput.value || toDateInput(new Date()), endInput.value);

@@ -1,133 +1,225 @@
 package com.aalsikke.service;
 
-import com.aalsikke.model.ItemType;
 import com.aalsikke.model.ScheduleItem;
-import com.aalsikke.model.User;
+import com.aalsikke.model.TimeType;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.RETURNS_DEFAULTS;
+import static org.mockito.Mockito.mock;
 
-/** S3-07 conflict rules. Pure unit tests: no Spring context, no database. */
+/**
+ * Tests for ConflictRules. Items are Mockito mocks that answer only the getters ConflictRules
+ * calls (getId, getUser, getTimeType, getStartTime, getEndTime), so no setters, constructors
+ * or builders on ScheduleItem/User are needed. Return types (LocalDateTime, Instant, Long,
+ * UUID, ...) are read from the real getter signatures.
+ */
 class ConflictRulesTest {
 
-    private final User alice = user();
-    private final User bob = user();
+    private final Object alice = user(1L);
+    private final Object bob = user(2L);
 
-    // ---- The six cases required by S3-07 ----
+    // ---------- TIME_BLOCKED vs TIME_BLOCKED ----------
 
     @Test
-    void partialOverlap_isConflict() {
-        ScheduleItem a = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T11:00:00Z");
-        ScheduleItem b = item(alice, "2026-09-23T10:30:00Z", "2026-09-23T11:30:00Z");
-
-        assertTrue(ConflictRules.overlaps(a, b));
-        assertTrue(ConflictRules.overlaps(b, a), "the rule must be symmetric");
+    void blocksThatOverlapConflict() {
+        ScheduleItem a = block(1L, alice, at(9), at(11));
+        ScheduleItem b = block(2L, alice, at(10), at(12));
+        assertEquals(Optional.of(ConflictRules.Kind.OVERLAP), ConflictRules.conflictKind(a, b));
+        assertEquals(Optional.of(ConflictRules.Kind.OVERLAP), ConflictRules.conflictKind(b, a));
     }
 
     @Test
-    void fullyInside_isConflict() {
-        ScheduleItem outer = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T12:00:00Z");
-        ScheduleItem inner = item(alice, "2026-09-23T10:30:00Z", "2026-09-23T11:00:00Z");
-
-        assertTrue(ConflictRules.overlaps(outer, inner));
-        assertTrue(ConflictRules.overlaps(inner, outer));
+    void oneBlockContainingAnotherConflicts() {
+        assertTrue(ConflictRules.overlaps(block(1L, alice, at(9), at(12)), block(2L, alice, at(10), at(11))));
     }
 
     @Test
-    void backToBack_isNotConflict() {
-        ScheduleItem first = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T11:00:00Z");
-        ScheduleItem second = item(alice, "2026-09-23T11:00:00Z", "2026-09-23T12:00:00Z");
-
-        assertFalse(ConflictRules.overlaps(first, second));
-        assertFalse(ConflictRules.overlaps(second, first));
+    void backToBackBlocksDoNotConflict() {
+        assertFalse(ConflictRules.overlaps(block(1L, alice, at(9), at(10)), block(2L, alice, at(10), at(11))));
+        assertFalse(ConflictRules.overlaps(block(2L, alice, at(10), at(11)), block(1L, alice, at(9), at(10))));
     }
 
     @Test
-    void differentUsers_isNotConflict() {
-        ScheduleItem aliceItem = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T11:00:00Z");
-        ScheduleItem bobItem = item(bob, "2026-09-23T10:00:00Z", "2026-09-23T11:00:00Z");
+    void separatedBlocksDoNotConflict() {
+        assertFalse(ConflictRules.overlaps(block(1L, alice, at(9), at(10)), block(2L, alice, at(11), at(12))));
+    }
 
-        assertFalse(ConflictRules.overlaps(aliceItem, bobItem));
+    // ---------- START_ONLY vs TIME_BLOCKED ----------
+
+    @Test
+    void markerInsideBlockConflicts() {
+        ScheduleItem block = block(1L, alice, at(9), at(11));
+        ScheduleItem marker = marker(2L, alice, at(10));
+        assertEquals(Optional.of(ConflictRules.Kind.START_IN_BLOCK), ConflictRules.conflictKind(marker, block));
+        assertEquals(Optional.of(ConflictRules.Kind.START_IN_BLOCK), ConflictRules.conflictKind(block, marker));
     }
 
     @Test
-    void deadlineOnlyItem_neverConflicts() {
-        ScheduleItem timed = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T11:00:00Z");
-        ScheduleItem deadlineOnly = item(alice, null, null);
-        deadlineOnly.setDeadline(OffsetDateTime.parse("2026-09-23T10:30:00Z"));
-
-        assertFalse(ConflictRules.hasTimeSlot(deadlineOnly));
-        assertFalse(ConflictRules.overlaps(timed, deadlineOnly));
-        assertFalse(ConflictRules.overlaps(deadlineOnly, timed));
+    void markerAtBlockStartConflicts() {
+        assertTrue(ConflictRules.overlaps(marker(2L, alice, at(9)), block(1L, alice, at(9), at(11))));
     }
 
     @Test
-    void itemEditedSoItNoLongerOverlaps_isNoLongerConflict() {
-        ScheduleItem a = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T11:00:00Z");
-        ScheduleItem b = item(alice, "2026-09-23T10:30:00Z", "2026-09-23T11:30:00Z");
-        assertTrue(ConflictRules.overlaps(a, b));
-
-        // Same object, new times - as after a partial PUT
-        b.setStartTime(OffsetDateTime.parse("2026-09-23T13:00:00Z"));
-        b.setEndTime(OffsetDateTime.parse("2026-09-23T14:00:00Z"));
-
-        assertFalse(ConflictRules.overlaps(a, b));
+    void markerAtBlockEndDoesNotConflict() {
+        assertFalse(ConflictRules.overlaps(marker(2L, alice, at(11)), block(1L, alice, at(9), at(11))));
     }
 
-    // ---- Extra edge cases ----
+    @Test
+    void markerBeforeOrAfterBlockDoesNotConflict() {
+        ScheduleItem block = block(1L, alice, at(10), at(11));
+        assertFalse(ConflictRules.overlaps(marker(2L, alice, at(9)), block));
+        assertFalse(ConflictRules.overlaps(marker(3L, alice, at(12)), block));
+    }
+
+    // ---------- START_ONLY vs START_ONLY ----------
+
+    @Test
+    void markersAtSameInstantConflict() {
+        ScheduleItem a = marker(1L, alice, at(10));
+        ScheduleItem b = marker(2L, alice, at(10));
+        assertEquals(Optional.of(ConflictRules.Kind.SAME_START), ConflictRules.conflictKind(a, b));
+    }
+
+    @Test
+    void markersAtDifferentInstantsDoNotConflict() {
+        assertFalse(ConflictRules.overlaps(marker(1L, alice, at(10)), marker(2L, alice, at(11))));
+    }
+
+    // ---------- DEADLINE_ONLY ----------
+
+    @Test
+    void deadlineOnlyNeverConflicts() {
+        ScheduleItem deadline = deadline(1L, alice);
+        assertFalse(ConflictRules.overlaps(deadline, block(2L, alice, at(9), at(11))));
+        assertFalse(ConflictRules.overlaps(deadline, marker(3L, alice, at(10))));
+        assertFalse(ConflictRules.overlaps(deadline, deadline(4L, alice)));
+    }
+
+    // ---------- guards ----------
+
+    @Test
+    void differentUsersNeverConflict() {
+        assertFalse(ConflictRules.overlaps(block(1L, alice, at(9), at(11)), block(2L, bob, at(10), at(12))));
+        assertFalse(ConflictRules.overlaps(marker(1L, alice, at(10)), marker(2L, bob, at(10))));
+    }
 
     @Test
     void itemNeverConflictsWithItself() {
-        ScheduleItem a = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T11:00:00Z");
-
+        ScheduleItem a = block(1L, alice, at(9), at(11));
         assertFalse(ConflictRules.overlaps(a, a));
+        // same id, different instance (e.g. the stored copy while editing)
+        assertFalse(ConflictRules.overlaps(a, block(1L, alice, at(10), at(12))));
     }
 
     @Test
-    void differentOffsets_areComparedAsTheSameInstant() {
-        // 13:30+03:00 is 10:30Z, which is inside 10:00Z-11:00Z
-        ScheduleItem utc = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T11:00:00Z");
-        ScheduleItem beirut = item(alice, "2026-09-23T13:30:00+03:00", "2026-09-23T14:30:00+03:00");
-
-        assertTrue(ConflictRules.overlaps(utc, beirut));
+    void unsavedItemsAreComparedByTimes() {
+        assertTrue(ConflictRules.overlaps(block(null, alice, at(9), at(11)), block(null, alice, at(10), at(12))));
     }
 
     @Test
-    void findConflicts_returnsOnlyClashingItems_earliestFirst() {
-        ScheduleItem target = item(alice, "2026-09-23T10:00:00Z", "2026-09-23T12:00:00Z");
-        ScheduleItem late = item(alice, "2026-09-23T11:00:00Z", "2026-09-23T13:00:00Z");
-        ScheduleItem early = item(alice, "2026-09-23T09:00:00Z", "2026-09-23T10:30:00Z");
-        ScheduleItem backToBack = item(alice, "2026-09-23T12:00:00Z", "2026-09-23T13:00:00Z");
-        ScheduleItem otherUser = item(bob, "2026-09-23T10:00:00Z", "2026-09-23T12:00:00Z");
+    void missingTimeTypeOrUserNeverConflicts() {
+        ScheduleItem noType = item(1L, alice, null, at(9), at(11));
+        assertFalse(ConflictRules.overlaps(noType, block(2L, alice, at(10), at(12))));
 
-        List<ScheduleItem> result = ConflictRules.findConflicts(
-                target, List.of(late, backToBack, otherUser, early, target));
+        ScheduleItem noUser = block(3L, null, at(9), at(11));
+        assertFalse(ConflictRules.overlaps(noUser, block(4L, alice, at(10), at(12))));
+    }
+
+    // ---------- findConflicts ----------
+
+    @Test
+    void findConflictsReturnsOnlyConflictingItemsEarliestFirst() {
+        ScheduleItem candidate = block(10L, alice, at(9), at(12));
+        ScheduleItem late = marker(1L, alice, at(11));
+        ScheduleItem early = block(2L, alice, at(9), at(10));
+        ScheduleItem outside = block(3L, alice, at(12), at(13));
+        ScheduleItem other = block(4L, bob, at(9), at(12));
+        ScheduleItem dl = deadline(5L, alice);
+
+        List<ScheduleItem> result =
+                ConflictRules.findConflicts(candidate, List.of(late, early, outside, other, dl));
 
         assertEquals(List.of(early, late), result);
     }
 
-    // ---- Helpers ----
-
-    private static User user() {
-        User u = new User();
-        u.setId(UUID.randomUUID());
-        return u;
+    @Test
+    void findConflictsWithNoMatchesIsEmpty() {
+        assertTrue(ConflictRules.findConflicts(marker(1L, alice, at(9)),
+                List.of(block(2L, alice, at(10), at(11)))).isEmpty());
     }
 
-    private static ScheduleItem item(User owner, String start, String end) {
-        ScheduleItem i = new ScheduleItem();
-        i.setId(UUID.randomUUID());
-        i.setUser(owner);
-        i.setTitle("test");
-        i.setItemType(ItemType.STUDY);
-        i.setStartTime(start == null ? null : OffsetDateTime.parse(start));
-        i.setEndTime(end == null ? null : OffsetDateTime.parse(end));
-        return i;
+    // ---------- helpers ----------
+
+    private static final Instant BASE = Instant.parse("2026-10-07T00:00:00Z");
+
+    private static Instant at(int hour) {
+        return BASE.plus(hour, ChronoUnit.HOURS);
+    }
+
+    private static Object user(long id) {
+        Class<?> userType;
+        try {
+            userType = ScheduleItem.class.getMethod("getUser").getReturnType();
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException(e);
+        }
+        return mock(userType, inv -> "getId".equals(inv.getMethod().getName())
+                ? convertId(inv.getMethod().getReturnType(), id)
+                : RETURNS_DEFAULTS.answer(inv));
+    }
+
+    private static ScheduleItem item(Long id, Object user, TimeType type, Instant start, Instant end) {
+        return mock(ScheduleItem.class, inv -> {
+            Class<?> returnType = inv.getMethod().getReturnType();
+            switch (inv.getMethod().getName()) {
+                case "getId":        return convertId(returnType, id);
+                case "getUser":      return user;
+                case "getTimeType":  return type;
+                case "getStartTime": return convertTime(returnType, start);
+                case "getEndTime":   return convertTime(returnType, end);
+                default:             return RETURNS_DEFAULTS.answer(inv);
+            }
+        });
+    }
+
+    private static ScheduleItem block(Long id, Object user, Instant start, Instant end) {
+        return item(id, user, TimeType.TIME_BLOCKED, start, end);
+    }
+
+    private static ScheduleItem marker(Long id, Object user, Instant start) {
+        return item(id, user, TimeType.START_ONLY, start, null);
+    }
+
+    private static ScheduleItem deadline(Long id, Object user) {
+        return item(id, user, TimeType.DEADLINE_ONLY, null, null);
+    }
+
+    private static Object convertId(Class<?> type, Long id) {
+        if (id == null) return null;
+        if (type == Long.class || type == long.class) return id;
+        if (type == Integer.class || type == int.class) return id.intValue();
+        if (type == UUID.class) return new UUID(0L, id);
+        if (type == String.class) return String.valueOf(id);
+        throw new IllegalStateException("Unsupported id type: " + type);
+    }
+
+    private static Object convertTime(Class<?> type, Instant value) {
+        if (value == null) return null;
+        if (type == Instant.class) return value;
+        if (type == LocalDateTime.class) return LocalDateTime.ofInstant(value, ZoneOffset.UTC);
+        if (type == OffsetDateTime.class) return OffsetDateTime.ofInstant(value, ZoneOffset.UTC);
+        if (type == ZonedDateTime.class) return ZonedDateTime.ofInstant(value, ZoneOffset.UTC);
+        throw new IllegalStateException("Unsupported time type: " + type);
     }
 }
