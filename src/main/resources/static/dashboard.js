@@ -11,8 +11,6 @@
 // GET    /api/auth/me
 // PUT    /api/auth/profile
 
-
-
 // Same origin as the page (like login.js and register.js). The dashboard is
 // served by Spring Boot, so this is also where the API lives.
 const API_BASE = window.location.origin;
@@ -611,14 +609,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-   if (cancelTaskBtn && taskForm) {
-     cancelTaskBtn.addEventListener('click', () => {
-       taskForm.reset();
-       createStartToggle?.presetFromCategory();
-       syncReminderField();
-       taskForm.hidden = true;
-     });
-   }
+  if (cancelTaskBtn && taskForm) {
+    cancelTaskBtn.addEventListener('click', () => {
+      taskForm.reset();
+      createStartToggle?.presetFromCategory();
+      syncReminderField();
+      taskForm.hidden = true;
+    });
+  }
 
   // ============================================================
   // TASK TIME WINDOW (KAN-265)
@@ -672,21 +670,21 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('field-task-start'),
       document.getElementById('task-category')
   );
-    createStartToggle?.presetFromCategory();
+  createStartToggle?.presetFromCategory();
 
-    // KAN-306: reminder opt-in on the new-task form
-    const taskWantsReminder = document.getElementById('task-wants-reminder');
-    const taskReminderField = document.getElementById('field-task-reminder');
-    const taskReminderAt = document.getElementById('task-reminder-at');
+  // KAN-306: reminder opt-in on the new-task form
+  const taskWantsReminder = document.getElementById('task-wants-reminder');
+  const taskReminderField = document.getElementById('field-task-reminder');
+  const taskReminderAt = document.getElementById('task-reminder-at');
 
-    function syncReminderField() {
-      if (taskWantsReminder && taskReminderField) {
-        taskReminderField.hidden = !taskWantsReminder.checked;
-      }
+  function syncReminderField() {
+    if (taskWantsReminder && taskReminderField) {
+      taskReminderField.hidden = !taskWantsReminder.checked;
     }
+  }
 
-    taskWantsReminder?.addEventListener('change', syncReminderField);
-    syncReminderField();
+  taskWantsReminder?.addEventListener('change', syncReminderField);
+  syncReminderField();
 
 
   const editStartToggle = setupStartToggle(
@@ -1576,7 +1574,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const hasConflict = conflictPartners.length > 0;
 
-      li.className = `task-card${hasConflict ? ' is-conflict' : ''}`;
+      li.className = `task-card priority-${priorityClass(task.priority)}${hasConflict ? ' is-conflict' : ''}`;
       li.dataset.id = task.id;
 
       const completed =
@@ -1602,6 +1600,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span
               class="priority-dot ${priorityClass(task.priority)}"
             ></span>
+            <span class="priority-label ${priorityClass(task.priority)}">${escapeHtml(priorityClass(task.priority))}</span>
 
             ${
           task.itemType
@@ -1977,9 +1976,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // here, so this is the one place that tells the Tasks page to re-render.
     document.dispatchEvent(new CustomEvent('aalsikke:tasks-loaded'));
   }
-      // ============================================================
-      // CREATE TASK
-      // ============================================================
+  // ============================================================
+  // CREATE TASK
+  // ============================================================
   // ============================================================
   // EDIT-TASK REMINDER (KAN-306 follow-up): change or remove a reminder
   // ============================================================
@@ -2052,229 +2051,229 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Task saved, but the reminder could not be changed.');
     }
   }
-      // KAN-306: saves the reminder the user asked for, after the task exists.
-      // The backend enforces the time window (KAN-299) and the 10-minute gap (KAN-298).
-      async function createReminderFor(taskId, remindAt) {
-        try {
-          const response = await apiFetch(`${API_BASE}/api/reminders`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ scheduleItemId: taskId, remindAt })
-          });
+  // KAN-306: saves the reminder the user asked for, after the task exists.
+  // The backend enforces the time window (KAN-299) and the 10-minute gap (KAN-298).
+  async function createReminderFor(taskId, remindAt) {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleItemId: taskId, remindAt })
+      });
 
-          if (!response.ok) {
-            const data = await readJsonSafely(response);
-            showToast((data && data.message) || 'Task saved, but the reminder could not be set.');
-          }
-        } catch (error) {
-          if (error.sessionExpired) return;
-          console.error('Failed to create reminder:', error);
-          showToast('Task saved, but the reminder could not be set.');
-        }
+      if (!response.ok) {
+        const data = await readJsonSafely(response);
+        showToast((data && data.message) || 'Task saved, but the reminder could not be set.');
       }
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Failed to create reminder:', error);
+      showToast('Task saved, but the reminder could not be set.');
+    }
+  }
 
-      if (taskForm) {
+  if (taskForm) {
 
-        taskForm.addEventListener(
-            'submit',
-            async event => {
+    taskForm.addEventListener(
+        'submit',
+        async event => {
 
-              event.preventDefault();
+          event.preventDefault();
 
-              const title =
-                  document.getElementById('task-title')
-                      ?.value.trim() || '';
+          const title =
+              document.getElementById('task-title')
+                  ?.value.trim() || '';
 
-              const due =
-                  document.getElementById('task-due')
-                      ?.value || '';
+          const due =
+              document.getElementById('task-due')
+                  ?.value || '';
 
-              const priority =
-                  document.getElementById('task-priority')
-                      ?.value || 'MEDIUM';
+          const priority =
+              document.getElementById('task-priority')
+                  ?.value || 'MEDIUM';
 
-              const itemType =
-                  document.getElementById('task-category')
-                      ?.value || 'PERSONAL';
+          const itemType =
+              document.getElementById('task-category')
+                  ?.value || 'PERSONAL';
 
-              // Validation
-              if (!title) {
+          // Validation
+          if (!title) {
 
-                alert('Task title is required.');
-                return;
-              }
+            alert('Task title is required.');
+            return;
+          }
 
-              if (title.length > 255) {
+          if (title.length > 255) {
 
-                alert(
-                    'Task title cannot be longer than 255 characters.'
+            alert(
+                'Task title cannot be longer than 255 characters.'
+            );
+            return;
+          }
+
+          if (!due) {
+
+            alert('Deadline is required.');
+            return;
+          }
+
+          const deadline =
+              toISOStringFromLocal(due);
+
+          if (!deadline) {
+
+            alert('Please enter a valid deadline.');
+            return;
+          }
+
+          if (new Date(deadline) <= new Date()) {
+
+            alert(
+                'Due date must be in the future.'
+            );
+            return;
+          }
+
+          // KAN-306: optional reminder
+          const wantsReminder = Boolean(taskWantsReminder?.checked);
+          let remindAt = null;
+
+          if (wantsReminder) {
+            remindAt = toISOStringFromLocal(taskReminderAt?.value || '');
+
+            if (!remindAt) {
+              alert('Please choose when to be reminded, or untick "Remind me about this task".');
+              return;
+            }
+
+            if (new Date(remindAt) <= new Date()) {
+              alert('The reminder must be in the future.');
+              return;
+            }
+
+            if (new Date(remindAt) > new Date(deadline)) {
+              alert('The reminder cannot be after the due time.');
+              return;
+            }
+          }
+
+          /*
+           * KAN-265: a task is either deadline-only (no start/end) or a
+           * time window: startTime = Start, endTime = deadline = Due.
+           */
+          const payload = {
+            title,
+            itemType,
+            priority,
+            deadline,
+            isRecurring: false,
+            reminderEnabled: wantsReminder
+          };
+
+          if (createStartToggle?.isChecked()) {
+            const startTime = toISOStringFromLocal(
+                document.getElementById('task-start')?.value || ''
+            );
+
+            if (!startTime) {
+              alert('Please enter a start time, or untick "Has a start time".');
+              return;
+            }
+
+            if (new Date(startTime) >= new Date(deadline)) {
+              alert('Start must be before the due time.');
+              return;
+            }
+
+            if (remindAt && new Date(remindAt) < new Date(startTime)) {
+              alert('The reminder cannot be before the start time.');
+              return;
+            }
+
+            payload.startTime = startTime;
+            payload.endTime = deadline;
+          }
+
+          saveTaskBtn.disabled = true;
+          saveTaskBtn.textContent =
+              'Adding…';
+
+          try {
+
+            const response =
+                await apiFetch(
+                    `${API_BASE}/api/schedule-items`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type':
+                            'application/json'
+                      },
+                      body: JSON.stringify(payload)
+                    }
                 );
-                return;
-              }
 
-              if (!due) {
+            if (!response.ok) {
 
-                alert('Deadline is required.');
-                return;
-              }
-
-              const deadline =
-                  toISOStringFromLocal(due);
-
-              if (!deadline) {
-
-                alert('Please enter a valid deadline.');
-                return;
-              }
-
-              if (new Date(deadline) <= new Date()) {
-
-                alert(
-                    'Due date must be in the future.'
-                );
-                return;
-              }
-
-              // KAN-306: optional reminder
-              const wantsReminder = Boolean(taskWantsReminder?.checked);
-              let remindAt = null;
-
-              if (wantsReminder) {
-                remindAt = toISOStringFromLocal(taskReminderAt?.value || '');
-
-                if (!remindAt) {
-                  alert('Please choose when to be reminded, or untick "Remind me about this task".');
-                  return;
-                }
-
-                if (new Date(remindAt) <= new Date()) {
-                  alert('The reminder must be in the future.');
-                  return;
-                }
-
-                if (new Date(remindAt) > new Date(deadline)) {
-                  alert('The reminder cannot be after the due time.');
-                  return;
-                }
-              }
-
-              /*
-               * KAN-265: a task is either deadline-only (no start/end) or a
-               * time window: startTime = Start, endTime = deadline = Due.
-               */
-              const payload = {
-                title,
-                itemType,
-                priority,
-                deadline,
-                isRecurring: false,
-                reminderEnabled: wantsReminder
-              };
-
-              if (createStartToggle?.isChecked()) {
-                const startTime = toISOStringFromLocal(
-                    document.getElementById('task-start')?.value || ''
-                );
-
-                if (!startTime) {
-                  alert('Please enter a start time, or untick "Has a start time".');
-                  return;
-                }
-
-                if (new Date(startTime) >= new Date(deadline)) {
-                  alert('Start must be before the due time.');
-                  return;
-                }
-
-                if (remindAt && new Date(remindAt) < new Date(startTime)) {
-                  alert('The reminder cannot be before the start time.');
-                  return;
-                }
-
-                payload.startTime = startTime;
-                payload.endTime = deadline;
-              }
-
-              saveTaskBtn.disabled = true;
-              saveTaskBtn.textContent =
-                  'Adding…';
+              let message =
+                  `Server responded ${response.status}`;
 
               try {
 
-                const response =
-                    await apiFetch(
-                        `${API_BASE}/api/schedule-items`,
-                        {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type':
-                                'application/json'
-                          },
-                          body: JSON.stringify(payload)
-                        }
-                    );
-
-                if (!response.ok) {
-
-                  let message =
-                      `Server responded ${response.status}`;
-
-                  try {
-
-                    const data =
-                        await response.json();
-
-                    message =
-                        data.message ||
-                        data.error ||
-                        message;
-
-                  } catch (_) {}
-
-                  throw new Error(message);
-                }
-
-                const createdTask =
+                const data =
                     await response.json();
 
-                if (wantsReminder && remindAt) {
-                  await createReminderFor(createdTask.id, remindAt);
-                }
+                message =
+                    data.message ||
+                    data.error ||
+                    message;
 
-                allTasks.push(createdTask);
+              } catch (_) {}
 
-                await refreshConflicts();
-
-                renderTasks();
-                updateSummary();
-
-                announceConflictsIfAny(createdTask.id);
-
-                taskForm.reset();
-                createStartToggle?.presetFromCategory();
-                syncReminderField();
-                taskForm.hidden = true;
-
-              } catch (error) {
-
-                console.error(
-                    'Failed to create task:',
-                    error
-                );
-
-                alert(
-                    `Could not save the task.\n\n${error.message}`
-                );
-
-              } finally {
-
-                saveTaskBtn.disabled = false;
-                saveTaskBtn.textContent =
-                    '+ Add task';
-              }
+              throw new Error(message);
             }
-        );
-      }
+
+            const createdTask =
+                await response.json();
+
+            if (wantsReminder && remindAt) {
+              await createReminderFor(createdTask.id, remindAt);
+            }
+
+            allTasks.push(createdTask);
+
+            await refreshConflicts();
+
+            renderTasks();
+            updateSummary();
+
+            announceConflictsIfAny(createdTask.id);
+
+            taskForm.reset();
+            createStartToggle?.presetFromCategory();
+            syncReminderField();
+            taskForm.hidden = true;
+
+          } catch (error) {
+
+            console.error(
+                'Failed to create task:',
+                error
+            );
+
+            alert(
+                `Could not save the task.\n\n${error.message}`
+            );
+
+          } finally {
+
+            saveTaskBtn.disabled = false;
+            saveTaskBtn.textContent =
+                '+ Add task';
+          }
+        }
+    );
+  }
 
   // ============================================================
   // TASK STATUS

@@ -211,6 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'personal';
     }
 
+    // KAN-292/293: priority drives the stripe color (css: .prio-low/.prio-medium/.prio-high/.prio-urgent).
+    // Missing/unknown = MEDIUM, the backend default.
+    function priorityOf(item) {
+        const p = String(item.priority || 'MEDIUM').toLowerCase();
+        return ['low', 'medium', 'high', 'urgent'].includes(p) ? p : 'medium';
+    }
+
     function roleLabel(role) {
         return { student: 'Student', work: 'Work', personal: 'Personal' }[role];
     }
@@ -348,11 +355,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const index = days.findIndex(day => sameDay(day, due));
             if (index === -1) continue;
             const role = roleOf(item);
-            const marker = el('div', `cal-deadline-marker cal-${role}`);
+            const marker = el('div', `cal-deadline-marker cal-${role} prio-${priorityOf(item)}`);
             if (item.status === 'COMPLETED') marker.classList.add('is-completed');
             if (!item.startTime) marker.classList.add('is-unscheduled');
             marker.append(el('span', 'cal-deadline-text', `${formatTime(due)} ${item.title}`));
-            const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)})`
+            const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)}, ${priorityOf(item)} priority)`
                 + (item.startTime ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
             marker.title = label;
             marker.setAttribute('aria-label', label);
@@ -398,9 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Clip each item to this day (an item from 23:00 to 01:00 shows in both days)
             const segments = timed
-               .filter(t => isStartOnlyTask(t.item)
-                   ? t.start >= dayStart && t.start < dayEnd      // a marker shows only on its own day
-                   : t.start < dayEnd && t.end > dayStart)
+                .filter(t => isStartOnlyTask(t.item)
+                    ? t.start >= dayStart && t.start < dayEnd      // a marker shows only on its own day
+                    : t.start < dayEnd && t.end > dayStart)
                 .map(t => ({
                     item: t.item,
                     realStart: t.start,
@@ -454,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const role = roleOf(item);
 
         if (isStartOnlyTask(item)) {
-            const marker = el('div', `calendar-event-marker cal-${role}`);
+            const marker = el('div', `calendar-event-marker cal-${role} prio-${priorityOf(item)}`);
             marker.style.top = `${(seg.start / 60) * HOUR_HEIGHT}px`;
             marker.style.left = `calc(${(seg.lane / seg.lanes) * 100}% + 2px)`;
             marker.style.width = `calc(${100 / seg.lanes}% - 4px)`;
@@ -464,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 el('span', 'marker-title', item.title)
             );
 
-            let description = `${item.title} at ${formatTime(seg.realStart)}, ${roleLabel(role)} (start time marker)`;
+            let description = `${item.title} at ${formatTime(seg.realStart)}, ${roleLabel(role)}, ${priorityOf(item)} priority (start time marker)`;
             const markerClashes = item.occurrence ? null : conflictMap.get(item.id);
             if (markerClashes && markerClashes.length) {
                 marker.classList.add('is-conflict');
@@ -489,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- Standard duration block rendering ---
-        const block = el('div', `cal-event cal-${role}`);
+        const block = el('div', `cal-event cal-${role} prio-${priorityOf(item)}`);
 
         const top = seg.start / 60 * HOUR_HEIGHT;
         const height = Math.max((seg.end - seg.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
@@ -504,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeText = `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`;
         block.append(el('span', 'cal-event-title', titleText), el('span', 'cal-event-time', timeText));
 
-        let description = `${item.title}, ${timeText}, ${roleLabel(role)}`;
+        let description = `${item.title}, ${timeText}, ${roleLabel(role)}, ${priorityOf(item)} priority`;
 
         // Conflicts are computed for the real item only, so a repeat never shows the original's badge
         const clashes = item.occurrence ? null : conflictMap.get(item.id);
@@ -727,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
         syncEndField();
 
         if (item) {
-           const scheduled = Boolean(item.startTime);
+            const scheduled = Boolean(item.startTime);
             modalTitle.textContent = scheduled ? 'Reschedule task' : 'Schedule task';
             taskField.hidden = true;
             taskName.hidden = false;
@@ -735,10 +742,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `${item.title} (due ${formatShortDate(new Date(item.deadline))}, ${formatTime(new Date(item.deadline))})`
                 : item.title;
             if (scheduled) {
-               const markerStart = new Date(item.startTime);
-               fillTimes(markerStart, item.endTime
-                   ? new Date(item.endTime)
-                   : new Date(markerStart.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
+                const markerStart = new Date(item.startTime);
+                fillTimes(markerStart, item.endTime
+                    ? new Date(item.endTime)
+                    : new Date(markerStart.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
             } else {
                 const begin = nextFullHour();
                 fillTimes(begin, new Date(begin.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
@@ -806,38 +813,38 @@ document.addEventListener('DOMContentLoaded', () => {
             setModalMessage('Choose a task to schedule.', 'error');
             return;
         }
-           const startOnly = startOnlyInput.checked;
+        const startOnly = startOnlyInput.checked;
 
-           if (!dateInput.value || !startInput.value || (!startOnly && !endInput.value)) {
-               setModalMessage(startOnly
-                   ? 'Pick a date and a start time.'
-                   : 'Pick a date, a start time and an end time.', 'error');
-               return;
-           }
+        if (!dateInput.value || !startInput.value || (!startOnly && !endInput.value)) {
+            setModalMessage(startOnly
+                ? 'Pick a date and a start time.'
+                : 'Pick a date, a start time and an end time.', 'error');
+            return;
+        }
 
-           const start = fromInputs(dateInput.value, startInput.value);
-           const end = startOnly ? null : fromInputs(dateInput.value, endInput.value);
+        const start = fromInputs(dateInput.value, startInput.value);
+        const end = startOnly ? null : fromInputs(dateInput.value, endInput.value);
 
-           // Client-side check required by S3-12 (the backend checks it too)
-           if (end && end <= start) {
-               setModalMessage('The end time must be after the start time.', 'error');
-               endInput.focus();
-               return;
-           }
+        // Client-side check required by S3-12 (the backend checks it too)
+        if (end && end <= start) {
+            setModalMessage('The end time must be after the start time.', 'error');
+            endInput.focus();
+            return;
+        }
 
-           saveButton.disabled = true;
-           setModalMessage('Saving…', 'info');
+        saveButton.disabled = true;
+        setModalMessage('Saving…', 'info');
 
-           try {
-               // Partial update: only the slot and its type are sent, so the deadline and other fields are unchanged
-               const payload = startOnly
-                   ? { startTime: start.toISOString(), timeType: 'START_ONLY' }
-                   : { startTime: start.toISOString(), endTime: end.toISOString(), timeType: 'TIME_BLOCKED' };
-               const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(itemId)}`, {
-                   method: 'PUT',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify(payload)
-               });
+        try {
+            // Partial update: only the slot and its type are sent, so the deadline and other fields are unchanged
+            const payload = startOnly
+                ? { startTime: start.toISOString(), timeType: 'START_ONLY' }
+                : { startTime: start.toISOString(), endTime: end.toISOString(), timeType: 'TIME_BLOCKED' };
+            const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(itemId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             const body = await readJsonSafely(response);
 
             if (response.status === 403) {
@@ -854,9 +861,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // TODO(S3-09): show Yara's shared conflict warning here once it is merged,
             // instead of this plain text. body.conflicts = [{ id, title, startTime, endTime }]
             const conflicts = (body && body.conflicts) || [];
-                    const slotText = end
-                        ? `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`
-                        : `${formatShortDate(start)} at ${formatTime(start)}`;
+            const slotText = end
+                ? `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`
+                : `${formatShortDate(start)} at ${formatTime(start)}`;
             const savedTitle = (body && body.title) || title;
             state.flash = conflicts.length
                 ? {

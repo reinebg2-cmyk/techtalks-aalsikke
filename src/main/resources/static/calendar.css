@@ -563,3 +563,26 @@
 }
 
 #schedule-end-field[hidden] { display: none; }
+
+/* ---- Priority colors (KAN-292/293): the left stripe of every event/marker = priority; the tint stays the role ---- */
+.prio-low    { --prio-color: var(--prio-low); }
+.prio-medium { --prio-color: var(--prio-medium); }
+.prio-high   { --prio-color: var(--prio-high); }
+.prio-urgent { --prio-color: var(--prio-urgent); }
+
+.cal-event[class*="prio-"],
+.calendar-event-marker[class*="prio-"] { border-left: 4px solid var(--prio-color); }
+.cal-deadline-marker[class*="prio-"] { border-left: 4px solid var(--prio-color); }
+.calendar-event-marker[class*="prio-"] .marker-dot { background: var(--prio-color); }
+
+/* legend swatches */
+.cal-swatch.prio-low, .cal-swatch.prio-medium, .cal-swatch.prio-high, .cal-swatch.prio-urgent {
+    background: var(--prio-color);
+}
+
+.cal-legend-group { font-weight: 700; color: var(--slate-light); }
+.cal-swatch.prio-low, .cal-swatch.prio-medium, .cal-swatch.prio-high, .cal-swatch.prio-urgent {
+    width: 0.25rem;
+    height: 0.875rem;
+    border-radius: 0.125rem;
+}
