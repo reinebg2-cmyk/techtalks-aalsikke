@@ -32,6 +32,10 @@ public class NotificationPreference {
     @Column(name = "weekly_review_ready", nullable = false)
     private boolean weeklyReviewReady = true;
 
+    /** KAN-345: master switch for email notifications (reminder emails from KAN-336). */
+    @Column(name = "email_enabled", nullable = false)
+    private boolean emailEnabled = true;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
@@ -59,6 +63,9 @@ public class NotificationPreference {
 
     public boolean isWeeklyReviewReady() { return weeklyReviewReady; }
     public void setWeeklyReviewReady(boolean weeklyReviewReady) { this.weeklyReviewReady = weeklyReviewReady; }
+
+    public boolean isEmailEnabled() { return emailEnabled; }
+    public void setEmailEnabled(boolean emailEnabled) { this.emailEnabled = emailEnabled; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

@@ -19,4 +19,7 @@ public class NotificationPreferencesRequest {
 
     @NotNull(message = "weeklyReviewReady is required.")
     private Boolean weeklyReviewReady;
+
+    /** KAN-345: optional, so older clients that don't send it keep working; null = keep current value. */
+    private Boolean emailEnabled;
 }
