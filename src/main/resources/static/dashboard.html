@@ -325,7 +325,6 @@
     </div>
     <form id="edit-task-form">
       <input type="hidden" id="edit-task-id">
-      <input type="hidden" id="edit-reminder-id">
       <div class="field"><label for="edit-task-title">Task title</label><div class="input-wrap"><input id="edit-task-title" required></div></div>
       <div class="field"><label for="edit-task-description">Description</label><div class="input-wrap"><textarea id="edit-task-description"></textarea></div></div>
       <div class="form-grid">
@@ -343,7 +342,14 @@
 
       <!-- Reminder -->
       <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-wants-reminder"> Remind me about this task</label></div>
-      <div class="field" id="field-edit-task-reminder" hidden><label for="edit-task-reminder-at">Remind me at</label><div class="input-wrap"><input type="datetime-local" id="edit-task-reminder-at"></div></div>
+      <div id="field-edit-task-reminder" hidden>
+        <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-halfway"> Halfway reminder <span class="reminder-hint" id="edit-task-halfway-time"></span></label></div>
+        <div class="field">
+          <label>Custom reminders</label>
+          <div class="reminder-list" id="edit-task-reminder-list"></div>
+          <button type="button" class="reminder-add-btn" id="edit-task-add-reminder">+ Add a reminder</button>
+        </div>
+      </div>
 
       <div class="form-actions"><button type="button" class="btn-secondary" id="cancel-edit-btn">Cancel</button><button type="submit" class="btn-primary" id="update-task-btn">Save changes</button></div>
     </form>
