@@ -17,4 +17,9 @@ public class LoggingEmailSender implements EmailSender {
     public void sendVerificationEmail(String to, String verificationLink) {
         log.info("[EMAIL] Verify {} -> {}", to, verificationLink);
     }
+
+    @Override
+    public void sendReminderEmail(String to, String name, String taskTitle, java.time.OffsetDateTime dueAt) {
+        log.info("[EMAIL] Reminder to {}: \"{}\" (due {})", to, taskTitle, dueAt);
+    }
 }

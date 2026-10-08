@@ -58,6 +58,7 @@ public class ReminderService {
                     validateMinGap(request.remindAt(), others);
                     reminder.setRemindAt(request.remindAt());
                     reminder.setTriggered(false);   // a new time means it should fire again
+                    reminder.setEmailedAt(null);    // KAN-336: ...and be emailed again at the new time
                     return toResponse(reminderRepository.save(reminder));
                 });
     }
