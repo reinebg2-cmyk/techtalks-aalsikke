@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [feature/initial-setup, main]
+  push:
+    branches: [feature/initial-setup]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: No test code in src/main
+        run: |
+          if grep -rlE "import (static )?org\.junit" src/main/java; then
+            echo "::error::Test code found in src/main/java (files above). Move it to src/test/java."
+            exit 1
+          fi
+
+      - name: JavaScript syntax check
+        run: |
+          for f in src/main/resources/static/*.js; do
+            node --check "$f" || exit 1
+          done
+
+      - name: Build and run tests
+        run: ./mvnw -B clean verify
