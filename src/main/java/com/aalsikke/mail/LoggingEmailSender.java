@@ -22,4 +22,9 @@ public class LoggingEmailSender implements EmailSender {
     public void sendReminderEmail(String to, String name, String taskTitle, java.time.OffsetDateTime dueAt) {
         log.info("[EMAIL] Reminder to {}: \"{}\" (due {})", to, taskTitle, dueAt);
     }
+
+    @Override
+    public void sendSecurityAlert(String to, String name, String title, String detail) {
+        log.info("[EMAIL] Security alert to {}: {} - {}", to, title, detail);
+    }
 }
