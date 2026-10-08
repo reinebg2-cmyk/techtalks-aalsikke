@@ -44,6 +44,12 @@ public class ScheduleItemRequest {
     private Boolean reminderEnabled;
 
     /**
+     * KAN-352: the halfway reminder. On create, null = yes (when reminders are on).
+     * On update, null = no change (an existing one just follows the task's times), true = add, false = remove.
+     */
+    private Boolean defaultReminder;
+
+    /**
      * KAN-270: on update, true removes the time window (startTime/endTime) so the
      * task becomes deadline-only. Needed because null means "keep" in a partial update.
      */

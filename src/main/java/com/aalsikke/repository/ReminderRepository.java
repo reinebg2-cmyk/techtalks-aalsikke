@@ -22,6 +22,7 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
             WHERE r.scheduleItem.user.email = :email
               AND r.isTriggered = false
               AND r.remindAt <= :now
+              AND r.scheduleItem.reminderEnabled = true
             ORDER BY r.remindAt ASC
             """)
     List<Reminder> findDueForUser(@Param("email") String email, @Param("now") OffsetDateTime now);
@@ -36,7 +37,8 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
 
     /**
      * KAN-336: reminders whose email should go out now, across all users.
-     * Skips: already seen in the bell, already emailed, completed tasks, unverified emails,
+     * Skips: already seen in the bell, already emailed, task reminders switched off (KAN-352),
+     * completed tasks, unverified emails,
      * and users who turned email off (no preferences row = default on).
      * Item and user are fetched in the same query so building the email needs no extra queries.
      */
@@ -47,6 +49,7 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
             WHERE r.remindAt <= :now
               AND r.isTriggered = false
               AND r.emailedAt IS NULL
+              AND i.reminderEnabled = true
               AND (i.status IS NULL OR i.status <> 'COMPLETED')
               AND u.emailVerified = true
               AND NOT EXISTS (

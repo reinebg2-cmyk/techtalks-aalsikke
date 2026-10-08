@@ -100,20 +100,24 @@ public class ScheduleItemResponse {
             private final UUID id;
             private final OffsetDateTime remindAt;
             private final boolean triggered;
+            private final boolean defaultReminder;   // KAN-352: the halfway reminder
 
-            private ReminderSummary(UUID id, OffsetDateTime remindAt, boolean triggered) {
+            private ReminderSummary(UUID id, OffsetDateTime remindAt, boolean triggered, boolean defaultReminder) {
                 this.id = id;
                 this.remindAt = remindAt;
                 this.triggered = triggered;
+                this.defaultReminder = defaultReminder;
             }
 
             public static ReminderSummary from(com.aalsikke.model.Reminder reminder) {
-                return new ReminderSummary(reminder.getId(), reminder.getRemindAt(), reminder.isTriggered());
+                return new ReminderSummary(reminder.getId(), reminder.getRemindAt(), reminder.isTriggered(),
+                        reminder.isDefaultReminder());
             }
 
             public UUID getId() { return id; }
             public OffsetDateTime getRemindAt() { return remindAt; }
             public boolean isTriggered() { return triggered; }
+            public boolean isDefaultReminder() { return defaultReminder; }
         }
 
     public UUID getId() { return id; }

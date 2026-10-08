@@ -30,6 +30,10 @@ public class Reminder {
     @Column(name = "emailed_at")
     private OffsetDateTime emailedAt;
 
+    /** KAN-352: the task's halfway reminder, recalculated when the task's times change. */
+    @Column(name = "is_default", nullable = false)
+    private boolean defaultReminder = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
@@ -50,6 +54,9 @@ public class Reminder {
 
     public OffsetDateTime getEmailedAt() { return emailedAt; }
     public void setEmailedAt(OffsetDateTime emailedAt) { this.emailedAt = emailedAt; }
+
+    public boolean isDefaultReminder() { return defaultReminder; }
+    public void setDefaultReminder(boolean defaultReminder) { this.defaultReminder = defaultReminder; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

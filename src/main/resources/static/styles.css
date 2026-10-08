@@ -1412,6 +1412,24 @@ select:focus-visible {
 
 }
 
+/* KAN-352: on/off switch, halfway reminder and custom reminders per task */
+.reminder-hint { color: var(--slate-light); font-weight: 400; }
+.reminder-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.reminder-list:empty { display: none; }
+.reminder-row { display: flex; align-items: center; gap: 0.5rem; }
+.reminder-row .input-wrap { flex: 1; }
+.reminder-add-btn {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0;
+  background: none;
+  border: none;
+  color: var(--trust-blue);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reminder-add-btn:hover { text-decoration: underline; }
+
 /* ===== Color palettes (KAN-290/294) =====
  * One block per preset and mode. "brand" (default) lives in :root / :root[data-theme="dark"] above.
  * Each block also sets --logo-ink / --logo-accent so the logo follows the palette AND light/dark.

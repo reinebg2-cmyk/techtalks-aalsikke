@@ -105,6 +105,10 @@ public class ScheduleItemService {
         applyRequestToItem(item, request);
         item.setTimeType(request.getTimeType() != null ? request.getTimeType() : inferTimeType(item));
         validateTimes(item);
+        if (item.isReminderEnabled()) {
+            // KAN-352: a new task with reminders on gets the halfway reminder unless the user said no
+            DefaultReminders.sync(item, !Boolean.FALSE.equals(request.getDefaultReminder()), OffsetDateTime.now());
+        }
         ScheduleItem saved = scheduleItemRepository.save(item);
         return ScheduleItemResponse.from(saved, findConflictsFor(saved));
     }
@@ -115,6 +119,8 @@ public class ScheduleItemService {
                 .map(existing -> {
                     applyPartialUpdateToItem(existing, request);
                     validateTimes(existing);
+                    // KAN-352: add/remove the halfway reminder if asked; otherwise move it with the task's times
+                    DefaultReminders.sync(existing, request.getDefaultReminder(), OffsetDateTime.now());
                     ScheduleItem saved = scheduleItemRepository.save(existing);
                     return ScheduleItemResponse.from(saved, findConflictsFor(saved));
                 });

@@ -149,8 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Edit-task reminder fields (KAN-306 follow-up)
   const editTaskWantsReminder = document.getElementById('edit-task-wants-reminder');
   const editTaskReminderField = document.getElementById('field-edit-task-reminder');
-  const editTaskReminderAt = document.getElementById('edit-task-reminder-at');
-  const editReminderId = document.getElementById('edit-reminder-id');
+  // KAN-352: halfway reminder + any number of custom reminders
+  const editTaskHalfway = document.getElementById('edit-task-halfway');
+  const editTaskHalfwayTime = document.getElementById('edit-task-halfway-time');
+  const editTaskReminderList = document.getElementById('edit-task-reminder-list');
+  const editTaskAddReminderBtn = document.getElementById('edit-task-add-reminder');
   const closeTaskBtn =
       document.getElementById('close-task-modal');
   const cancelEditBtn =
@@ -672,14 +675,34 @@ document.addEventListener('DOMContentLoaded', () => {
   );
   createStartToggle?.presetFromCategory();
 
-  // KAN-306: reminder opt-in on the new-task form
+  // KAN-306 / KAN-352: reminders on the new-task form (on/off, halfway, custom)
   const taskWantsReminder = document.getElementById('task-wants-reminder');
   const taskReminderField = document.getElementById('field-task-reminder');
-  const taskReminderAt = document.getElementById('task-reminder-at');
+  const taskHalfway = document.getElementById('task-halfway');
+  const taskHalfwayTime = document.getElementById('task-halfway-time');
+  const newReminderList = createReminderList(
+      document.getElementById('task-reminder-list'),
+      document.getElementById('task-add-reminder')
+  );
+
+  // A new task's window starts at its start time, or now
+  function updateNewHalfwayHint() {
+    if (!taskHalfwayTime) return;
+    const startIso = createStartToggle?.isChecked()
+        ? toISOStringFromLocal(document.getElementById('task-start')?.value || '')
+        : new Date().toISOString();
+    const mid = halfwayPoint(startIso, toISOStringFromLocal(document.getElementById('task-due')?.value || ''));
+    taskHalfwayTime.textContent = mid ? `(${formatDue(mid.toISOString())})` : '(set a due time)';
+  }
+  ['task-due', 'task-start', 'task-has-start'].forEach(id =>
+      document.getElementById(id)?.addEventListener('change', updateNewHalfwayHint));
 
   function syncReminderField() {
     if (taskWantsReminder && taskReminderField) {
       taskReminderField.hidden = !taskWantsReminder.checked;
+      // Unticked, or the form was reset: start again with no custom reminders
+      if (!taskWantsReminder.checked) newReminderList.reset([]);
+      updateNewHalfwayHint();
     }
   }
 
@@ -691,16 +714,87 @@ document.addEventListener('DOMContentLoaded', () => {
       editTaskHasStart, editTaskStartField, editTaskCategory
   );
 
-  // "Remind me about this task" in the edit modal shows/hides the time field
+  // KAN-352: a list of custom reminder rows (a time + a remove button), used by the task forms
+  function createReminderList(container, addButton) {
+    let originals = [];   // custom reminders the task had when the form opened: [{ id, local }]
+
+    function addRow(local = '', id = '') {
+      if (!container) return null;
+      const row = document.createElement('div');
+      row.className = 'reminder-row';
+      row.dataset.id = id;
+      row.innerHTML = `
+        <div class="input-wrap"><input type="datetime-local" class="reminder-at" aria-label="Remind me at"></div>
+        <button type="button" class="modal-close reminder-remove-btn" aria-label="Remove this reminder">&#10005;</button>`;
+      row.querySelector('.reminder-at').value = local;
+      row.querySelector('.reminder-remove-btn').addEventListener('click', () => row.remove());
+      container.appendChild(row);
+      return row;
+    }
+
+    addButton?.addEventListener('click', () => addRow()?.querySelector('.reminder-at').focus());
+
+    return {
+      addRow,
+      /** Fills the list with the task's custom reminders and remembers them, to work out what changed on save. */
+      reset(reminders = []) {
+        if (container) container.innerHTML = '';
+        originals = reminders.map(r => ({ id: String(r.id), local: toDateTimeLocal(r.remindAt) }));
+        originals.forEach(o => addRow(o.local, o.id));
+      },
+      rows() {
+        return container
+            ? [...container.querySelectorAll('.reminder-row')].map(row => ({
+              id: row.dataset.id || '',
+              local: row.querySelector('.reminder-at').value
+            }))
+            : [];
+      },
+      originals: () => originals
+    };
+  }
+
+  const editReminderList = createReminderList(editTaskReminderList, editTaskAddReminderBtn);
+  let editTaskCreatedAt = null;   // a deadline-only task's window starts when it was created
+
+  // KAN-352: same rule as DefaultReminders.halfwayPoint on the backend
+  function halfwayPoint(startIso, endIso) {
+    if (!startIso || !endIso) return null;
+    const start = new Date(startIso).getTime();
+    const end = new Date(endIso).getTime();
+    if (!(end > start)) return null;
+    const mid = new Date(start + (end - start) / 2);
+    mid.setSeconds(0, 0);
+    return mid;
+  }
+
+  // Shows when the halfway reminder would fire, using the times currently in the form
+  function updateEditHalfwayHint() {
+    if (!editTaskHalfwayTime) return;
+    const startIso = editStartToggle?.isChecked()
+        ? toISOStringFromLocal(editTaskStart?.value)
+        : editTaskCreatedAt;
+    const mid = halfwayPoint(startIso, toISOStringFromLocal(editTaskDeadline?.value));
+    if (!mid) {
+      editTaskHalfwayTime.textContent = '(needs a due time after the start)';
+    } else if (mid <= new Date()) {
+      // The backend won't add or move a halfway reminder into the past
+      editTaskHalfwayTime.textContent = `(${formatDue(mid.toISOString())}, already passed)`;
+    } else {
+      editTaskHalfwayTime.textContent = `(${formatDue(mid.toISOString())})`;
+    }
+  }
+  editTaskDeadline?.addEventListener('change', updateEditHalfwayHint);
+  editTaskStart?.addEventListener('change', updateEditHalfwayHint);
+  editTaskHasStart?.addEventListener('change', updateEditHalfwayHint);
+
+  // "Remind me about this task" shows/hides the reminder options (unticked = paused, nothing is deleted)
   function syncEditReminderField() {
     if (editTaskWantsReminder && editTaskReminderField) {
       editTaskReminderField.hidden = !editTaskWantsReminder.checked;
     }
   }
   editTaskWantsReminder?.addEventListener('change', syncEditReminderField);
-
-  // The reminder time as it was when the modal opened (to detect a change)
-  let originalRemindAtLocal = '';
 
   // ============================================================
   // FILTER TABS
@@ -1982,75 +2076,109 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================
   // EDIT-TASK REMINDER (KAN-306 follow-up): change or remove a reminder
   // ============================================================
-
-  function firstOpenReminder(task) {
+  // KAN-352: the custom reminders shown in the edit form = not the halfway one, not yet dismissed, by time
+  function customReminders(task) {
     const list = Array.isArray(task.reminders) ? task.reminders : [];
-    return list.find(r => !r.triggered) || null;
+    return list
+        .filter(r => !r.triggered && !r.defaultReminder)
+        .sort((a, b) => new Date(a.remindAt) - new Date(b.remindAt));
   }
 
-  // Checks the reminder part of the edit form. Returns what to do, or null after an alert.
-  function readEditReminder(deadlineIso, startIso) {
-    const existingId = editReminderId?.value || '';
+  const REMINDER_MIN_GAP_MS = 10 * 60 * 1000;   // same rule as the backend (KAN-298)
 
-    if (!editTaskWantsReminder?.checked) {
-      return existingId ? { action: 'delete', id: existingId } : { action: 'none' };
-    }
+  /**
+   * KAN-352: checks the custom reminders against the task's times and works out what to save.
+   * Returns { creates: [iso], updates: [{ id, remindAt }], deletes: [id] }, or null after an alert.
+   * remindersOn = false means paused: nothing is created, changed or deleted.
+   */
+  function planReminderChanges(list, remindersOn, deadlineIso, startIso) {
+    const plan = { creates: [], updates: [], deletes: [] };
+    if (!remindersOn) return plan;
 
-    const local = editTaskReminderAt?.value || '';
-    const remindAt = toISOStringFromLocal(local);
-    if (!remindAt) {
-      alert('Please choose when to be reminded, or untick "Remind me about this task".');
-      return null;
-    }
+    const originals = list.originals();
+    const rows = list.rows();
+    const times = [];
 
-    // An unchanged reminder may already be in the past; only a new or changed one must be in the future
-    const changed = !existingId || local !== originalRemindAtLocal;
-    if (changed && new Date(remindAt) <= new Date()) {
-      alert('The reminder must be in the future.');
-      return null;
-    }
-    if (new Date(remindAt) > new Date(deadlineIso)) {
-      alert('The reminder cannot be after the due time.');
-      return null;
-    }
-    if (startIso && new Date(remindAt) < new Date(startIso)) {
-      alert('The reminder cannot be before the start time.');
-      return null;
-    }
-
-    if (!changed) return { action: 'none' };
-    return existingId
-        ? { action: 'update', id: existingId, remindAt }
-        : { action: 'create', remindAt };
-  }
-
-  async function applyEditReminder(plan, taskId) {
-    if (plan.action === 'none') return;
-
-    if (plan.action === 'create') {
-      await createReminderFor(taskId, plan.remindAt); // shows its own toast on failure
-      return;
-    }
-
-    try {
-      const response = plan.action === 'update'
-          ? await apiFetch(`${API_BASE}/api/reminders/${plan.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ remindAt: plan.remindAt })
-          })
-          : await apiFetch(`${API_BASE}/api/reminders/${plan.id}`, { method: 'DELETE' });
-
-      if (!response.ok && response.status !== 204) {
-        const data = await readJsonSafely(response);
-        showToast((data && data.message) || 'Task saved, but the reminder could not be changed.');
+    for (const row of rows) {
+      const remindAt = toISOStringFromLocal(row.local);
+      if (!remindAt) {
+        alert('Choose a time for each reminder, or remove the empty one.');
+        return null;
       }
-    } catch (error) {
-      if (error.sessionExpired) return;
-      console.error('Failed to change reminder:', error);
-      showToast('Task saved, but the reminder could not be changed.');
+      const original = originals.find(o => o.id === row.id);
+      const changed = !original || original.local !== row.local;
+      // An unchanged reminder may already be in the past; a new or changed one must be in the future
+      if (changed && new Date(remindAt) <= new Date()) {
+        alert('A new or changed reminder must be in the future.');
+        return null;
+      }
+      if (deadlineIso && new Date(remindAt) > new Date(deadlineIso)) {
+        alert('A reminder cannot be after the due time.');
+        return null;
+      }
+      if (startIso && new Date(remindAt) < new Date(startIso)) {
+        alert('A reminder cannot be before the start time.');
+        return null;
+      }
+      times.push(new Date(remindAt).getTime());
+
+      if (!original) plan.creates.push(remindAt);
+      else if (changed) plan.updates.push({ id: original.id, remindAt });
+    }
+
+    times.sort((a, b) => a - b);
+    for (let i = 1; i < times.length; i++) {
+      if (times[i] - times[i - 1] < REMINDER_MIN_GAP_MS) {
+        alert('Reminders on the same task must be at least 10 minutes apart.');
+        return null;
+      }
+    }
+
+    const keptIds = new Set(rows.map(r => r.id).filter(Boolean));
+    plan.deletes = originals.filter(o => !keptIds.has(o.id)).map(o => o.id);
+    return plan;
+  }
+
+  /**
+   * KAN-352: saves the custom-reminder plan once the task exists. Deletes first, then changes, then new ones,
+   * so a freed time slot is available before another reminder moves into it (10-minute rule).
+   * If something fails, the rest still goes through and one toast says what went wrong.
+   */
+  async function applyReminderPlan(plan, taskId) {
+    const calls = [
+      ...plan.deletes.map(id => () => apiFetch(`${API_BASE}/api/reminders/${id}`, { method: 'DELETE' })),
+      ...plan.updates.map(u => () => apiFetch(`${API_BASE}/api/reminders/${u.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remindAt: u.remindAt })
+      })),
+      ...plan.creates.map(remindAt => () => apiFetch(`${API_BASE}/api/reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleItemId: taskId, remindAt })
+      }))
+    ];
+
+    let firstError = null;
+    for (const call of calls) {
+      try {
+        const response = await call();
+        if (!response.ok && response.status !== 204) {
+          const data = await readJsonSafely(response);
+          firstError = firstError || (data && data.message) || `error ${response.status}`;
+        }
+      } catch (error) {
+        if (error.sessionExpired) return;
+        console.error('Failed to save a reminder:', error);
+        firstError = firstError || 'network error';
+      }
+    }
+
+    if (firstError) {
+      showToast(`Task saved, but a reminder could not be saved: ${firstError}`);
     }
   }
+
   // KAN-306: saves the reminder the user asked for, after the task exists.
   // The backend enforces the time window (KAN-299) and the 10-minute gap (KAN-298).
   async function createReminderFor(taskId, remindAt) {
@@ -2134,28 +2262,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
 
-          // KAN-306: optional reminder
+          // KAN-352: reminders on/off (custom reminders are checked below, once the start time is known)
           const wantsReminder = Boolean(taskWantsReminder?.checked);
-          let remindAt = null;
-
-          if (wantsReminder) {
-            remindAt = toISOStringFromLocal(taskReminderAt?.value || '');
-
-            if (!remindAt) {
-              alert('Please choose when to be reminded, or untick "Remind me about this task".');
-              return;
-            }
-
-            if (new Date(remindAt) <= new Date()) {
-              alert('The reminder must be in the future.');
-              return;
-            }
-
-            if (new Date(remindAt) > new Date(deadline)) {
-              alert('The reminder cannot be after the due time.');
-              return;
-            }
-          }
 
           /*
            * KAN-265: a task is either deadline-only (no start/end) or a
@@ -2193,6 +2301,12 @@ document.addEventListener('DOMContentLoaded', () => {
             payload.startTime = startTime;
             payload.endTime = deadline;
           }
+
+          // KAN-352: the halfway reminder goes with the task; custom ones are saved right after it
+          if (wantsReminder) payload.defaultReminder = Boolean(taskHalfway?.checked);
+          const newReminderPlan = planReminderChanges(
+              newReminderList, wantsReminder, deadline, payload.startTime || null);
+          if (!newReminderPlan) return;
 
           saveTaskBtn.disabled = true;
           saveTaskBtn.textContent =
@@ -2236,11 +2350,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const createdTask =
                 await response.json();
 
-            if (wantsReminder && remindAt) {
-              await createReminderFor(createdTask.id, remindAt);
-            }
+            await applyReminderPlan(newReminderPlan, createdTask.id);
 
-            allTasks.push(createdTask);
+            if (newReminderPlan.creates.length > 0) {
+              await loadTasks();   // so the new task's custom reminders are in the list (and the edit form)
+            } else {
+              allTasks.push(createdTask);
+            }
 
             await refreshConflicts();
 
@@ -2411,13 +2527,14 @@ document.addEventListener('DOMContentLoaded', () => {
     editStartToggle?.set(Boolean(task.startTime));
 
 
-    // Reminder section: the next reminder that hasn't been dismissed
-    const reminder = firstOpenReminder(task);
-    originalRemindAtLocal = reminder ? toDateTimeLocal(reminder.remindAt) : '';
-    if (editTaskWantsReminder) editTaskWantsReminder.checked = Boolean(reminder);
-    if (editTaskReminderAt) editTaskReminderAt.value = originalRemindAtLocal;
-    if (editReminderId) editReminderId.value = reminder ? reminder.id : '';
+    // KAN-352: reminders on/off, the halfway reminder, and every custom reminder not yet dismissed
+    editTaskCreatedAt = task.createdAt || null;
+    const allReminders = Array.isArray(task.reminders) ? task.reminders : [];
+    editReminderList.reset(customReminders(task));
+    if (editTaskWantsReminder) editTaskWantsReminder.checked = Boolean(task.reminderEnabled);
+    if (editTaskHalfway) editTaskHalfway.checked = allReminders.some(r => r.defaultReminder);
     syncEditReminderField();
+    updateEditHalfwayHint();
 
 
     editTaskPriority.value =
@@ -2665,8 +2782,14 @@ document.addEventListener('DOMContentLoaded', () => {
             payload.workplaceId =
                 existingTask.workplace.id;
           }
-          // Reminder: create, change or remove (validated before anything is saved)
-          const reminderPlan = readEditReminder(deadline, payload.startTime || null);
+          // KAN-352: the on/off switch and the halfway reminder go with the task;
+          // while paused the halfway reminder is left as it is
+          payload.reminderEnabled = Boolean(editTaskWantsReminder?.checked);
+          if (payload.reminderEnabled) payload.defaultReminder = Boolean(editTaskHalfway?.checked);
+
+          // Custom reminders: create, change or remove (validated before anything is saved)
+          const reminderPlan = planReminderChanges(
+              editReminderList, payload.reminderEnabled, deadline, payload.startTime || null);
           if (!reminderPlan) return;
           updateTaskBtn.disabled = true;
           updateTaskBtn.textContent =
@@ -2739,7 +2862,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await response.json();
 
 
-            await applyEditReminder(reminderPlan, updatedTask.id);
+            await applyReminderPlan(reminderPlan, updatedTask.id);
 
             /*
              * Replace the old task in local state.
@@ -2767,10 +2890,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
             // Reload so the task's reminders and the bell show the change
-            if (reminderPlan.action !== 'none') {
-              await loadTasks();
-              loadDueReminders();
-            }
+            // (KAN-352: the switch or the halfway reminder may have changed too, so always refresh)
+            await loadTasks();
+            loadDueReminders();
 
           } catch (error) {
 
