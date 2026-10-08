@@ -15,7 +15,7 @@ import java.time.OffsetDateTime;
 
 /**
  * KAN-262 email verification:
- * - a link is valid for 24 hours and works once,
+ * - a link is valid for 1 hour and works once,
  * - a new link replaces the previous ones,
  * - the link stops working if the user changes their email in the meantime,
  * - resend has a 60-second cooldown and never reveals whether an email exists.
@@ -23,7 +23,7 @@ import java.time.OffsetDateTime;
 @Service
 public class EmailVerificationService {
 
-    static final Duration LINK_LIFETIME = Duration.ofHours(24);
+    static final Duration LINK_LIFETIME = Duration.ofHours(1);
     static final Duration RESEND_COOLDOWN = Duration.ofSeconds(60);
 
     private final EmailVerificationTokenRepository tokenRepository;
