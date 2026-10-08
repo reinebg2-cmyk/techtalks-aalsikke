@@ -45,6 +45,9 @@ public class NotificationPreferenceService {
         preference.setOverdueAlerts(request.getOverdueAlerts());
         preference.setScheduleConflicts(request.getScheduleConflicts());
         preference.setWeeklyReviewReady(request.getWeeklyReviewReady());
+        if (request.getEmailEnabled() != null) {
+            preference.setEmailEnabled(request.getEmailEnabled());
+        }
 
         return toResponse(preferenceRepository.save(preference));
     }
@@ -54,7 +57,8 @@ public class NotificationPreferenceService {
                 preference.isDeadlineReminders(),
                 preference.isOverdueAlerts(),
                 preference.isScheduleConflicts(),
-                preference.isWeeklyReviewReady()
+                preference.isWeeklyReviewReady(),
+                preference.isEmailEnabled()
         );
     }
 }

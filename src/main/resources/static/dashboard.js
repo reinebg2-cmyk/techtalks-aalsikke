@@ -3159,7 +3159,8 @@ document.addEventListener('DOMContentLoaded', () => {
     deadlineReminders: document.getElementById('pref-deadline-reminders'),
     overdueAlerts: document.getElementById('pref-overdue-alerts'),
     scheduleConflicts: document.getElementById('pref-schedule-conflicts'),
-    weeklyReviewReady: document.getElementById('pref-weekly-review-ready')
+    weeklyReviewReady: document.getElementById('pref-weekly-review-ready'),
+    emailEnabled: document.getElementById('pref-email-enabled')
   };
 
   let lastFocusedBeforeNotifPrefsModal = null;
@@ -3276,7 +3277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const body = {};
       Object.entries(prefToggles).forEach(([key, toggle]) => {
-        body[key] = toggle ? toggle.checked : true;
+        if (toggle) body[key] = toggle.checked;   // KAN-345: a toggle missing from the page is not sent, so it keeps its saved value
       });
 
       try {
