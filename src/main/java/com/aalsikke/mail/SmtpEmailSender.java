@@ -12,6 +12,11 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.HtmlUtils;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
 /**
  * S5-02: sends the verification link as a real email over SMTP.
  * Active only when app.mail.enabled=true (env MAIL_ENABLED); otherwise LoggingEmailSender is used.
@@ -23,12 +28,20 @@ public class SmtpEmailSender implements EmailSender {
 
     private static final Logger log = LoggerFactory.getLogger(SmtpEmailSender.class);
 
+    /** KAN-336: reminder times are shown in Lebanon time (the DB stores UTC). */
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Beirut");
+    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("EEE d MMM, HH:mm", Locale.ENGLISH);
+
     private final JavaMailSender mailSender;
     private final String from;
+    private final String baseUrl;
 
-    public SmtpEmailSender(JavaMailSender mailSender, @Value("${app.mail.from}") String from) {
+    public SmtpEmailSender(JavaMailSender mailSender,
+                           @Value("${app.mail.from}") String from,
+                           @Value("${app.base-url}") String baseUrl) {
         this.mailSender = mailSender;
         this.from = from;
+        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -46,6 +59,55 @@ public class SmtpEmailSender implements EmailSender {
             // Don't fail registration or resend: the user can request a new link later.
             log.error("[EMAIL] Could not send verification email to {}: {}", to, e.getMessage());
         }
+    }
+
+    @Override
+    public void sendReminderEmail(String to, String name, String taskTitle, OffsetDateTime dueAt) {
+        // Thrown on failure (no catch for MailException): the reminder job retries next minute.
+        try {
+            String title = taskTitle.replaceAll("[\\r\\n]+", " ");   // keep the subject on one line
+            String due = dueAt == null ? null : WHEN.format(dueAt.atZoneSameInstant(APP_ZONE));
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(from, "Aal Sikke");
+            helper.setTo(to);
+            helper.setSubject("Reminder: " + title);
+            helper.setText(reminderText(name, title, due), reminderHtml(name, title, due));
+            mailSender.send(message);
+            log.info("[EMAIL] Reminder email sent to {}", to);
+        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
+            throw new IllegalStateException("Could not build reminder email: " + e.getMessage(), e);
+        }
+    }
+
+    private String reminderText(String name, String title, String due) {
+        return """
+                Hi %s,
+
+                This is your reminder for: %s
+                %s
+                Open Aal Sikke: %s/dashboard.html
+                """.formatted(name, title, due == null ? "" : "Due: " + due + "\n", baseUrl);
+    }
+
+    private String reminderHtml(String name, String title, String due) {
+        String dueLine = due == null ? ""
+                : "<p style=\"margin:4px 0 0;color:#6b7280\">Due: <strong>" + HtmlUtils.htmlEscape(due) + "</strong></p>";
+        return """
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1f2937">
+                  <h2 style="color:#2C6E9E">Reminder</h2>
+                  <p>Hi %s,</p>
+                  <div style="border-left:4px solid #2C6E9E;padding:8px 12px;background:#f3f6fa;border-radius:4px">
+                    <p style="margin:0;font-size:16px"><strong>%s</strong></p>
+                    %s
+                  </div>
+                  <p style="margin:24px 0">
+                    <a href="%s/dashboard.html" style="background:#2C6E9E;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Open Aal Sikke</a>
+                  </p>
+                  <p style="font-size:13px;color:#6b7280">You can turn reminder emails off in Settings &rarr; Event alerts.</p>
+                </div>
+                """.formatted(HtmlUtils.htmlEscape(name), HtmlUtils.htmlEscape(title), dueLine,
+                HtmlUtils.htmlEscape(baseUrl));
     }
 
     private static String plainText(String link) {

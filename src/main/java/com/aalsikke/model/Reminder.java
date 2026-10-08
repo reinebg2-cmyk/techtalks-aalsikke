@@ -26,6 +26,10 @@ public class Reminder {
     @Column(name = "is_triggered")
     private boolean isTriggered = false;
 
+    /** KAN-336: when the reminder email went out; null = not emailed yet. */
+    @Column(name = "emailed_at")
+    private OffsetDateTime emailedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
@@ -43,6 +47,9 @@ public class Reminder {
 
     public boolean isTriggered() { return isTriggered; }
     public void setTriggered(boolean triggered) { isTriggered = triggered; }
+
+    public OffsetDateTime getEmailedAt() { return emailedAt; }
+    public void setEmailedAt(OffsetDateTime emailedAt) { this.emailedAt = emailedAt; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
