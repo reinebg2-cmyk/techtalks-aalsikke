@@ -1,5 +1,6 @@
 package com.aalsikke.service;
 
+import com.aalsikke.dto.FreeSlotDay;
 import com.aalsikke.dto.ScheduleItemRequest;
 import com.aalsikke.dto.ScheduleItemResponse;
 import com.aalsikke.model.Course;
@@ -15,6 +16,8 @@ import com.aalsikke.model.Priority;
 import com.aalsikke.model.RecurrenceRule;
 import com.aalsikke.repository.RecurrenceRuleRepository;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -29,6 +32,7 @@ import com.aalsikke.model.TimeType;
 @Service
 public class ScheduleItemService {
     private static final Duration MAX_CALENDAR_RANGE = Duration.ofDays(62);
+    private static final int MAX_SUGGESTIONS = 3;   // KAN-343
     private final ScheduleItemRepository scheduleItemRepository;
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
@@ -94,6 +98,57 @@ public class ScheduleItemService {
         result.sort(Comparator.comparing(
                 (ScheduleItemResponse r) -> r.getStartTime() != null ? r.getStartTime() : r.getDeadline()));
         return result;
+    }
+
+    /**
+     * KAN-343: free slots of the given length for each day from {@code date}, using the same busy rules
+     * as ConflictRules (time blocks and start-only markers, weekly repeats included, deadlines never).
+     * {@code excludeId} leaves out the task being edited, so its own current time doesn't count as busy.
+     */
+    public List<FreeSlotDay> findFreeSlots(String email, LocalDate date, int minutes, LocalTime from, LocalTime to,
+                                           int days, int bufferMinutes, UUID excludeId) {
+        if (minutes < 15 || minutes > 480) {
+            throw new IllegalArgumentException("The length must be between 15 and 480 minutes.");
+        }
+        if (!from.isBefore(to)) {
+            throw new IllegalArgumentException("'from' must be before 'to'.");
+        }
+        if (Duration.between(from, to).toMinutes() < minutes) {
+            throw new IllegalArgumentException("The time window is shorter than the task.");
+        }
+        if (days < 1 || days > 7) {
+            throw new IllegalArgumentException("days must be between 1 and 7.");
+        }
+        if (bufferMinutes < 0 || bufferMinutes > 60) {
+            throw new IllegalArgumentException("The buffer must be between 0 and 60 minutes.");
+        }
+
+        ZoneId zone = ZoneId.systemDefault();   // same convention as the calendar range
+        List<FreeSlots.Busy> busy = getItemsInRange(email,
+                date.atStartOfDay(zone).toOffsetDateTime(),
+                date.plusDays(days).atStartOfDay(zone).toOffsetDateTime())
+                .stream()
+                .filter(item -> excludeId == null || !excludeId.equals(item.getId()))
+                .map(ScheduleItemService::toBusy)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        OffsetDateTime now = OffsetDateTime.now();   // nothing in the past, also for earlier days
+        List<FreeSlotDay> result = new ArrayList<>();
+        for (int i = 0; i < days; i++) {
+            LocalDate day = date.plusDays(i);
+            result.add(new FreeSlotDay(day, FreeSlots.find(busy, day, from, to,
+                    Duration.ofMinutes(minutes), Duration.ofMinutes(bufferMinutes), now, zone, MAX_SUGGESTIONS)));
+        }
+        return result;
+    }
+
+    /** Time block -> busy period, start-only -> marker, deadline-only -> null (never busy). */
+    private static FreeSlots.Busy toBusy(ScheduleItemResponse item) {
+        if (item.getTimeType() == TimeType.DEADLINE_ONLY || item.getStartTime() == null) return null;
+        return item.getEndTime() != null
+                ? FreeSlots.Busy.block(item.getStartTime(), item.getEndTime())
+                : FreeSlots.Busy.marker(item.getStartTime());
     }
 
     public ScheduleItemResponse createItem(ScheduleItemRequest request, String email) {
