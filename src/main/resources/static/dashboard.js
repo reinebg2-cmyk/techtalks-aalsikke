@@ -2293,11 +2293,6 @@ document.addEventListener('DOMContentLoaded', () => {
               return;
             }
 
-            if (remindAt && new Date(remindAt) < new Date(startTime)) {
-              alert('The reminder cannot be before the start time.');
-              return;
-            }
-
             payload.startTime = startTime;
             payload.endTime = deadline;
           }
