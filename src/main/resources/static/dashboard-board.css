@@ -356,3 +356,48 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+
+
+
+/* ---- KAN-340: "Next up" card ---- */
+.next-up-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    border-left: 0.25rem solid var(--trust-blue);
+}
+
+.next-up-label {
+    flex-basis: 100%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--trust-blue);
+}
+
+.next-up-title {
+    margin: 0;
+    min-width: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--slate);
+    overflow-wrap: anywhere;
+}
+
+.next-up-meta {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--slate-light);
+}
+
+.next-up-card.is-empty {
+    border-left-color: var(--border);
+}
+
+.next-up-card.is-empty .next-up-title {
+    font-weight: 500;
+    color: var(--slate-light);
+}
