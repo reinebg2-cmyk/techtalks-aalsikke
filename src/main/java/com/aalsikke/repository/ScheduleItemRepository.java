@@ -26,6 +26,16 @@ public interface ScheduleItemRepository extends JpaRepository<ScheduleItem, UUID
 
     Optional<ScheduleItem> findByIdAndUserId(UUID id, UUID userId);
 
+    /** KAN-339: all of the user's items, with course and workplace, for the .ics export. */
+    @Query("""
+            SELECT s FROM ScheduleItem s
+            LEFT JOIN FETCH s.course
+            LEFT JOIN FETCH s.workplace
+            WHERE s.user.id = :userId
+            ORDER BY COALESCE(s.startTime, s.deadline) ASC
+            """)
+    List<ScheduleItem> findAllForCalendarExport(@Param("userId") UUID userId);
+
     /**
      * Calendar range (S3-02): the user's items that should appear between from (inclusive)
      * and to (exclusive). An item is included if

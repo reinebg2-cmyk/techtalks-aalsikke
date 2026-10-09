@@ -239,6 +239,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // KAN-339: download the user's tasks as an .ics file (Google Calendar / phone calendar).
+    // A plain link can't send the JWT, so fetch the file and hand it to the browser as a download.
+    const exportBtn = document.getElementById('export-calendar-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+            exportBtn.disabled = true;
+            try {
+                const response = await app.apiFetch(`${app.API_BASE}/api/schedule-items/me/calendar.ics`);
+                if (!response.ok) {
+                    throw new Error(`Server responded ${response.status}`);
+                }
+                const url = URL.createObjectURL(await response.blob());
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'aalsikke.ics';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (error) {
+                if (error.sessionExpired) return;
+                console.error('Failed to export calendar:', error);
+                alert('Could not export your calendar. Please try again.');
+            } finally {
+                exportBtn.disabled = false;
+            }
+        });
+    }
+
     // One listener for every card (cards are re-created on each render).
     groupsEl.addEventListener('click', event => {
         const card = event.target.closest('.task-card');
