@@ -2293,11 +2293,6 @@ document.addEventListener('DOMContentLoaded', () => {
               return;
             }
 
-            if (remindAt && new Date(remindAt) < new Date(startTime)) {
-              alert('The reminder cannot be before the start time.');
-              return;
-            }
-
             payload.startTime = startTime;
             payload.endTime = deadline;
           }
@@ -2421,6 +2416,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     return response.json();
+  }
+
+  // Board "Done" checkbox (dashboard-board.js). Returns true on success.
+  async function setTaskStatus(task, status) {
+    try {
+      await updateTaskStatus(task.id, status);
+      await loadTasks();   // re-renders and fires 'aalsikke:tasks-loaded'
+      return true;
+    } catch (error) {
+      if (error.sessionExpired) return false;
+      console.error('Failed to update task status:', error);
+      alert(error.message || 'Could not update the task status. Please try again.');
+      return false;
+    }
   }
 
   function replaceTaskInState(updatedTask) {
@@ -3592,6 +3601,7 @@ document.addEventListener('DOMContentLoaded', () => {
     getTasksState: () => tasksState,
     reloadTasks: loadTasks,
     openEditModal,
+    setTaskStatus,
     deleteTask,
     apiFetch,
     API_BASE

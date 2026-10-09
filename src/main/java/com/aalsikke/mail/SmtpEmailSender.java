@@ -80,6 +80,57 @@ public class SmtpEmailSender implements EmailSender {
         }
     }
 
+    @Override
+    public void sendSecurityAlert(String to, String name, String title, String detail) {
+        try {
+            String when = WHEN.format(OffsetDateTime.now().atZoneSameInstant(APP_ZONE));
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(from, "Aal Sikke");
+            helper.setTo(to);
+            helper.setSubject("Security alert: " + title);
+            helper.setText(securityText(name, title, detail, when), securityHtml(name, title, detail, when));
+            mailSender.send(message);
+            log.info("[EMAIL] Security alert sent to {}", to);
+        } catch (MailException | MessagingException | java.io.UnsupportedEncodingException e) {
+            // KAN-337: the change already happened; a failed alert must not undo or block it.
+            log.error("[EMAIL] Could not send security alert to {}: {}", to, e.getMessage());
+        }
+    }
+
+    private String securityText(String name, String title, String detail, String when) {
+        return """
+                Hi %s,
+
+                %s
+                %s
+                When: %s (Beirut time)
+
+                If this was you, you can ignore this email.
+                If it wasn't, change your password right away: %s/settings.html
+                """.formatted(name, title, detail, when, baseUrl);
+    }
+
+    private String securityHtml(String name, String title, String detail, String when) {
+        return """
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1f2937">
+                  <h2 style="color:#b42318">Security alert</h2>
+                  <p>Hi %s,</p>
+                  <div style="border-left:4px solid #b42318;padding:8px 12px;background:#fdf3f2;border-radius:4px">
+                    <p style="margin:0;font-size:16px"><strong>%s</strong></p>
+                    <p style="margin:4px 0 0;color:#6b7280">%s</p>
+                    <p style="margin:4px 0 0;color:#6b7280">When: %s (Beirut time)</p>
+                  </div>
+                  <p>If this was you, you can ignore this email.</p>
+                  <p style="margin:24px 0">
+                    <a href="%s/settings.html" style="background:#b42318;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">This wasn't me</a>
+                  </p>
+                  <p style="font-size:13px;color:#6b7280">The button opens Settings, where you can change your password.</p>
+                </div>
+                """.formatted(HtmlUtils.htmlEscape(name), HtmlUtils.htmlEscape(title), HtmlUtils.htmlEscape(detail),
+                HtmlUtils.htmlEscape(when), HtmlUtils.htmlEscape(baseUrl));
+    }
+
     private String reminderText(String name, String title, String due) {
         return """
                 Hi %s,

@@ -15,4 +15,10 @@ public interface EmailSender {
      * marking the reminder as sent.
      */
     void sendReminderEmail(String to, String name, String taskTitle, java.time.OffsetDateTime dueAt);
+
+    /**
+     * KAN-337: tells the user something sensitive changed on their account (password, email).
+     * Never throws: the change itself has already happened and must not fail because of email.
+     */
+    void sendSecurityAlert(String to, String name, String title, String detail);
 }

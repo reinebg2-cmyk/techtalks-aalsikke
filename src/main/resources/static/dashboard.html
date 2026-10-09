@@ -84,6 +84,13 @@
         <button type="button" class="btn-secondary profile-open-btn" id="sidebar-profile-btn">Edit profile</button>
       </section>
 
+      <!-- KAN-340: "Next up" card (dashboard-next-up.js) -->
+      <section class="card next-up-card is-empty" id="next-up-card" aria-labelledby="next-up-label">
+        <span class="next-up-label" id="next-up-label">Next up</span>
+        <p class="next-up-title" id="next-up-title">Loading…</p>
+        <p class="next-up-meta" id="next-up-meta"></p>
+      </section>
+
       <section class="dashboard-cards" id="dashboard-cards"></section>
 
       <!-- Task board: task cards grouped into columns -->
@@ -361,5 +368,6 @@
 <script src="dashboard.js"></script>
 <script src="dashboard-board.js"></script>
 <script src="free-slots.js"></script>
+<script src="dashboard-next-up.js"></script>
 </body>
 </html>

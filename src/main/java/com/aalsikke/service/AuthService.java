@@ -10,6 +10,7 @@ import com.aalsikke.dto.UpdateProfileRequest;
 import com.aalsikke.dto.UserProfileResponse;
 import com.aalsikke.exception.EmailAlreadyExistsException;
 import com.aalsikke.exception.EmailNotVerifiedException;
+import com.aalsikke.mail.EmailSender;
 import com.aalsikke.model.User;
 import com.aalsikke.repository.UserRepository;
 import com.aalsikke.security.JwtService;
@@ -30,17 +31,20 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailVerificationService emailVerificationService; // KAN-262
+    private final EmailSender emailSender;                           // KAN-337: security alerts
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        AuthenticationManager authenticationManager,
-                       EmailVerificationService emailVerificationService) {
+                       EmailVerificationService emailVerificationService,
+                       EmailSender emailSender) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.emailVerificationService = emailVerificationService;
+        this.emailSender = emailSender;
     }
 
     @Transactional
@@ -128,6 +132,11 @@ public class AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+
+        // KAN-337: tell the owner, so a change they didn't make doesn't go unnoticed
+        emailSender.sendSecurityAlert(user.getEmail(), user.getFullName(),
+                "Your password was changed",
+                "The password for your Aal Sikke account was just changed.");
     }
 
     /**
@@ -142,6 +151,7 @@ public class AuthService {
         User user = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        String oldEmail = user.getEmail();   // KAN-337: the alert goes here, not to the new address
         String newEmail = request.getEmail().trim();
         boolean emailChanged = !newEmail.equalsIgnoreCase(user.getEmail());
 
@@ -183,6 +193,11 @@ public class AuthService {
         // KAN-262: a new email starts unverified, so send a link to the new address right away.
         if (emailChanged) {
             emailVerificationService.sendVerification(user);
+            // KAN-337: warn the old address; if the change wasn't the owner, that's where they'll see it
+            emailSender.sendSecurityAlert(oldEmail, user.getFullName(),
+                    "Your account email was changed",
+                    "Your Aal Sikke account now uses " + maskEmail(newEmail)
+                            + ". This address will no longer receive account emails.");
         }
 
         String newToken = emailChanged ? jwtService.generateToken(user.getEmail()) : null;
@@ -215,6 +230,19 @@ public class AuthService {
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("Current password is incorrect.");
         }
+    }
+
+    /** KAN-337: "ahmad@gmail.com" -> "a***d@gmail.com": enough to recognise, without exposing the whole address. */
+    static String maskEmail(String email) {
+        int at = email.indexOf('@');
+        if (at <= 0) {
+            return "***";
+        }
+        String local = email.substring(0, at);
+        String masked = local.length() <= 2
+                ? local.charAt(0) + "***"
+                : local.charAt(0) + "***" + local.charAt(local.length() - 1);
+        return masked + email.substring(at);
     }
 
     private ProfileUpdateResponse toProfileUpdateResponse(User user, String token) {

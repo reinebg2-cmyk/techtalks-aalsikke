@@ -6,6 +6,10 @@ import com.aalsikke.dto.ScheduleItemResponse;
 import com.aalsikke.service.ScheduleItemService;
 import com.aalsikke.dto.StatusUpdateRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -60,6 +64,22 @@ public class ScheduleItemController {
             @RequestParam(required = false) UUID excludeId,
             Authentication authentication) {
         return scheduleItemService.findFreeSlots(authentication.getName(), date, minutes, from, to, days, buffer, excludeId);
+
+    }
+
+    /** KAN-339: download the caller's tasks as an .ics file for Google Calendar or a phone calendar.
+     * Only the logged-in user's items are included (identity comes from the JWT).
+     */
+    @GetMapping("/me/calendar.ics")
+    public ResponseEntity<String> exportCalendar(Authentication authentication) {
+        String ics = scheduleItemService.exportCalendar(authentication.getName());
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "calendar", java.nio.charset.StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("aalsikke.ics").build().toString())
+                .cacheControl(CacheControl.noStore())
+                .body(ics);
+
     }
 
     @PostMapping

@@ -162,7 +162,10 @@
             <section class="card task-list-card">
                 <div class="row-between">
                     <h2>All tasks</h2>
-                    <p class="task-count" id="tasks-count" role="status" aria-live="polite"></p>
+                    <div class="tasks-list-actions">
+                        <p class="task-count" id="tasks-count" role="status" aria-live="polite"></p>
+                        <button type="button" class="btn-secondary" id="export-calendar-btn">Export to calendar</button>
+                    </div>
                 </div>
 
                 <div class="task-toolbar tasks-toolbar" role="group" aria-label="Search and filter tasks">

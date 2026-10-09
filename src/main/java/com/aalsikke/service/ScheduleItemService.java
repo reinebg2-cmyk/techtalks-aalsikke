@@ -22,6 +22,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -100,6 +101,7 @@ public class ScheduleItemService {
         return result;
     }
 
+
     /**
      * KAN-343: free slots of the given length for each day from {@code date}, using the same busy rules
      * as ConflictRules (time blocks and start-only markers, weekly repeats included, deadlines never).
@@ -149,6 +151,15 @@ public class ScheduleItemService {
         return item.getEndTime() != null
                 ? FreeSlots.Busy.block(item.getStartTime(), item.getEndTime())
                 : FreeSlots.Busy.marker(item.getStartTime());
+    }
+    /** KAN-339: the caller's items as an .ics file. Identity comes from the JWT (email), never the request. */
+    public String exportCalendar(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Map<UUID, RecurrenceRule> rules = recurrenceRuleRepository.findAllForUser(user.getId()).stream()
+                .collect(Collectors.toMap(r -> r.getScheduleItem().getId(), r -> r, (first, second) -> first));
+        return IcsCalendar.build(scheduleItemRepository.findAllForCalendarExport(user.getId()), rules, OffsetDateTime.now());
+
     }
 
     public ScheduleItemResponse createItem(ScheduleItemRequest request, String email) {

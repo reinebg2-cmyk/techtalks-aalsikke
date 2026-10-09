@@ -27,13 +27,16 @@ public class DailyReviewService {
     private final DailyReviewRepository dailyReviewRepository;
     private final ScheduleItemRepository scheduleItemRepository;
     private final UserRepository userRepository;
+    private final ScheduleItemService scheduleItemService;
 
     public DailyReviewService(DailyReviewRepository dailyReviewRepository,
                               ScheduleItemRepository scheduleItemRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              ScheduleItemService scheduleItemService) {
         this.dailyReviewRepository = dailyReviewRepository;
         this.scheduleItemRepository = scheduleItemRepository;
         this.userRepository = userRepository;
+        this.scheduleItemService = scheduleItemService;
     }
 
     public List<DailyReviewEntry> getWeeklyReviewsForCurrentUser(String email, LocalDate start, LocalDate end) {
@@ -108,10 +111,21 @@ public class DailyReviewService {
                 .count();
         long upcoming = due.size() - completed - missed;
 
+        // KAN-341: busiest day, from what happens each day (same items as the calendar, weekly
+        // class repeats included). A block counts on its start date, a deadline-only task on its deadline.
+        List<OffsetDateTime> happenings = scheduleItemService
+                .getItemsInRange(email, from, end.plusDays(1).atStartOfDay(zone).toOffsetDateTime())
+                .stream()
+                .map(item -> item.getStartTime() != null ? item.getStartTime() : item.getDeadline())
+                .toList();
+        BusiestDay.Result busiest = BusiestDay.of(happenings, zone, start, end);
+
         return new WeeklyReviewResponse(
                 start, end, daysReviewed, averageScore,
                 reviews.stream().map(DailyReviewEntry::from).toList(),
-                completed, missed, upcoming);
+                completed, missed, upcoming,
+                busiest != null ? busiest.date() : null,
+                busiest != null ? busiest.count() : 0);
     }
 
     private static OffsetDateTime dueTime(ScheduleItem item) {
