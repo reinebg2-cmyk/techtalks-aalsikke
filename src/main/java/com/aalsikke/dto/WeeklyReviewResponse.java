@@ -20,5 +20,7 @@ public record WeeklyReviewResponse(
         List<DailyReviewEntry> reviews,    // sorted by date
         long completedTasks,
         long missedTasks,
-        long upcomingTasks
+        long upcomingTasks,
+        LocalDate busiestDay,              // KAN-341: null when nothing happens in the range
+        int busiestDayCount
 ) {}
