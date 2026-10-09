@@ -728,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function openScheduleForm({ item = null, start = null } = {}) {
         returnFocusTo = document.activeElement;
         fixedItem = item;
+        modal.dataset.itemId = item ? String(item.id) : '';   // KAN-343: "Suggest a time" leaves this task out
         setModalMessage('');
         saveButton.disabled = false;
         startOnlyInput.checked = Boolean(item && isStartOnlyTask(item));
