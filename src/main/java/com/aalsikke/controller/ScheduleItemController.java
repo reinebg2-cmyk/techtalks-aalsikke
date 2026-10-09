@@ -1,5 +1,6 @@
 package com.aalsikke.controller;
 
+import com.aalsikke.dto.FreeSlotDay;
 import com.aalsikke.dto.ScheduleItemRequest;
 import com.aalsikke.dto.ScheduleItemResponse;
 import com.aalsikke.service.ScheduleItemService;
@@ -14,6 +15,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -46,7 +49,25 @@ public class ScheduleItemController {
     }
 
     /**
-     * KAN-339: download the caller's tasks as an .ics file for Google Calendar or a phone calendar.
+     * KAN-343: free slots for "Suggest a time", using the conflict rules.
+     * Example: GET /api/schedule-items/free-slots?date=2026-10-10&minutes=60&from=08:00&to=22:00&days=1&buffer=0
+     * Returns one entry per day; an empty "slots" list means no free slot that day (not an error).
+     */
+    @GetMapping("/free-slots")
+    public List<FreeSlotDay> getFreeSlots(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "60") int minutes,
+            @RequestParam(defaultValue = "08:00") @DateTimeFormat(pattern = "HH:mm") LocalTime from,
+            @RequestParam(defaultValue = "22:00") @DateTimeFormat(pattern = "HH:mm") LocalTime to,
+            @RequestParam(defaultValue = "1") int days,
+            @RequestParam(defaultValue = "0") int buffer,
+            @RequestParam(required = false) UUID excludeId,
+            Authentication authentication) {
+        return scheduleItemService.findFreeSlots(authentication.getName(), date, minutes, from, to, days, buffer, excludeId);
+
+    }
+
+    /** KAN-339: download the caller's tasks as an .ics file for Google Calendar or a phone calendar.
      * Only the logged-in user's items are included (identity comes from the JWT).
      */
     @GetMapping("/me/calendar.ics")
@@ -58,6 +79,7 @@ public class ScheduleItemController {
                         ContentDisposition.attachment().filename("aalsikke.ics").build().toString())
                 .cacheControl(CacheControl.noStore())
                 .body(ics);
+
     }
 
     @PostMapping
