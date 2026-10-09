@@ -153,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${task.itemType ? escapeHtml(task.itemType) + ' &middot; ' : ''}
             Due ${escapeHtml(formatDue(taskDate(task)))}
             ${badge}
+                        ${window.AalSikkeChecklist ? window.AalSikkeChecklist.progressHtml(task) : ''}
           </div>
         </div>
         <div class="task-actions">
