@@ -1649,7 +1649,124 @@ select:focus-visible {
 .priority-label.urgent { color: var(--prio-urgent); background: var(--prio-urgent-bg); }
 
 
+/* ---- KAN-353: "Repeat weekly" in the task forms, and the "Weekly" label on task cards ---- */
+.repeat-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
 
+.repeat-note[hidden],
+.repeat-details[hidden] { display: none; }
+
+.repeat-field .check-row:has(input:disabled) {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.repeat-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 0.0625rem dashed var(--border);
+  border-radius: 0.625rem;
+}
+
+.repeat-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.repeat-days legend {
+  width: 100%;
+  margin-bottom: 0.375rem;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.repeat-day {
+  position: relative;
+  cursor: pointer;
+}
+
+.repeat-day input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.repeat-day span {
+  display: inline-block;
+  min-width: 2.75rem;
+  padding: 0.375rem 0.5rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--slate);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.repeat-day input:checked + span {
+  border-color: var(--trust-blue);
+  background: var(--trust-blue);
+  color: #fff;
+}
+
+.repeat-day input:focus-visible + span {
+  outline: 0.125rem solid var(--trust-blue);
+  outline-offset: 0.125rem;
+}
+
+.repeat-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.repeat-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.repeat-row input {
+  padding: 0.375rem 0.5rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--slate);
+  font: inherit;
+}
+
+.repeat-row .repeat-every { width: 4rem; }
+
+.repeat-optional { font-size: 0.75rem; }
+
+.repeat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: var(--card-mist);
+  color: var(--slate);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 /* ---- KAN-343: "Suggest a time" panel (new-task, edit-task and calendar schedule forms) ---- */
 .free-slot-panel {
