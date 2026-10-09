@@ -31,6 +31,8 @@ public class ScheduleItemResponse {
     private Summary workplace;
     private List<ConflictSummary> conflicts = List.of();
     private boolean occurrence;
+    private int checklistTotal;   // KAN-342: "2/5" on the task cards
+    private int checklistDone;
 
     public static ScheduleItemResponse from(ScheduleItem item) {
         ScheduleItemResponse dto = new ScheduleItemResponse();
@@ -136,6 +138,14 @@ public class ScheduleItemResponse {
     public Summary getWorkplace() { return workplace; }
     public List<ConflictSummary> getConflicts() { return conflicts; }
     public boolean isOccurrence() { return occurrence; }
+    public int getChecklistTotal() { return checklistTotal; }
+    public int getChecklistDone() { return checklistDone; }
+
+    /** KAN-342: checklist progress, filled in for the task list. */
+    public void setChecklist(int total, int done) {
+        this.checklistTotal = total;
+        this.checklistDone = done;
+    }
     public boolean isReminderEnabled() { return reminderEnabled; }
     public List<ReminderSummary> getReminders() { return reminders; }
 }
