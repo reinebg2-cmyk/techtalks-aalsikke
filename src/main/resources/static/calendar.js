@@ -594,6 +594,14 @@ document.addEventListener('DOMContentLoaded', () => {
             : `Productivity ${data.averageProductivityScore ?? '—'} / 5 across ${data.daysReviewed} reviewed day${data.daysReviewed === 1 ? '' : 's'}.`;
 
         summaryEl.append(head, stats, bar, el('p', 'cal-summary-reviews', reviewText));
+
+        // KAN-341: busiest day (left out when nothing happens this week)
+        if (data.busiestDay) {
+            const [y, m, d] = data.busiestDay.split('-').map(Number);
+            const label = new Date(y, m - 1, d).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+            const count = `${data.busiestDayCount} task${data.busiestDayCount === 1 ? '' : 's'}`;
+            summaryEl.append(el('p', 'cal-summary-reviews cal-summary-busiest', `Busiest day: ${label} · ${count}`));
+        }
         summaryEl.hidden = false;
     }
 
