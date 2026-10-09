@@ -2761,7 +2761,7 @@ document.addEventListener('DOMContentLoaded', () => {
             deadline,
 
             isRecurring:
-                existingTask.isRecurring ?? false
+                existingTask.recurring ?? false
           };
           // A start-only task (marker) stays one: the form has no end-time field
           const keepStartOnly = Boolean(existingTask.startTime && !existingTask.endTime);
