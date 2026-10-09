@@ -2418,6 +2418,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return response.json();
   }
 
+  // Board "Done" checkbox (dashboard-board.js). Returns true on success.
+  async function setTaskStatus(task, status) {
+    try {
+      await updateTaskStatus(task.id, status);
+      await loadTasks();   // re-renders and fires 'aalsikke:tasks-loaded'
+      return true;
+    } catch (error) {
+      if (error.sessionExpired) return false;
+      console.error('Failed to update task status:', error);
+      alert(error.message || 'Could not update the task status. Please try again.');
+      return false;
+    }
+  }
+
   function replaceTaskInState(updatedTask) {
     const index = allTasks.findIndex(
         task => String(task.id) === String(updatedTask.id)
@@ -3587,6 +3601,7 @@ document.addEventListener('DOMContentLoaded', () => {
     getTasksState: () => tasksState,
     reloadTasks: loadTasks,
     openEditModal,
+    setTaskStatus,
     deleteTask,
     apiFetch,
     API_BASE
