@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/recurrence-rules")
@@ -29,5 +30,13 @@ public class RecurrenceRuleController {
     public ResponseEntity<RecurrenceRuleResponse> createRule(@Valid @RequestBody RecurrenceRuleRequest request,
                                                              Authentication authentication) {
         return ResponseEntity.ok(recurrenceRuleService.createOrReplaceRule(request, authentication.getName()));
+    }
+
+    /** KAN-353: stop a task repeating. 204 when removed, 403 when it isn't the caller's rule. */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRule(@PathVariable UUID id, Authentication authentication) {
+        return recurrenceRuleService.deleteRule(id, authentication.getName())
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.status(403).build();
     }
 }
