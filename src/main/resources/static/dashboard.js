@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const taskForm = document.getElementById('task-form');
   const saveTaskBtn = document.getElementById('save-task-btn');
 
-  const filterTabs = document.querySelectorAll('.filter-tab');
+  const filterTabs = document.querySelectorAll('.filter-tab[data-filter]');
 
   // Role / status filter dropdowns, sort dropdown and result count
   const roleFilterSelect = document.getElementById('role-filter');
@@ -954,20 +954,34 @@ document.addEventListener('DOMContentLoaded', () => {
   let profileCloseTimer = null;
   let toastTimer = null;
 
-  function showToast(message) {
+  // Non-blocking replacement for showError(). Pass { type: 'error' } for problems
+  // (validation, failed saves). While a modal is open the toast moves to the top
+  // of the screen so it never covers the modal's Save / Cancel buttons.
+  function showToast(message, options = {}) {
     const toast = document.getElementById('toast');
 
     if (!toast) {
       return;
     }
 
-    toast.textContent = message;
+    const isError = options.type === 'error';
+    const modalOpen = Boolean(document.querySelector('.modal-backdrop:not([hidden])'));
+
+    toast.textContent = String(message ?? '').replace(/\s*\n+\s*/g, ' ');
+    toast.classList.toggle('is-error', isError);
+    toast.classList.toggle('is-top', modalOpen);
+    toast.setAttribute('role', isError ? 'alert' : 'status');
+    toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
     toast.classList.add('is-visible');
 
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => {
       toast.classList.remove('is-visible');
-    }, 4000);
+    }, isError ? 5500 : 4000);
+  }
+
+  function showError(message) {
+    showToast(message, { type: 'error' });
   }
 
   async function readJsonSafely(response) {
@@ -1753,7 +1767,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch (error) {
             console.error('Failed to update task status:', error);
             event.target.checked = !event.target.checked;
-            alert(`Could not update the task status.\n\n${error.message}`);
+            showError(`Could not update the task status. ${error.message}`);
           } finally {
             checkbox.disabled = false;
           }
@@ -2102,22 +2116,22 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const row of rows) {
       const remindAt = toISOStringFromLocal(row.local);
       if (!remindAt) {
-        alert('Choose a time for each reminder, or remove the empty one.');
+        showError('Choose a time for each reminder, or remove the empty one.');
         return null;
       }
       const original = originals.find(o => o.id === row.id);
       const changed = !original || original.local !== row.local;
       // An unchanged reminder may already be in the past; a new or changed one must be in the future
       if (changed && new Date(remindAt) <= new Date()) {
-        alert('A new or changed reminder must be in the future.');
+        showError('A new or changed reminder must be in the future.');
         return null;
       }
       if (deadlineIso && new Date(remindAt) > new Date(deadlineIso)) {
-        alert('A reminder cannot be after the due time.');
+        showError('A reminder cannot be after the due time.');
         return null;
       }
       if (startIso && new Date(remindAt) < new Date(startIso)) {
-        alert('A reminder cannot be before the start time.');
+        showError('A reminder cannot be before the start time.');
         return null;
       }
       times.push(new Date(remindAt).getTime());
@@ -2129,7 +2143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     times.sort((a, b) => a - b);
     for (let i = 1; i < times.length; i++) {
       if (times[i] - times[i - 1] < REMINDER_MIN_GAP_MS) {
-        alert('Reminders on the same task must be at least 10 minutes apart.');
+        showError('Reminders on the same task must be at least 10 minutes apart.');
         return null;
       }
     }
@@ -2227,13 +2241,13 @@ document.addEventListener('DOMContentLoaded', () => {
           // Validation
           if (!title) {
 
-            alert('Task title is required.');
+            showError('Task title is required.');
             return;
           }
 
           if (title.length > 255) {
 
-            alert(
+            showError(
                 'Task title cannot be longer than 255 characters.'
             );
             return;
@@ -2241,7 +2255,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (!due) {
 
-            alert('Deadline is required.');
+            showError('Deadline is required.');
             return;
           }
 
@@ -2250,13 +2264,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (!deadline) {
 
-            alert('Please enter a valid deadline.');
+            showError('Please enter a valid deadline.');
             return;
           }
 
           if (new Date(deadline) <= new Date()) {
 
-            alert(
+            showError(
                 'Due date must be in the future.'
             );
             return;
@@ -2284,12 +2298,12 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             if (!startTime) {
-              alert('Please enter a start time, or untick "Has a start time".');
+              showError('Please enter a start time, or untick "Has a start time".');
               return;
             }
 
             if (new Date(startTime) >= new Date(deadline)) {
-              alert('Start must be before the due time.');
+              showError('Start must be before the due time.');
               return;
             }
 
@@ -2372,8 +2386,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 error
             );
 
-            alert(
-                `Could not save the task.\n\n${error.message}`
+            showError(
+                `Could not save the task. ${error.message}`
             );
 
           } finally {
@@ -2427,7 +2441,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       if (error.sessionExpired) return false;
       console.error('Failed to update task status:', error);
-      alert(error.message || 'Could not update the task status. Please try again.');
+      showError(error.message || 'Could not update the task status. Please try again.');
       return false;
     }
   }
@@ -2469,7 +2483,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (response.status === 403) {
 
-        alert(
+        showError(
             'You do not have permission to delete this task.'
         );
 
@@ -2501,7 +2515,7 @@ document.addEventListener('DOMContentLoaded', () => {
           error
       );
 
-      alert(
+      showError(
           'Could not delete the task. Please check the console.'
       );
     }
@@ -2607,7 +2621,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!title) {
 
-      alert(
+      showError(
           'Task title is required.'
       );
 
@@ -2618,7 +2632,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (title.length > 255) {
 
-      alert(
+      showError(
           'Task title cannot be longer than 255 characters.'
       );
 
@@ -2629,7 +2643,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (description.length > 2000) {
 
-      alert(
+      showError(
           'Description cannot be longer than 2000 characters.'
       );
 
@@ -2640,7 +2654,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!deadline) {
 
-      alert(
+      showError(
           'Deadline is required.'
       );
 
@@ -2654,7 +2668,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (Number.isNaN(deadlineDate.getTime())) {
 
-      alert(
+      showError(
           'Please enter a valid deadline.'
       );
 
@@ -2669,14 +2683,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const startDate = new Date(editTaskStart ? editTaskStart.value : '');
 
       if (Number.isNaN(startDate.getTime())) {
-        alert('Please enter a start time, or untick "Has a start time".');
+        showError('Please enter a start time, or untick "Has a start time".');
         editTaskStart?.focus();
         return false;
       }
       const editing = allTasks.find(t => String(t.id) === String(editTaskId.value));
       const startOnly = Boolean(editing && editing.startTime && !editing.endTime);
       if (!startOnly && startDate >= deadlineDate) {
-        alert('Start must be before the due time.');
+        showError('Start must be before the due time.');
         editTaskStart?.focus();
         return false;
       }
@@ -2711,7 +2725,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (!existingTask) {
 
-            alert(
+            showError(
                 'The selected task could not be found.'
             );
 
@@ -2725,7 +2739,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (!deadline) {
 
-            alert(
+            showError(
                 'Invalid deadline.'
             );
 
@@ -2821,7 +2835,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.status === 403) {
 
-              alert(
+              showError(
                   'You do not have permission to update this task.'
               );
 
@@ -2910,8 +2924,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 error
             );
 
-            alert(
-                `Could not update the task.\n\n${error.message}`
+            showError(
+                `Could not update the task. ${error.message}`
             );
 
           } finally {
@@ -3604,6 +3618,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTaskStatus,
     deleteTask,
     apiFetch,
+    showToast,
     API_BASE
   };
 

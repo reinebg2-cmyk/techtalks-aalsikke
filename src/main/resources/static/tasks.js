@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to update task status:', error);
             checkbox.checked = !checkbox.checked;
             checkbox.disabled = false;
-            alert('Could not update the task status. Please try again.');
+            app.showToast('Could not update the task status. Please try again.', { type: 'error' });
         }
     }
 
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 if (error.sessionExpired) return;
                 console.error('Failed to export calendar:', error);
-                alert('Could not export your calendar. Please try again.');
+                app.showToast('Could not export your calendar. Please try again.', { type: 'error' });
             } finally {
                 exportBtn.disabled = false;
             }

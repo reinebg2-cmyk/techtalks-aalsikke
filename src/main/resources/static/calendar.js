@@ -15,8 +15,9 @@
 //
 // Open the schedule form for one task from another page with: calendar.html?schedule=<itemId>
 
-const API_BASE = window.location.origin;
-const TOKEN_KEY = 'aalsikke_token';
+// API_BASE and TOKEN_KEY come from dashboard.js, which calendar.html loads first
+// (it also runs the bell and avatar menu in the header). Declaring them again here
+// would be a "has already been declared" SyntaxError.
 
 // Same grouping as the dashboard (dashboard.js roleForTask)
 const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY']);

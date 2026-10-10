@@ -13,11 +13,30 @@
 
 <div class="app-shell">
 
+    <!-- Top bar (same markup as tasks.html: bell + reminders, avatar menu with Edit profile / Change password / Log out) -->
     <header class="topbar dash-topbar">
         <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
         <div class="topbar-actions">
             <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
-            <a href="index.html" class="btn-secondary cal-logout" id="logout-link">Log out</a>
+            <div class="profile-menu" id="notif-menu">
+                <button class="icon-btn" id="notif-btn" aria-label="Notifications">
+                    &#128276;
+                    <span class="badge-dot" id="notif-badge" hidden></span>
+                </button>
+                <div class="profile-dropdown notif-dropdown" id="notif-dropdown" hidden>
+                    <div class="notif-dropdown-header">Reminders</div>
+                    <ul class="notif-list" id="notif-list"></ul>
+                    <p class="notif-empty" id="notif-empty" hidden>Nothing due right now.</p>
+                </div>
+            </div>
+            <div class="profile-menu">
+                <button class="avatar-btn" id="avatar-btn" aria-label="Open profile menu">AC</button>
+                <div class="profile-dropdown" id="profile-dropdown" hidden>
+                    <a href="#" id="edit-profile-link">Edit Profile</a>
+                    <a href="#" id="change-password-link">Change password</a>
+                    <a href="login.html" id="logout-link">Log out</a>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -92,6 +111,129 @@
     </nav>
 </div>
 
+<!-- Profile edit modal (shared with dashboard.html) -->
+<div class="modal-backdrop" id="profile-modal" hidden>
+    <div class="modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+        <div class="modal-header">
+            <div>
+                <h2 id="profile-modal-title">Edit profile</h2>
+                <p id="profile-modal-subtitle">Update your details and how you use Aal Sikke.</p>
+            </div>
+            <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close">&#10005;</button>
+        </div>
+
+        <form id="profile-form" novalidate>
+            <div class="profile-modal-avatar" id="modal-profile-avatar" aria-hidden="true">AC</div>
+
+            <fieldset class="role-field" id="field-profile-mode">
+                <legend class="field-label">I use Aal Sikke primarily for</legend>
+                <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role">
+                    <input type="radio" name="profile-role" id="profile-role-student" value="STUDENT">
+                    <label for="profile-role-student">Student</label>
+                    <input type="radio" name="profile-role" id="profile-role-work" value="WORK">
+                    <label for="profile-role-work">Work</label>
+                    <input type="radio" name="profile-role" id="profile-role-dual" value="HYBRID">
+                    <label for="profile-role-dual">Dual</label>
+                </div>
+                <p class="role-hint" id="profile-role-hint"></p>
+                <p class="hint error-text" role="alert"></p>
+            </fieldset>
+
+            <div class="form-grid">
+                <div class="field" id="field-profile-fullname">
+                    <label for="profile-fullname">Full name</label>
+                    <div class="input-wrap"><input id="profile-fullname" type="text" autocomplete="name" maxlength="255"></div>
+                    <p class="hint error-text" role="alert"></p>
+                </div>
+                <div class="field">
+                    <label for="profile-username">Username</label>
+                    <div class="input-wrap"><input id="profile-username" type="text" readonly aria-readonly="true"></div>
+                </div>
+            </div>
+
+            <div class="field" id="field-profile-email">
+                <label for="profile-email">Email</label>
+                <div class="input-wrap"><input id="profile-email" type="email" autocomplete="email" maxlength="255"></div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <div class="form-grid">
+                <div class="field">
+                    <label for="profile-dob">Date of birth</label>
+                    <div class="input-wrap"><input id="profile-dob" type="date" readonly aria-readonly="true"></div>
+                </div>
+                <div class="field" id="field-profile-phone">
+                    <label for="profile-phone">Phone number</label>
+                    <div class="input-wrap"><input id="profile-phone" type="tel" autocomplete="tel" maxlength="50"></div>
+                    <p class="hint error-text" role="alert"></p>
+                </div>
+            </div>
+            <div class="field" id="field-profile-current-password">
+                <label for="profile-current-password">Current password <span class="role-hint">(only needed to change your name, email or phone)</span></label>
+                <div class="input-wrap"><input id="profile-current-password" type="password" autocomplete="current-password"></div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+            <p class="modal-message" id="profile-message" role="status" aria-live="polite"></p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-profile-btn">Cancel</button>
+                <button type="submit" class="btn-primary" id="save-profile-btn">Save profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change password modal (shared with dashboard.html) -->
+<div class="modal-backdrop" id="password-modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+        <div class="modal-header">
+            <div>
+                <h2 id="password-modal-title">Change password</h2>
+                <p>Choose a new password for your account.</p>
+            </div>
+            <button type="button" class="modal-close" id="close-password-modal" aria-label="Close">&#10005;</button>
+        </div>
+
+        <form id="password-form" novalidate>
+            <div class="field" id="field-current-password">
+                <label for="current-password">Current password</label>
+                <div class="input-wrap">
+                    <input id="current-password" type="password" autocomplete="current-password">
+                </div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <div class="field" id="field-new-password">
+                <label for="new-password">New password</label>
+                <div class="input-wrap">
+                    <input id="new-password" type="password" autocomplete="new-password">
+                </div>
+                <div class="strength-meter" id="password-strength-meter"><span></span><span></span><span></span></div>
+                <p class="hint" id="new-password-strength-hint" style="display:none;"></p>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <div class="field" id="field-confirm-new-password">
+                <label for="confirm-new-password">Confirm new password</label>
+                <div class="input-wrap">
+                    <input id="confirm-new-password" type="password" autocomplete="new-password">
+                </div>
+                <p class="hint error-text" role="alert"></p>
+            </div>
+
+            <p class="modal-message" id="password-message" role="status" aria-live="polite"></p>
+
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancel-password-btn">Cancel</button>
+                <button type="submit" class="btn-primary" id="save-password-btn">Update password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast: dashboard.js shows validation and error messages here instead of alert() -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <!-- S3-12: schedule a task into a time slot (same modal styles as the dashboard) -->
 <div class="modal-backdrop" id="schedule-modal" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
@@ -144,6 +286,7 @@
 
 <script src="theme-toggle.js"></script>
 <script src="palette.js"></script>
+<script src="dashboard.js"></script>
 <script src="calendar.js"></script>
 <script src="free-slots.js"></script>
 </body>

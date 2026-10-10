@@ -6,6 +6,21 @@
 
 const API_BASE = window.location.origin;
 
+// Non-blocking message (replaces alert). Writes to the page's #toast element.
+let toastTimer = null;
+function showToast(message, options = {}) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  const isError = options.type === 'error';
+  toast.textContent = String(message ?? '');
+  toast.classList.toggle('is-error', isError);
+  toast.setAttribute('role', isError ? 'alert' : 'status');
+  toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+  toast.classList.add('is-visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-visible'), isError ? 5500 : 4000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.back-btn')?.addEventListener('click', () => {
     window.location.href = 'index.html';
@@ -186,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (emailHint) emailHint.textContent = err.message;
         setState(emailField, 'is-error');
       } else {
-        window.alert(err.message);
+        showToast(err.message || 'Could not create your account. Please try again.', { type: 'error' });
       }
     });
   });

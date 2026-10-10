@@ -965,16 +965,6 @@ select:focus-visible {
   .task-card {
     padding: 0.75rem;
   }
-  .modal {
-    position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.4);
-  }
-  .modal-content {
-    background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 300px;
-  }
-  .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-  .error-text { color: red; font-size: 12px; }
-  .task-card { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 5px; }
 
 }
 
@@ -1007,7 +997,9 @@ select:focus-visible {
   width: 100%;
   max-width: 30rem;
   max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);   /* phone browser bars: 100vh is taller than the visible area */
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--surface);
   border-radius: var(--radius);
   padding: 1.5rem;
@@ -1016,6 +1008,17 @@ select:focus-visible {
 
 .profile-modal-card {
   max-width: 34rem;
+}
+
+/* Save / Cancel stay visible at the bottom of a long modal while the form scrolls. */
+.modal-card .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  background: var(--surface);
+  border-top: 0.0625rem solid var(--border);
 }
 
 .modal-header {
@@ -1208,19 +1211,28 @@ select:focus-visible {
   outline-offset: 0.125rem;
 }
 
-/* ---- Toast ---- */
+/* ---- Toast ----
+ * Replaces browser alert() popups. Dark ink background + white text, so it reads the
+ * same in every palette and in light and dark mode (checked for all 14 combinations).
+ * The 1px light edge keeps it visible against dark pages. */
 .toast {
   position: fixed;
   left: 50%;
   bottom: 1.5rem;
   z-index: 1100;
+  /* left: 50% would otherwise shrink the toast to half the screen width on phones */
+  width: max-content;
   max-width: calc(100vw - 2rem);
   padding: 0.75rem 1.25rem;
   border-radius: 0.625rem;
+  border: 0.0625rem solid rgba(255, 255, 255, 0.22);
   background: var(--ink-strong);
-  color: var(--white);
+  color: #FFFFFF;
   font-size: 0.875rem;
   font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
   box-shadow: 0 0.5rem 1.5rem rgba(15, 76, 117, 0.3);
   opacity: 0;
   pointer-events: none;
@@ -1233,9 +1245,27 @@ select:focus-visible {
   transform: translate(-50%, 0);
 }
 
+/* Problems (validation, failed saves): a coral bar on the left, text stays white. */
+.toast.is-error {
+  border-left: 0.3125rem solid var(--coral);
+  text-align: left;
+}
+
+/* While a modal is open the toast sits at the top, so it never covers the Save button. */
+.toast.is-top {
+  bottom: auto;
+  top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+  transform: translate(-50%, -0.75rem);
+}
+
+.toast.is-top.is-visible {
+  transform: translate(-50%, 0);
+}
+
 /* Keep the toast above the mobile bottom nav. */
 @media (max-width: 48rem) {
   .toast { bottom: 5rem; }
+  .toast.is-top { bottom: auto; }
 }
 
 @media (max-width: 30rem) {
@@ -1246,6 +1276,21 @@ select:focus-visible {
 /* ---- Reminders bell dropdown (KAN-235/236) ---- */
 .notif-dropdown {
   width: 18rem;
+  max-width: calc(100vw - 1.5rem);
+}
+
+/* Narrow phones: the bell is not at the right edge, so pin the list to the screen instead. */
+@media (max-width: 30rem) {
+  .notif-dropdown {
+    position: fixed;
+    top: 3.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - 5rem);
+    overflow-y: auto;
+  }
 }
 
 .notif-dropdown-header {

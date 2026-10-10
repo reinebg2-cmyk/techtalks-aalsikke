@@ -228,8 +228,14 @@
 .board-card.priority-high .board-priority { color: var(--prio-high); }
 .board-card.priority-urgent .board-priority { color: var(--prio-urgent); }
 
+/* Conflicts are orange (same as the Tasks page): orange edge + soft orange fill.
+   The left stripe keeps showing the priority color. */
 .board-card.is-conflict {
-    background: var(--coral-bg);
+    background: var(--conflict-bg);
+    border-top-color: var(--conflict);
+    border-right-color: var(--conflict);
+    border-bottom-color: var(--conflict);
+    box-shadow: 0 0 0 0.0625rem var(--conflict);
 }
 
 .board-card.is-complete {
