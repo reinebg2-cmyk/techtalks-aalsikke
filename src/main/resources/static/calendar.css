@@ -331,6 +331,82 @@
     color: var(--slate-light);
 }
 
+/* ---- KAN-354: preview card when a task is clicked ---- */
+.cal-preview {
+    position: fixed;
+    z-index: 20;
+    width: 17rem;
+    max-width: calc(100vw - 1rem);
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--cal-color);
+    border-radius: 0.625rem;
+    background: var(--surface);
+    box-shadow: 0 8px 24px rgba(15, 32, 62, 0.2);
+    color: var(--slate);
+    font-size: 0.8125rem;
+}
+
+.cal-preview-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.375rem;
+}
+
+.cal-preview-dot {
+    flex: none;
+    width: 0.625rem;
+    height: 0.625rem;
+    margin-top: 0.3rem;
+    border-radius: 50%;
+    background: var(--cal-color);
+}
+
+.cal-preview-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.9375rem;
+    overflow-wrap: anywhere;
+}
+
+.cal-preview-close {
+    flex: none;
+    padding: 0 0.25rem;
+    border: none;
+    background: transparent;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--slate-light);
+    cursor: pointer;
+}
+
+.cal-preview-close:hover { color: var(--slate); }
+
+.cal-preview p { margin: 0.125rem 0; }
+
+.cal-preview-meta { color: var(--slate-light); }
+
+.cal-preview-overlap { color: var(--conflict-strong); }
+
+.cal-preview-note {
+    margin-top: 0.5rem !important;
+    font-size: 0.75rem;
+    color: var(--slate-light);
+}
+
+.cal-preview-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.cal-preview-actions button {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+}
+
 /* ---- Deadline row ---- */
 .cal-deadlines {
     min-height: 2rem;

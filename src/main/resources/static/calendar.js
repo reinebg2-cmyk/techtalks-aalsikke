@@ -133,7 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
         requestId: 0,
         scrollPending: true,
         flash: null,        // { message, isError } shown after the next load (e.g. "Scheduled …")
-        itemsById: new Map()
+        itemsById: new Map(),
+        conflicts: new Map()   // KAN-354: id -> titles it clashes with (for the preview card)
     };
 
     // ============================================================
@@ -251,10 +252,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---- KAN-354: the small list behind "+N more" in the grid ----
     function closeMoreLists() {
+        closePreview();
         document.querySelectorAll('.cal-more-list').forEach(list => list.remove());
         document.querySelectorAll('.cal-more[aria-expanded="true"]')
             .forEach(chip => chip.setAttribute('aria-expanded', 'false'));
     }
+
 
     function toggleMoreList(chip, hidden, day, alignRight) {
         const wasOpen = chip.getAttribute('aria-expanded') === 'true';
@@ -276,14 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 el('span', 'cal-more-title', item.title),
                 el('span', 'cal-more-time', `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`)
             );
-            row.addEventListener('click', () => {
-                closeMoreLists();
-                if (item.occurrence) {
-                    setStatus(`"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`);
-                } else {
-                    openScheduleForm({ item });
-                }
-            });
+            row.addEventListener('click', () => openPreview(item, chip));
             list.append(row);
         }
 
@@ -310,6 +306,133 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.key === 'Escape') closeMoreLists();
     });
 
+    // KAN-354: preview card when a task is clicked (what, when, category, overlaps) with Reschedule and Mark done.
+    // Click the same task again, click outside or press Escape to close it.
+    let previewCard = null;
+    let previewAnchor = null;
+
+    function closePreview(returnFocus = false) {
+        if (!previewCard) return;
+        previewCard.remove();
+        previewCard = null;
+        if (returnFocus && previewAnchor && previewAnchor.isConnected) previewAnchor.focus();
+        previewAnchor = null;
+    }
+
+    // "Mon, Oct 12, 09:00–11:00" / "Sun, Oct 11 16:00 → Tue, Oct 13 11:00" / "Due Mon, Oct 12, 12:00"
+    function previewWhen(item) {
+        const lines = [];
+        if (item.startTime) {
+            const start = new Date(item.startTime);
+            if (item.endTime) {
+                const end = new Date(item.endTime);
+                lines.push(sameDay(start, end)
+                    ? `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`
+                    : `${formatShortDate(start)} ${formatTime(start)} → ${formatShortDate(end)} ${formatTime(end)}`);
+            } else {
+                lines.push(`${formatShortDate(start)} at ${formatTime(start)}`);
+            }
+        }
+        if (isDueRowItem(item)) {
+            const due = new Date(item.deadline);
+            lines.push(`Due ${formatShortDate(due)}, ${formatTime(due)}`);
+        }
+        return lines;
+    }
+
+    function openPreview(item, anchor) {
+        const sameTask = previewAnchor === anchor;
+        closeMoreLists();   // also closes an open card
+        if (sameTask) return;
+
+        const role = roleOf(item);
+        const priority = priorityOf(item);
+        const done = item.status === 'COMPLETED';
+
+        const card = el('div', `cal-preview cal-${role}`);
+        card.setAttribute('role', 'dialog');
+        card.setAttribute('aria-label', item.title);
+        card.addEventListener('click', event => event.stopPropagation());
+
+        const head = el('div', 'cal-preview-head');
+        const close = el('button', 'cal-preview-close', '✕');
+        close.type = 'button';
+        close.setAttribute('aria-label', 'Close');
+        close.addEventListener('click', () => closePreview(true));
+        head.append(el('span', 'cal-preview-dot'), el('strong', 'cal-preview-title', item.title), close);
+        card.append(head);
+
+        for (const line of previewWhen(item)) card.append(el('p', 'cal-preview-when', line));
+
+        const meta = [roleLabel(role), `${priority[0].toUpperCase()}${priority.slice(1)} priority`];
+        if (item.recurring || item.occurrence) meta.push('Repeats weekly');
+        if (done) meta.push('Done');
+        card.append(el('p', 'cal-preview-meta', meta.join(' · ')));
+
+        const clashes = item.occurrence ? null : state.conflicts.get(item.id);
+        if (clashes && clashes.length) {
+            card.append(el('p', 'cal-preview-overlap', `Overlaps with: ${clashes.join(', ')}`));
+        }
+
+        if (item.occurrence) {
+            card.append(el('p', 'cal-preview-note',
+                'This is a weekly repeat. To change the series, open the original (its first date).'));
+        } else {
+            const actions = el('div', 'cal-preview-actions');
+            const edit = el('button', 'btn-secondary', item.startTime ? 'Reschedule' : 'Schedule');
+            edit.type = 'button';
+            edit.addEventListener('click', () => {
+                closePreview(true);
+                openScheduleForm({ item });
+            });
+            const toggle = el('button', 'btn-primary', done ? 'Mark not done' : 'Mark done');
+            toggle.type = 'button';
+            toggle.addEventListener('click', () => setDone(item, !done, toggle));
+            actions.append(edit, toggle);
+            card.append(actions);
+        }
+
+        document.body.append(card);
+        previewCard = card;
+        previewAnchor = anchor;
+
+        // Next to the task (right side, or left if there is no room), kept inside the window
+        const box = anchor.getBoundingClientRect();
+        const gap = 8;
+        let left = box.right + gap;
+        if (left + card.offsetWidth > window.innerWidth - gap) left = box.left - card.offsetWidth - gap;
+        if (left < gap) left = Math.max(gap, Math.min(box.left, window.innerWidth - card.offsetWidth - gap));
+        const top = Math.max(gap, Math.min(box.top, window.innerHeight - card.offsetHeight - gap));
+        card.style.left = `${left}px`;
+        card.style.top = `${top}px`;
+        card.querySelector('.cal-preview-actions button, .cal-preview-close').focus();
+    }
+
+    async function setDone(item, done, button) {
+        button.disabled = true;
+        try {
+            const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(item.id)}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: done ? 'COMPLETED' : 'PENDING' })
+            });
+            if (!response.ok) {
+                throw new Error(errorMessageFrom(await readJsonSafely(response), `Server responded ${response.status}`));
+            }
+            closePreview();
+            state.flash = { message: `"${item.title}" marked ${done ? 'done' : 'not done'}.`, isError: false };
+            load();
+        } catch (error) {
+            if (error.sessionExpired) return;
+            console.error(error);
+            button.disabled = false;
+            setStatus(`Could not update "${item.title}". ${error.message}`, true);
+        }
+    }
+
+    // The card is fixed on screen, so it closes when the page or the calendar scrolls
+    window.addEventListener('scroll', () => closePreview(), true);
+    window.addEventListener('resize', () => closePreview());
     // KAN-354: "13 tasks · busy 5h" under each date. Busy = time covered by tasks with a time slot
     // (overlaps counted once; multi-day tasks are not counted as busy all day).
     function dayLoadText(day, items) {
@@ -421,11 +544,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.occurrence) {
                 node.classList.add('is-repeat');
                 description += '. Weekly repeat';
-                makeActivatable(node, () => setStatus(
-                    `"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`));
+                makeActivatable(node, () => openPreview(item, node));
             } else {
-                description += '. Click to reschedule';
-                makeActivatable(node, () => openScheduleForm({ item }));
+                description += '. Click for details';
+                makeActivatable(node, () => openPreview(item, node));
             }
             node.title = description;
             node.setAttribute('aria-label', description);
@@ -580,10 +702,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!item.startTime) marker.classList.add('is-unscheduled');
             marker.append(el('span', 'cal-deadline-text', item.title), el('span', 'cal-deadline-time', formatTime(due)));
             const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)}, ${priorityOf(item)} priority)`
-                + (item.startTime ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
+                + (item.startTime ? '' : ' — not scheduled yet') + '. Click for details';
             marker.title = label;
             marker.setAttribute('aria-label', label);
-            makeActivatable(marker, () => openScheduleForm({ item }));
+            makeActivatable(marker, () => openPreview(item, marker));
             deadlineCells[index].append(marker);
         }
 
@@ -773,11 +895,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.occurrence) {
                 marker.classList.add('is-repeat');
                 description += '. Weekly repeat';
-                makeActivatable(marker, () => setStatus(
-                    `"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`));
+                makeActivatable(marker, () => openPreview(item, marker));
             } else {
-                description += '. Click to reschedule';
-                makeActivatable(marker, () => openScheduleForm({ item }));
+                description += '. Click for details';
+                makeActivatable(marker, () => openPreview(item, marker));
             }
             marker.title = description;
             marker.setAttribute('aria-label', description);
@@ -817,12 +938,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // A generated repeat is read-only: the series is changed through the original item
             block.classList.add('is-repeat');
             description += '. Weekly repeat';
-            makeActivatable(block, () => setStatus(
-                `"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`));
+            makeActivatable(block, () => openPreview(item, block));
         } else {
             if (item.recurring) description += '. Repeats weekly';
-            description += '. Click to reschedule';
-            makeActivatable(block, () => openScheduleForm({ item }));
+            description += '. Click for details';
+            makeActivatable(block, () => openPreview(item, block));
         }
 
         block.title = description;
@@ -948,7 +1068,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ignore an older response if the user already clicked next/previous again
             if (requestId !== state.requestId) return;
 
-            render(days, items, buildConflictMap(conflicts));
+            state.conflicts = buildConflictMap(conflicts);
+            render(days, items, state.conflicts);
             loadWeekSummary(days, requestId);
             if (state.flash) {
                 setStatus(state.flash.message, state.flash.isError);
