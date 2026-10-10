@@ -31,6 +31,8 @@ const DEFAULT_BLOCK_MINUTES = 60;
 const MARKER_MINUTES = 30;
 const DUE_ROW_LIMIT = 3;       // KAN-354: deadlines shown per day before "+N more"
 const MULTI_DAY_MINUTES = 24 * 60;   // KAN-354: tasks this long or longer go in the Multi-day row
+const MAX_LANES_WEEK = 2;     // KAN-354: overlapping tasks side by side in week view, the rest behind "+N more"
+const MAX_LANES_DAY = 4;      // KAN-354: same, in day view (the column is much wider)
 const startOnlyInput = document.getElementById('schedule-start-only');
 const endField = document.getElementById('schedule-end-field');// layout slot for START_ONLY markers (they have no end time)
 
@@ -247,6 +249,67 @@ document.addEventListener('DOMContentLoaded', () => {
             && new Date(item.endTime) - new Date(item.startTime) >= MULTI_DAY_MINUTES * 60000;
     }
 
+    // ---- KAN-354: the small list behind "+N more" in the grid ----
+    function closeMoreLists() {
+        document.querySelectorAll('.cal-more-list').forEach(list => list.remove());
+        document.querySelectorAll('.cal-more[aria-expanded="true"]')
+            .forEach(chip => chip.setAttribute('aria-expanded', 'false'));
+    }
+
+    function toggleMoreList(chip, hidden, day, alignRight) {
+        const wasOpen = chip.getAttribute('aria-expanded') === 'true';
+        closeMoreLists();
+        if (wasOpen) return;
+
+        const list = el('div', `cal-more-list${alignRight ? ' is-right' : ''}`);
+        list.style.top = `calc(${chip.style.top} + 1.5rem)`;
+        list.setAttribute('role', 'dialog');
+        list.setAttribute('aria-label', `${hidden.length} more tasks`);
+        list.addEventListener('click', event => event.stopPropagation());
+
+        for (const seg of hidden) {
+            const { item } = seg;
+            const row = el('button', `cal-more-item cal-${roleOf(item)}`);
+            row.type = 'button';
+            row.append(
+                el('span', 'cal-more-dot'),
+                el('span', 'cal-more-title', item.title),
+                el('span', 'cal-more-time', `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`)
+            );
+            row.addEventListener('click', () => {
+                closeMoreLists();
+                if (item.occurrence) {
+                    setStatus(`"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`);
+                } else {
+                    openScheduleForm({ item });
+                }
+            });
+            list.append(row);
+        }
+
+        if (state.view !== 'day') {
+            const dayLink = el('button', 'cal-more-day', 'Open in day view →');
+            dayLink.type = 'button';
+            dayLink.addEventListener('click', () => {
+                closeMoreLists();
+                state.view = 'day';
+                state.anchor = startOfDay(day);
+                state.scrollPending = true;
+                load();
+            });
+            list.append(dayLink);
+        }
+
+        chip.after(list);
+        chip.setAttribute('aria-expanded', 'true');
+        list.querySelector('button')?.focus();
+    }
+
+    document.addEventListener('click', closeMoreLists);
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeMoreLists();
+    });
+
     // "Sun 16:00"
     function formatDayTime(date) {
         return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${formatTime(date)}`;
@@ -436,6 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.classList.toggle('cal-grid--day', days.length === 1);
 
         state.itemsById = new Map(items.map(item => [item.id, item]));
+        const maxLanes = days.length === 1 ? MAX_LANES_DAY : MAX_LANES_WEEK;   // KAN-354
 
         const inner = el('div', 'cal-inner');
 
@@ -555,6 +619,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const laidOut = layoutLanes(segments);
 
+            // KAN-354: at most maxLanes side by side; the rest of a group goes behind "+N more"
+            const hiddenByGroup = new Map();
+            for (const seg of laidOut) {
+                if (seg.lanes <= maxLanes) continue;
+                if (seg.lane >= maxLanes - 1) {
+                    seg.hidden = true;
+                    if (!hiddenByGroup.has(seg.group)) hiddenByGroup.set(seg.group, []);
+                    hiddenByGroup.get(seg.group).push(seg);
+                } else {
+                    seg.lanes = maxLanes;
+                }
+            }
+            const dayIndex = days.indexOf(day);
+            hiddenByGroup.forEach(hidden => {
+                const chip = el('button', 'cal-more', `+${hidden.length} more`);
+                chip.type = 'button';
+                chip.style.top = `${hidden[0].start / 60 * HOUR_HEIGHT}px`;
+                chip.style.left = `calc(${((maxLanes - 1) / maxLanes) * 100}% + 2px)`;
+                chip.style.width = `calc(${100 / maxLanes}% - 4px)`;
+                chip.setAttribute('aria-expanded', 'false');
+                chip.title = hidden.map(seg => `${formatTime(seg.realStart)} ${seg.item.title}`).join('\n');
+                chip.addEventListener('click', event => {
+                    event.stopPropagation();
+                    toggleMoreList(chip, hidden, day, dayIndex >= days.length - 2);
+                });
+                column.append(chip);
+            });
+
             // KAN-354: one calm outline with an "N overlap" label per group of overlapping tasks
             new Set(laidOut.map(seg => seg.group)).forEach(group => {
                 if (group.size < 2) return;
@@ -568,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (const seg of laidOut) {
                 earliestMinute = Math.min(earliestMinute, seg.start);
-                column.append(buildEvent(seg, conflictMap));
+                if (!seg.hidden) column.append(buildEvent(seg, conflictMap));   // KAN-354: hidden ones are behind "+N more"
             }
 
             // Current-time line on today's column
