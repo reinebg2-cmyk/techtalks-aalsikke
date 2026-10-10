@@ -310,6 +310,42 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.key === 'Escape') closeMoreLists();
     });
 
+    // KAN-354: "13 tasks · busy 5h" under each date. Busy = time covered by tasks with a time slot
+    // (overlaps counted once; multi-day tasks are not counted as busy all day).
+    function dayLoadText(day, items) {
+        const dayEnd = addDays(day, 1);
+        let count = 0;
+        const ranges = [];
+        for (const item of items) {
+            if (item.startTime) {
+                const start = new Date(item.startTime);
+                const end = item.endTime ? new Date(item.endTime) : new Date(start.getTime() + MARKER_MINUTES * 60000);
+                if (!(start < dayEnd && end > day)) continue;
+                count++;
+                if (item.endTime && !isMultiDay(item)) {
+                    ranges.push([Math.max(start, day), Math.min(end, dayEnd)]);
+                }
+            } else if (isDueRowItem(item) && sameDay(new Date(item.deadline), day)) {
+                count++;
+            }
+        }
+        if (count === 0) return '';
+        ranges.sort((a, b) => a[0] - b[0]);
+        let busy = 0;
+        let until = -Infinity;
+        for (const [start, end] of ranges) {
+            const from = Math.max(start, until);
+            if (end > from) busy += end - from;
+            until = Math.max(until, end);
+        }
+        const minutes = Math.round(busy / 900000) * 15;   // nearest 15 minutes
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        const busyText = h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
+        const tasks = `${count} task${count === 1 ? '' : 's'}`;
+        return minutes > 0 ? `${tasks} · busy ${busyText}` : tasks;
+    }
+
     // "Sun 16:00"
     function formatDayTime(date) {
         return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${formatTime(date)}`;
@@ -513,6 +549,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 el('span', 'cal-dow', day.toLocaleDateString('en-US', { weekday: 'short' })),
                 el('span', 'cal-date', String(day.getDate()))
             );
+            const load = dayLoadText(day, items);   // KAN-354
+            if (load) cell.append(el('span', 'cal-day-load', load));
             head.append(cell);
         }
 
@@ -633,7 +671,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const dayIndex = days.indexOf(day);
             hiddenByGroup.forEach(hidden => {
-                const chip = el('button', 'cal-more', `+${hidden.length} more`);
+                const chip = el('button', 'cal-more', maxLanes === MAX_LANES_WEEK ? `+${hidden.length}` : `+${hidden.length} more`);
+                chip.setAttribute('aria-label', `${hidden.length} more tasks`);
                 chip.type = 'button';
                 chip.style.top = `${hidden[0].start / 60 * HOUR_HEIGHT}px`;
                 chip.style.left = `calc(${((maxLanes - 1) / maxLanes) * 100}% + 2px)`;
@@ -654,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 outline.style.top = `${group.start / 60 * HOUR_HEIGHT}px`;
                 outline.style.height = `${Math.max((group.end - group.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT)}px`;
                 outline.append(el('span', 'cal-overlap-label', `${group.size} overlap`));
-                if (group.start < 15) outline.classList.add('is-at-top');   // label would be cut off above 00:00
+                if (group.end > 24 * 60 - 15) outline.classList.add('is-at-end');   // label would be cut off below 24:00
                 column.append(outline);
             });
 
