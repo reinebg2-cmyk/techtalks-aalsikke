@@ -164,6 +164,59 @@
     color: var(--white);
 }
 
+/* ---- KAN-354: Multi-day row (tasks of 24 hours or more) ---- */
+.cal-multiday {
+    padding-right: var(--cal-scrollbar, 0px);
+    border-bottom: 1px solid var(--border);
+}
+
+.cal-multiday-cell { border-left: 1px solid var(--border); }
+
+.cal-multiday-bar {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    min-width: 0;
+    margin: 0.1875rem 0.25rem;
+    padding: 0.125rem 0.5rem;
+    overflow: hidden;
+    border-left: 3px solid var(--cal-color);
+    border-radius: 0.375rem;
+    background: var(--cal-bg);
+    font-size: 0.75rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    color: var(--slate);
+    cursor: pointer;
+}
+
+.cal-multiday-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.cal-multiday-time {
+    flex: none;
+    font-size: 0.6875rem;
+    color: var(--slate-light);
+}
+
+.cal-multiday-bar:focus-visible {
+    outline: 2px solid var(--navy);
+    outline-offset: 1px;
+}
+
+.cal-multiday-bar.is-completed { opacity: 0.55; }
+.cal-multiday-bar.is-completed .cal-multiday-title { text-decoration: line-through; }
+.cal-multiday-bar.is-repeat { border-left-style: dashed; }
+
+
+/* The title matters more than the time: on a narrow bar the time is cut first */
+.cal-multiday-title { flex: 0 1 auto; min-width: 2.5rem; }
+.cal-multiday-time { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* ---- Deadline row ---- */
 .cal-deadlines {
     min-height: 2rem;

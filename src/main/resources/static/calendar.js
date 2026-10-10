@@ -30,6 +30,7 @@ const SLOT_MINUTES = 30;      // clicking an empty slot snaps to the half hour
 const DEFAULT_BLOCK_MINUTES = 60;
 const MARKER_MINUTES = 30;
 const DUE_ROW_LIMIT = 3;       // KAN-354: deadlines shown per day before "+N more"
+const MULTI_DAY_MINUTES = 24 * 60;   // KAN-354: tasks this long or longer go in the Multi-day row
 const startOnlyInput = document.getElementById('schedule-start-only');
 const endField = document.getElementById('schedule-end-field');// layout slot for START_ONLY markers (they have no end time)
 
@@ -239,6 +240,102 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Date(item.deadline).getTime() !== new Date(item.endTime).getTime();
     }
 
+
+    // KAN-354: tasks of 24 hours or more go in the Multi-day row, not the hour grid
+    function isMultiDay(item) {
+        return hasTimeSlot(item)
+            && new Date(item.endTime) - new Date(item.startTime) >= MULTI_DAY_MINUTES * 60000;
+    }
+
+    // "Sun 16:00"
+    function formatDayTime(date) {
+        return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${formatTime(date)}`;
+    }
+
+    /*
+     * KAN-354: the Multi-day row above the Due row. Each multi-day task is one bar across the
+     * visible days it covers ("←" / "→" when it continues outside the week); bars that share a
+     * day go on separate lines. Returns null when there is nothing to show (no empty row).
+     */
+    function buildMultiDayRow(days, items, conflictMap) {
+        const firstDay = days[0];
+        const afterLastDay = addDays(days[days.length - 1], 1);
+        const bars = items
+            .filter(isMultiDay)
+            .map(item => ({ item, start: new Date(item.startTime), end: new Date(item.endTime) }))
+            .filter(bar => bar.start < afterLastDay && bar.end > firstDay)
+            .map(bar => {
+                const lastMoment = new Date(bar.end.getTime() - 1);
+                const from = bar.start < firstDay ? 0 : days.findIndex(day => sameDay(day, bar.start));
+                const to = bar.end > afterLastDay ? days.length - 1 : days.findIndex(day => sameDay(day, lastMoment));
+                return { ...bar, from, to };
+            })
+            .sort((a, b) => a.from - b.from || b.to - a.to);
+        if (!bars.length) return null;
+
+        const laneEnds = [];
+        for (const bar of bars) {
+            let lane = laneEnds.findIndex(end => end < bar.from);
+            if (lane === -1) {
+                lane = laneEnds.length;
+                laneEnds.push(bar.to);
+            } else {
+                laneEnds[lane] = bar.to;
+            }
+            bar.lane = lane;
+        }
+
+        const row = el('div', 'cal-row cal-multiday');
+        row.style.gridTemplateRows = `repeat(${laneEnds.length}, auto)`;
+        const label = el('div', 'cal-gutter-label', 'Multi-day');
+        label.style.gridColumn = '1';
+        label.style.gridRow = '1 / -1';
+        row.append(label);
+        days.forEach((day, index) => {
+            const cell = el('div', 'cal-multiday-cell');
+            cell.style.gridColumn = String(index + 2);
+            cell.style.gridRow = '1 / -1';
+            row.append(cell);
+        });
+
+        for (const bar of bars) {
+            const { item } = bar;
+            const role = roleOf(item);
+            const node = el('div', `cal-multiday-bar cal-${role} prio-${priorityOf(item)}`);
+            node.style.gridColumn = `${bar.from + 2} / ${bar.to + 3}`;
+            node.style.gridRow = String(bar.lane + 1);
+            const before = bar.start < firstDay ? '← ' : '';
+            const after = bar.end > afterLastDay ? ' →' : '';
+            const when = `${formatDayTime(bar.start)} → ${formatDayTime(bar.end)}`;
+            node.append(
+                el('span', 'cal-multiday-title', `${before}${item.title}${after}`),
+                el('span', 'cal-multiday-time', when)
+            );
+
+            let description = `${item.title}, ${when}, ${roleLabel(role)}, ${priorityOf(item)} priority`;
+            const clashes = item.occurrence ? null : conflictMap.get(item.id);
+            if (clashes && clashes.length) description += `. Conflicts with: ${clashes.join(', ')}`;
+            if (item.status === 'COMPLETED') {
+                node.classList.add('is-completed');
+                description += '. Completed';
+            }
+            if (item.occurrence) {
+                node.classList.add('is-repeat');
+                description += '. Weekly repeat';
+                makeActivatable(node, () => setStatus(
+                    `"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`));
+            } else {
+                description += '. Click to reschedule';
+                makeActivatable(node, () => openScheduleForm({ item }));
+            }
+            node.title = description;
+            node.setAttribute('aria-label', description);
+            row.append(node);
+        }
+        return row;
+    }
+
+
     // id -> titles of the items it clashes with
     function buildConflictMap(pairs) {
         const map = new Map();
@@ -355,6 +452,9 @@ document.addEventListener('DOMContentLoaded', () => {
             head.append(cell);
         }
 
+        // --- KAN-354: Multi-day row (tasks of 24 hours or more), only when there is one ---
+        const multiDayRow = buildMultiDayRow(days, items, conflictMap);
+
         // --- Deadline row: a marker for every deadline that falls on a visible day ---
         const deadlines = el('div', 'cal-row cal-deadlines');
         deadlines.append(el('div', 'cal-gutter-label', 'Due'));
@@ -416,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         body.append(times);
 
-        const timed = items.filter(item => item.startTime).map(item => {
+        const timed = items.filter(item => item.startTime && !isMultiDay(item)).map(item => {
             const start = new Date(item.startTime);
             // START_ONLY markers have no end time: give them a short slot so they lay out like a block
             const end = item.endTime ? new Date(item.endTime) : new Date(start.getTime() + MARKER_MINUTES * 60000);
@@ -483,7 +583,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         scroll.append(body);
-        inner.append(head, deadlines, scroll);
+        inner.append(head);
+        if (multiDayRow) inner.append(multiDayRow);   // KAN-354
+        inner.append(deadlines, scroll);
         grid.append(inner);
 
         // The body's vertical scrollbar takes width; give the header rows the same space so columns line up
