@@ -407,6 +407,41 @@
     font-size: 0.8125rem;
 }
 
+/* ---- KAN-354: previous / next arrows on the grid header ---- */
+.cal-head { position: relative; }
+
+.cal-corner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cal-grid-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--slate);
+    font-size: 1.125rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.cal-grid-arrow:hover { border-color: var(--trust-blue); color: var(--trust-blue); }
+.cal-grid-arrow:focus-visible { outline: 2px solid var(--trust-blue); outline-offset: 2px; }
+
+.cal-grid-arrow.is-next {
+    position: absolute;
+    top: 50%;
+    right: calc(var(--cal-scrollbar, 0px) + 0.375rem);
+    transform: translateY(-50%);
+}
+
 /* ---- Deadline row ---- */
 .cal-deadlines {
     min-height: 2rem;

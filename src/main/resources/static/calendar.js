@@ -305,6 +305,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape') closeMoreLists();
     });
+    // KAN-354: a round arrow on the grid header that does the same as the toolbar's ‹ / › button
+    function gridArrow(symbol, label, toolbarId, extraClass = '') {
+        const button = el('button', `cal-grid-arrow ${extraClass}`.trim(), symbol);
+        button.type = 'button';
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        button.addEventListener('click', () => document.getElementById(toolbarId).click());
+        return button;
+    }
 
     // KAN-354: preview card when a task is clicked (what, when, category, overlaps) with Reschedule and Mark done.
     // Click the same task again, click outside or press Escape to close it.
@@ -663,7 +672,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Header row: weekday + date ---
         const head = el('div', 'cal-row cal-head');
-        head.append(el('div', 'cal-corner'));
+        // KAN-354: previous / next arrows on the grid itself, so moving doesn't need a scroll back up to the toolbar
+        const unit = state.view === 'day' ? 'day' : 'week';
+        const corner = el('div', 'cal-corner');
+        corner.append(gridArrow('‹', `Previous ${unit}`, 'cal-prev'));
+        head.append(corner, gridArrow('›', `Next ${unit}`, 'cal-next', 'is-next'));
         for (const day of days) {
             const cell = el('div', 'cal-day-head');
             if (sameDay(day, today)) cell.classList.add('is-today');
