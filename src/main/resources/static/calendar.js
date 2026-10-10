@@ -266,7 +266,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let clusterEnd = -Infinity;
 
         const closeCluster = () => {
-            for (const seg of cluster) seg.lanes = laneEnds.length;
+            const group = {
+                start: Math.min(...cluster.map(s => s.start)),
+                end: Math.max(...cluster.map(s => s.end)),
+                size: cluster.length
+            };
+            for (const seg of cluster) {
+                seg.lanes = laneEnds.length;
+                seg.group = group;   // KAN-354: used for the "N overlap" outline
+            }
             cluster = [];
             laneEnds = [];
         };
@@ -445,7 +453,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     end: minutesSince(dayStart, t.end < dayEnd ? t.end : dayEnd)
                 }));
 
-            for (const seg of layoutLanes(segments)) {
+            const laidOut = layoutLanes(segments);
+
+            // KAN-354: one calm outline with an "N overlap" label per group of overlapping tasks
+            new Set(laidOut.map(seg => seg.group)).forEach(group => {
+                if (group.size < 2) return;
+                const outline = el('div', 'cal-overlap');
+                outline.style.top = `${group.start / 60 * HOUR_HEIGHT}px`;
+                outline.style.height = `${Math.max((group.end - group.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT)}px`;
+                outline.append(el('span', 'cal-overlap-label', `${group.size} overlap`));
+                if (group.start < 15) outline.classList.add('is-at-top');   // label would be cut off above 00:00
+                column.append(outline);
+            });
+
+            for (const seg of laidOut) {
                 earliestMinute = Math.min(earliestMinute, seg.start);
                 column.append(buildEvent(seg, conflictMap));
             }
@@ -546,9 +567,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const clashes = item.occurrence ? null : conflictMap.get(item.id);
         if (clashes && clashes.length) {
             block.classList.add('is-conflict');
-            const badge = el('span', 'cal-conflict-badge', '!');
-            badge.setAttribute('aria-hidden', 'true');
-            block.append(badge);
             description += `. Conflicts with: ${clashes.join(', ')}`;
         }
         if (item.status === 'COMPLETED') {
