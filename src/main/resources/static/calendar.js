@@ -29,6 +29,7 @@ const DEFAULT_SCROLL_HOUR = 7;
 const SLOT_MINUTES = 30;      // clicking an empty slot snaps to the half hour
 const DEFAULT_BLOCK_MINUTES = 60;
 const MARKER_MINUTES = 30;
+const DUE_ROW_LIMIT = 3;       // KAN-354: deadlines shown per day before "+N more"
 const startOnlyInput = document.getElementById('schedule-start-only');
 const endField = document.getElementById('schedule-end-field');// layout slot for START_ONLY markers (they have no end time)
 
@@ -230,6 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return Boolean(item.startTime && !item.endTime);
     }
 
+    // KAN-354: the Due row is for deadlines only. A task with a time slot whose deadline is
+    // simply its end time is already drawn in the grid, so it is not repeated in the Due row.
+    function isDueRowItem(item) {
+        if (!item.deadline) return false;
+        if (!item.startTime || !item.endTime) return true;
+        return new Date(item.deadline).getTime() !== new Date(item.endTime).getTime();
+    }
+
     // id -> titles of the items it clashes with
     function buildConflictMap(pairs) {
         const map = new Map();
@@ -348,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const withDeadline = items
-            .filter(item => item.deadline)
+            .filter(isDueRowItem)
             .map(item => ({ item, due: new Date(item.deadline) }))
             .sort((a, b) => a.due - b.due);
 
@@ -359,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const marker = el('div', `cal-deadline-marker cal-${role} prio-${priorityOf(item)}`);
             if (item.status === 'COMPLETED') marker.classList.add('is-completed');
             if (!item.startTime) marker.classList.add('is-unscheduled');
-            marker.append(el('span', 'cal-deadline-text', `${formatTime(due)} ${item.title}`));
+            marker.append(el('span', 'cal-deadline-text', item.title), el('span', 'cal-deadline-time', formatTime(due)));
             const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)}, ${priorityOf(item)} priority)`
                 + (item.startTime ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
             marker.title = label;
@@ -367,6 +376,25 @@ document.addEventListener('DOMContentLoaded', () => {
             makeActivatable(marker, () => openScheduleForm({ item }));
             deadlineCells[index].append(marker);
         }
+
+        // KAN-354: at most DUE_ROW_LIMIT deadlines per day; the rest behind "+N more" (click again for fewer)
+        deadlineCells.forEach(cell => {
+            const markers = [...cell.querySelectorAll('.cal-deadline-marker')];
+            if (markers.length <= DUE_ROW_LIMIT) return;
+            const extra = markers.slice(DUE_ROW_LIMIT);
+            extra.forEach(marker => { marker.hidden = true; });
+            const toggle = el('button', 'cal-deadline-more', `+${extra.length} more`);
+            toggle.type = 'button';
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.addEventListener('click', event => {
+                event.stopPropagation();
+                const open = toggle.getAttribute('aria-expanded') !== 'true';
+                extra.forEach(marker => { marker.hidden = !open; });
+                toggle.setAttribute('aria-expanded', String(open));
+                toggle.textContent = open ? 'Show fewer' : `+${extra.length} more`;
+            });
+            cell.append(toggle);
+        });
 
         // --- Time grid ---
         const scroll = el('div', 'cal-scroll');
