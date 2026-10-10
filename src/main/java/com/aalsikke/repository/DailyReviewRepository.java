@@ -11,4 +11,7 @@ import java.util.UUID;
 @Repository
 public interface DailyReviewRepository extends JpaRepository<DailyReview, UUID> {
     List<DailyReview> findByUserIdAndReviewDateBetween(UUID userId, LocalDate start, LocalDate end);
+
+    /** KAN-338: all of a user's reviews, oldest first (data export). */
+    List<DailyReview> findByUserIdOrderByReviewDateAsc(UUID userId);
 }
