@@ -493,10 +493,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // First load, Today and Day/Week switch: show the first item (one hour before it),
         // or 07:00 when there is nothing. Previous/next keep the hours the user was looking at.
         if (state.scrollPending) {
-            const startHour = Number.isFinite(earliestMinute)
-                ? Math.floor(earliestMinute / 60) - 1
-                : DEFAULT_SCROLL_HOUR;
-            scroll.scrollTop = Math.max(0, startHour) * HOUR_HEIGHT;
+            // KAN-354: start at 07:00 (earlier if a task starts before then); only jump down when
+            // the first task would not be visible from 07:00 at all, e.g. an evening-only week
+            const viewHours = scroll.clientHeight / HOUR_HEIGHT;
+            let startHour = DEFAULT_SCROLL_HOUR;
+            if (Number.isFinite(earliestMinute)) {
+                const firstHour = Math.floor(earliestMinute / 60) - 1;
+                const firstVisibleFrom7 = earliestMinute / 60 < DEFAULT_SCROLL_HOUR + viewHours - 1;
+                startHour = firstVisibleFrom7 ? Math.min(firstHour, DEFAULT_SCROLL_HOUR) : firstHour;
+            }
+            scroll.scrollTop = Math.max(0, startHour * HOUR_HEIGHT - 12);   // KAN-354: a little above the hour, so its label isn't cut in half
             state.scrollPending = false;
         } else {
             scroll.scrollTop = previousScrollTop;
