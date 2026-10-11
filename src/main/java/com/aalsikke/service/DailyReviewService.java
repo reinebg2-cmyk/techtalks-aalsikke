@@ -112,13 +112,16 @@ public class DailyReviewService {
         long upcoming = due.size() - completed - missed;
 
         // KAN-341: busiest day, from what happens each day (same items as the calendar, weekly
-        // class repeats included). A block counts on its start date, a deadline-only task on its deadline.
-        List<OffsetDateTime> happenings = scheduleItemService
+        // class repeats included). KAN-356: a block counts on every day from its start to its end
+        // (like the calendar's day load line), a deadline-only task on its deadline.
+        List<BusiestDay.Span> happenings = scheduleItemService
                 .getItemsInRange(email, from, end.plusDays(1).atStartOfDay(zone).toOffsetDateTime())
                 .stream()
-                .map(item -> item.getStartTime() != null ? item.getStartTime() : item.getDeadline())
+                .map(item -> item.getStartTime() != null
+                        ? new BusiestDay.Span(item.getStartTime(), item.getEndTime())
+                        : new BusiestDay.Span(item.getDeadline(), null))
                 .toList();
-        BusiestDay.Result busiest = BusiestDay.of(happenings, zone, start, end);
+        BusiestDay.Result busiest = BusiestDay.ofSpans(happenings, zone, start, end);
 
         return new WeeklyReviewResponse(
                 start, end, daysReviewed, averageScore,
