@@ -152,6 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="priority-label ${priorityOf(task).toLowerCase()}">${escapeHtml(priorityOf(task).toLowerCase())}</span>
             ${task.itemType ? escapeHtml(task.itemType) + ' &middot; ' : ''}
             Due ${escapeHtml(formatDue(taskDate(task)))}
+                        ${window.AalSikkeRepeat ? window.AalSikkeRepeat.labelHtml(task) : ''}
             ${badge}
                         ${window.AalSikkeChecklist ? window.AalSikkeChecklist.progressHtml(task) : ''}
           </div>

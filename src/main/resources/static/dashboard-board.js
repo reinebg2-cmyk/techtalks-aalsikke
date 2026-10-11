@@ -205,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="board-card-meta">
           ${task.itemType ? `<span class="board-chip">${escapeHtml(titleCase(task.itemType))}</span>` : ''}
           <span class="board-priority">${titleCase(priority)} priority</span>
+                    ${window.AalSikkeRepeat ? window.AalSikkeRepeat.labelHtml(task) : ''}
         </div>
         ${startLabel(task) ? `<p class="board-start">Starts ${escapeHtml(startLabel(task))}</p>` : ''}
         <p class="board-due">${overdue ? 'Was due' : 'Due'} ${escapeHtml(formatDue(taskDate(task)))}</p>

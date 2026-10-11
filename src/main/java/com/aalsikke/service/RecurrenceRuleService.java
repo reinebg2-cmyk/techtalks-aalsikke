@@ -9,9 +9,11 @@ import com.aalsikke.repository.RecurrenceRuleRepository;
 import com.aalsikke.repository.ScheduleItemRepository;
 import com.aalsikke.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class RecurrenceRuleService {
@@ -68,5 +70,23 @@ public class RecurrenceRuleService {
         item.setRecurring(true);
         scheduleItemRepository.save(item);
         return RecurrenceRuleResponse.from(recurrenceRuleRepository.save(rule));
+    }
+
+    /**
+     * KAN-353: stop a task repeating. The task itself stays.
+     * False when the rule doesn't exist or belongs to someone else (the controller answers 403).
+     */
+    @Transactional
+    public boolean deleteRule(UUID ruleId, String email) {
+        return recurrenceRuleRepository.findById(ruleId)
+                .filter(rule -> rule.getScheduleItem().getUser().getEmail().equals(email))
+                .map(rule -> {
+                    ScheduleItem item = rule.getScheduleItem();
+                    recurrenceRuleRepository.delete(rule);
+                    item.setRecurring(false);
+                    scheduleItemRepository.save(item);
+                    return true;
+                })
+                .orElse(false);
     }
 }

@@ -2316,6 +2316,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const newReminderPlan = planReminderChanges(
               newReminderList, wantsReminder, deadline, payload.startTime || null);
           if (!newReminderPlan) return;
+          if (window.AalSikkeRepeat && !window.AalSikkeRepeat.check('new', payload)) return;   // KAN-353
 
           saveTaskBtn.disabled = true;
           saveTaskBtn.textContent =
@@ -2360,6 +2361,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await response.json();
 
             await applyReminderPlan(newReminderPlan, createdTask.id);
+            await window.AalSikkeRepeat?.afterSave('new', createdTask);   // KAN-353: weekly repeat
 
             if (newReminderPlan.creates.length > 0) {
               await loadTasks();   // so the new task's custom reminders are in the list (and the edit form)
@@ -2775,7 +2777,7 @@ document.addEventListener('DOMContentLoaded', () => {
             deadline,
 
             isRecurring:
-                existingTask.isRecurring ?? false
+                existingTask.recurring ?? false
           };
           // A start-only task (marker) stays one: the form has no end-time field
           const keepStartOnly = Boolean(existingTask.startTime && !existingTask.endTime);
@@ -2814,6 +2816,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const reminderPlan = planReminderChanges(
               editReminderList, payload.reminderEnabled, deadline, payload.startTime || null);
           if (!reminderPlan) return;
+          if (window.AalSikkeRepeat && !window.AalSikkeRepeat.check('edit', payload)) return;   // KAN-353
           updateTaskBtn.disabled = true;
           updateTaskBtn.textContent =
               'Saving…';
@@ -2886,6 +2889,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
             await applyReminderPlan(reminderPlan, updatedTask.id);
+            await window.AalSikkeRepeat?.afterSave('edit', updatedTask);   // KAN-353: weekly repeat
 
             /*
              * Replace the old task in local state.
