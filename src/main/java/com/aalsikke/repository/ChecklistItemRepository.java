@@ -29,4 +29,8 @@ public interface ChecklistItemRepository extends JpaRepository<ChecklistItem, UU
             GROUP BY c.scheduleItem.id
             """)
     List<Object[]> countsForUser(@Param("email") String email);
+
+    /** KAN-355: every checklist step of all of a user's tasks, in one query (for the data export). */
+    @Query("SELECT c FROM ChecklistItem c WHERE c.scheduleItem.user.id = :userId ORDER BY c.scheduleItem.id, c.position")
+    List<ChecklistItem> findAllForUser(@Param("userId") UUID userId);
 }
