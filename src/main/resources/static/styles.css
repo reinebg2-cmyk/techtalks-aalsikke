@@ -1790,3 +1790,148 @@ select:focus-visible {
 }
 
 .free-slot-note.is-error { color: var(--coral); }
+
+/* ---- KAN-342: checklist (Edit task window) and "2/5" progress on task cards ---- */
+.checklist-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--slate-light);
+}
+
+.checklist-progress.is-complete { color: var(--trust-blue); }
+
+.checklist-bar {
+  display: inline-block;
+  width: 3rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--card-mist);
+  overflow: hidden;
+}
+
+.checklist-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--trust-blue);
+}
+
+.board-card .checklist-progress { margin-top: 0.25rem; }
+
+.checklist-heading {
+  margin: 0 0 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.checklist-summary {
+  font-weight: 500;
+  color: var(--slate-light);
+}
+
+.checklist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.checklist-text {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+  border: 0.0625rem solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--slate);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.checklist-text:hover,
+.checklist-text:focus {
+  border-color: var(--border);
+  background: var(--surface);
+  outline: none;
+}
+
+.checklist-item.is-done .checklist-text {
+  text-decoration: line-through;
+  color: var(--slate-light);
+}
+
+.checklist-icon {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--slate-light);
+  font: inherit;
+  cursor: pointer;
+}
+
+.checklist-icon:hover:not(:disabled),
+.checklist-icon:focus-visible {
+  background: var(--card-mist);
+  color: var(--slate);
+  outline: none;
+}
+
+.checklist-icon:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.checklist-remove:hover { color: var(--coral); }
+
+.checklist-add {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.checklist-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.625rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--slate);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.checklist-add .btn-secondary {
+  width: auto;
+  padding: 0.5rem 0.875rem;
+}
+
+.checklist-all-done {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--slate);
+}
+
+.checklist-message {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.checklist-message:empty { display: none; }
+
+.checklist-message.is-error { color: var(--coral); }

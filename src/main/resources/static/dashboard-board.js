@@ -208,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         ${startLabel(task) ? `<p class="board-start">Starts ${escapeHtml(startLabel(task))}</p>` : ''}
         <p class="board-due">${overdue ? 'Was due' : 'Due'} ${escapeHtml(formatDue(taskDate(task)))}</p>
+                ${window.AalSikkeChecklist ? window.AalSikkeChecklist.progressHtml(task) : ''}
         <div class="board-card-foot">
           <label class="board-done">
             <input type="checkbox" class="task-checkbox"

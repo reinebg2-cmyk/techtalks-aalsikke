@@ -7,6 +7,7 @@ import com.aalsikke.model.Course;
 import com.aalsikke.model.ScheduleItem;
 import com.aalsikke.model.User;
 import com.aalsikke.model.Workplace;
+import com.aalsikke.repository.ChecklistItemRepository;
 import com.aalsikke.repository.CourseRepository;
 import com.aalsikke.repository.ScheduleItemRepository;
 import com.aalsikke.repository.UserRepository;
@@ -39,20 +40,39 @@ public class ScheduleItemService {
     private final CourseRepository courseRepository;
     private final WorkplaceRepository workplaceRepository;
     private final RecurrenceRuleRepository recurrenceRuleRepository;
+    private final ChecklistItemRepository checklistItemRepository;
 
     public ScheduleItemService(ScheduleItemRepository scheduleItemRepository,
                                UserRepository userRepository,
                                CourseRepository courseRepository,
                                WorkplaceRepository workplaceRepository,
-                               RecurrenceRuleRepository recurrenceRuleRepository) {
+                               RecurrenceRuleRepository recurrenceRuleRepository,
+                               ChecklistItemRepository checklistItemRepository) {
         this.scheduleItemRepository = scheduleItemRepository;
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
         this.workplaceRepository = workplaceRepository;
         this.recurrenceRuleRepository = recurrenceRuleRepository;
+        this.checklistItemRepository = checklistItemRepository;
     }
 
+    /** The caller's tasks, each with its checklist progress (KAN-342), counted in one query. */
     public List<ScheduleItemResponse> getItemsForCurrentUser(String email) {
+        List<ScheduleItemResponse> items = getItemsWithoutChecklist(email);
+        java.util.Map<UUID, Object[]> counts = new java.util.HashMap<>();
+        for (Object[] row : checklistItemRepository.countsForUser(email)) {
+            counts.put((UUID) row[0], row);
+        }
+        for (ScheduleItemResponse item : items) {
+            Object[] row = counts.get(item.getId());
+            if (row != null) {
+                item.setChecklist(((Number) row[1]).intValue(), ((Number) row[2]).intValue());
+            }
+        }
+        return items;
+    }
+
+    private List<ScheduleItemResponse> getItemsWithoutChecklist(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return scheduleItemRepository.findByUserId(user.getId())
