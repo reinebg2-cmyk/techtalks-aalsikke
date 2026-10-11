@@ -62,6 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
     notice.hidden = false;
   }
 
+  // KAN-338: account-data.js sends people here after deleting their account
+  if (new URLSearchParams(window.location.search).has('account-deleted')) {
+    showNotice('Your account and all of its data were deleted. Thanks for using Aal Sikke.');
+  }
   // register.js sends new users here with ?check-email=1
   if (new URLSearchParams(window.location.search).has('check-email')) {
     showNotice('Account created. We sent you a verification link. Open it, then log in here.');

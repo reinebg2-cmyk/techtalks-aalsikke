@@ -1669,6 +1669,49 @@ select:focus-visible {
 .palette-preview svg { height: 1.75rem; width: auto; }
 .palette-name { font-size: 0.8125rem; font-weight: 600; text-align: center; }
 
+/* ---- KAN-338: "Your data" panel and the Delete account window (Settings) ---- */
+.data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.data-actions .btn-secondary,
+.data-actions .btn-danger {
+  width: auto;
+  flex: 1 1 12rem;
+}
+
+.btn-danger {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--coral);
+  background: var(--coral-bg);
+  border: 0.0625rem solid var(--coral);
+  border-radius: 0.625rem;
+  cursor: pointer;
+}
+
+.btn-danger:hover:not(:disabled) { background: var(--coral); color: #fff; }
+.btn-danger:focus-visible { outline: 0.125rem solid var(--coral); outline-offset: 0.125rem; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+.form-actions .btn-danger { width: auto; flex: 1; }
+
+.delete-warning {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 0.25rem solid var(--coral);
+  border-radius: 0.5rem;
+  background: var(--coral-bg);
+  color: var(--slate);
+  font-size: 0.875rem;
+}
+
+.delete-warning p { margin: 0; }
+.delete-warning p + p { margin-top: 0.5rem; color: var(--slate-light); }
+#data-message:empty { display: none; }
 /* ===== Task priority colors (KAN-292/293) =====
  * Same mapping everywhere: low = green, medium = blue, high = red, urgent = purple.
  * Orange is reserved for schedule CONFLICTS (see --conflict).
