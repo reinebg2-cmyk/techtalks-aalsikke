@@ -29,6 +29,10 @@ const DEFAULT_SCROLL_HOUR = 7;
 const SLOT_MINUTES = 30;      // clicking an empty slot snaps to the half hour
 const DEFAULT_BLOCK_MINUTES = 60;
 const MARKER_MINUTES = 30;
+const DUE_ROW_LIMIT = 3;       // KAN-354: deadlines shown per day before "+N more"
+const MULTI_DAY_MINUTES = 24 * 60;   // KAN-354: tasks this long or longer go in the Multi-day row
+const MAX_LANES_WEEK = 2;     // KAN-354: overlapping tasks side by side in week view, the rest behind "+N more"
+const MAX_LANES_DAY = 4;      // KAN-354: same, in day view (the column is much wider)
 const startOnlyInput = document.getElementById('schedule-start-only');
 const endField = document.getElementById('schedule-end-field');// layout slot for START_ONLY markers (they have no end time)
 
@@ -129,7 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
         requestId: 0,
         scrollPending: true,
         flash: null,        // { message, isError } shown after the next load (e.g. "Scheduled …")
-        itemsById: new Map()
+        itemsById: new Map(),
+        conflicts: new Map()   // KAN-354: id -> titles it clashes with (for the preview card)
     };
 
     // ============================================================
@@ -230,6 +235,337 @@ document.addEventListener('DOMContentLoaded', () => {
         return Boolean(item.startTime && !item.endTime);
     }
 
+    // KAN-354: the Due row is for deadlines only. A task with a time slot whose deadline is
+    // simply its end time is already drawn in the grid, so it is not repeated in the Due row.
+    function isDueRowItem(item) {
+        if (!item.deadline) return false;
+        if (!item.startTime || !item.endTime) return true;
+        return new Date(item.deadline).getTime() !== new Date(item.endTime).getTime();
+    }
+
+
+    // KAN-354: tasks of 24 hours or more go in the Multi-day row, not the hour grid
+    function isMultiDay(item) {
+        return hasTimeSlot(item)
+            && new Date(item.endTime) - new Date(item.startTime) >= MULTI_DAY_MINUTES * 60000;
+    }
+
+    // ---- KAN-354: the small list behind "+N more" in the grid ----
+    function closeMoreLists() {
+        closePreview();
+        document.querySelectorAll('.cal-more-list').forEach(list => list.remove());
+        document.querySelectorAll('.cal-more[aria-expanded="true"]')
+            .forEach(chip => chip.setAttribute('aria-expanded', 'false'));
+    }
+
+
+    function toggleMoreList(chip, hidden, day, alignRight) {
+        const wasOpen = chip.getAttribute('aria-expanded') === 'true';
+        closeMoreLists();
+        if (wasOpen) return;
+
+        const list = el('div', `cal-more-list${alignRight ? ' is-right' : ''}`);
+        list.style.top = `calc(${chip.style.top} + 1.5rem)`;
+        list.setAttribute('role', 'dialog');
+        list.setAttribute('aria-label', `${hidden.length} more tasks`);
+        list.addEventListener('click', event => event.stopPropagation());
+
+        for (const seg of hidden) {
+            const { item } = seg;
+            const row = el('button', `cal-more-item cal-${roleOf(item)}`);
+            row.type = 'button';
+            row.append(
+                el('span', 'cal-more-dot'),
+                el('span', 'cal-more-title', item.title),
+                el('span', 'cal-more-time', `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`)
+            );
+            row.addEventListener('click', () => openPreview(item, chip));
+            list.append(row);
+        }
+
+        if (state.view !== 'day') {
+            const dayLink = el('button', 'cal-more-day', 'Open in day view →');
+            dayLink.type = 'button';
+            dayLink.addEventListener('click', () => {
+                closeMoreLists();
+                state.view = 'day';
+                state.anchor = startOfDay(day);
+                state.scrollPending = true;
+                load();
+            });
+            list.append(dayLink);
+        }
+
+        chip.after(list);
+        chip.setAttribute('aria-expanded', 'true');
+        list.querySelector('button')?.focus();
+    }
+
+    document.addEventListener('click', closeMoreLists);
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeMoreLists();
+    });
+    // KAN-354: a round arrow on the grid header that does the same as the toolbar's ‹ / › button
+    function gridArrow(symbol, label, toolbarId, extraClass = '') {
+        const button = el('button', `cal-grid-arrow ${extraClass}`.trim(), symbol);
+        button.type = 'button';
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        button.addEventListener('click', () => document.getElementById(toolbarId).click());
+        return button;
+    }
+
+    // KAN-354: preview card when a task is clicked (what, when, category, overlaps) with Reschedule and Mark done.
+    // Click the same task again, click outside or press Escape to close it.
+    let previewCard = null;
+    let previewAnchor = null;
+
+    function closePreview(returnFocus = false) {
+        if (!previewCard) return;
+        previewCard.remove();
+        previewCard = null;
+        if (returnFocus && previewAnchor && previewAnchor.isConnected) previewAnchor.focus();
+        previewAnchor = null;
+    }
+
+    // "Mon, Oct 12, 09:00–11:00" / "Sun, Oct 11 16:00 → Tue, Oct 13 11:00" / "Due Mon, Oct 12, 12:00"
+    function previewWhen(item) {
+        const lines = [];
+        if (item.startTime) {
+            const start = new Date(item.startTime);
+            if (item.endTime) {
+                const end = new Date(item.endTime);
+                lines.push(sameDay(start, end)
+                    ? `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`
+                    : `${formatShortDate(start)} ${formatTime(start)} → ${formatShortDate(end)} ${formatTime(end)}`);
+            } else {
+                lines.push(`${formatShortDate(start)} at ${formatTime(start)}`);
+            }
+        }
+        if (isDueRowItem(item)) {
+            const due = new Date(item.deadline);
+            lines.push(`Due ${formatShortDate(due)}, ${formatTime(due)}`);
+        }
+        return lines;
+    }
+
+    function openPreview(item, anchor) {
+        const sameTask = previewAnchor === anchor;
+        closeMoreLists();   // also closes an open card
+        if (sameTask) return;
+
+        const role = roleOf(item);
+        const priority = priorityOf(item);
+        const done = item.status === 'COMPLETED';
+
+        const card = el('div', `cal-preview cal-${role}`);
+        card.setAttribute('role', 'dialog');
+        card.setAttribute('aria-label', item.title);
+        card.addEventListener('click', event => event.stopPropagation());
+
+        const head = el('div', 'cal-preview-head');
+        const close = el('button', 'cal-preview-close', '✕');
+        close.type = 'button';
+        close.setAttribute('aria-label', 'Close');
+        close.addEventListener('click', () => closePreview(true));
+        head.append(el('span', 'cal-preview-dot'), el('strong', 'cal-preview-title', item.title), close);
+        card.append(head);
+
+        for (const line of previewWhen(item)) card.append(el('p', 'cal-preview-when', line));
+
+        const meta = [roleLabel(role), `${priority[0].toUpperCase()}${priority.slice(1)} priority`];
+        if (item.recurring || item.occurrence) meta.push('Repeats weekly');
+        if (done) meta.push('Done');
+        card.append(el('p', 'cal-preview-meta', meta.join(' · ')));
+
+        const clashes = item.occurrence ? null : state.conflicts.get(item.id);
+        if (clashes && clashes.length) {
+            card.append(el('p', 'cal-preview-overlap', `Overlaps with: ${clashes.join(', ')}`));
+        }
+
+        if (item.occurrence) {
+            card.append(el('p', 'cal-preview-note',
+                'This is a weekly repeat. To change the series, open the original (its first date).'));
+        } else {
+            const actions = el('div', 'cal-preview-actions');
+            const edit = el('button', 'btn-secondary', item.startTime ? 'Reschedule' : 'Schedule');
+            edit.type = 'button';
+            edit.addEventListener('click', () => {
+                closePreview(true);
+                openScheduleForm({ item });
+            });
+            const toggle = el('button', 'btn-primary', done ? 'Mark not done' : 'Mark done');
+            toggle.type = 'button';
+            toggle.addEventListener('click', () => setDone(item, !done, toggle));
+            actions.append(edit, toggle);
+            card.append(actions);
+        }
+
+        document.body.append(card);
+        previewCard = card;
+        previewAnchor = anchor;
+
+        // Next to the task (right side, or left if there is no room), kept inside the window
+        const box = anchor.getBoundingClientRect();
+        const gap = 8;
+        let left = box.right + gap;
+        if (left + card.offsetWidth > window.innerWidth - gap) left = box.left - card.offsetWidth - gap;
+        if (left < gap) left = Math.max(gap, Math.min(box.left, window.innerWidth - card.offsetWidth - gap));
+        const top = Math.max(gap, Math.min(box.top, window.innerHeight - card.offsetHeight - gap));
+        card.style.left = `${left}px`;
+        card.style.top = `${top}px`;
+        card.querySelector('.cal-preview-actions button, .cal-preview-close').focus();
+    }
+
+    async function setDone(item, done, button) {
+        button.disabled = true;
+        try {
+            const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(item.id)}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: done ? 'COMPLETED' : 'PENDING' })
+            });
+            if (!response.ok) {
+                throw new Error(errorMessageFrom(await readJsonSafely(response), `Server responded ${response.status}`));
+            }
+            closePreview();
+            state.flash = { message: `"${item.title}" marked ${done ? 'done' : 'not done'}.`, isError: false };
+            load();
+        } catch (error) {
+            if (error.sessionExpired) return;
+            console.error(error);
+            button.disabled = false;
+            setStatus(`Could not update "${item.title}". ${error.message}`, true);
+        }
+    }
+
+    // The card is fixed on screen, so it closes when the page or the calendar scrolls
+    window.addEventListener('scroll', () => closePreview(), true);
+    window.addEventListener('resize', () => closePreview());
+    // KAN-354: "13 tasks · busy 5h" under each date. Busy = time covered by tasks with a time slot
+    // (overlaps counted once; multi-day tasks are not counted as busy all day).
+    function dayLoadText(day, items) {
+        const dayEnd = addDays(day, 1);
+        let count = 0;
+        const ranges = [];
+        for (const item of items) {
+            if (item.startTime) {
+                const start = new Date(item.startTime);
+                const end = item.endTime ? new Date(item.endTime) : new Date(start.getTime() + MARKER_MINUTES * 60000);
+                if (!(start < dayEnd && end > day)) continue;
+                count++;
+                if (item.endTime && !isMultiDay(item)) {
+                    ranges.push([Math.max(start, day), Math.min(end, dayEnd)]);
+                }
+            } else if (isDueRowItem(item) && sameDay(new Date(item.deadline), day)) {
+                count++;
+            }
+        }
+        if (count === 0) return '';
+        ranges.sort((a, b) => a[0] - b[0]);
+        let busy = 0;
+        let until = -Infinity;
+        for (const [start, end] of ranges) {
+            const from = Math.max(start, until);
+            if (end > from) busy += end - from;
+            until = Math.max(until, end);
+        }
+        const minutes = Math.round(busy / 900000) * 15;   // nearest 15 minutes
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        const busyText = h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
+        const tasks = `${count} task${count === 1 ? '' : 's'}`;
+        return minutes > 0 ? `${tasks} · busy ${busyText}` : tasks;
+    }
+
+    // "Sun 16:00"
+    function formatDayTime(date) {
+        return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${formatTime(date)}`;
+    }
+
+    /*
+     * KAN-354: the Multi-day row above the Due row. Each multi-day task is one bar across the
+     * visible days it covers ("←" / "→" when it continues outside the week); bars that share a
+     * day go on separate lines. Returns null when there is nothing to show (no empty row).
+     */
+    function buildMultiDayRow(days, items, conflictMap) {
+        const firstDay = days[0];
+        const afterLastDay = addDays(days[days.length - 1], 1);
+        const bars = items
+            .filter(isMultiDay)
+            .map(item => ({ item, start: new Date(item.startTime), end: new Date(item.endTime) }))
+            .filter(bar => bar.start < afterLastDay && bar.end > firstDay)
+            .map(bar => {
+                const lastMoment = new Date(bar.end.getTime() - 1);
+                const from = bar.start < firstDay ? 0 : days.findIndex(day => sameDay(day, bar.start));
+                const to = bar.end > afterLastDay ? days.length - 1 : days.findIndex(day => sameDay(day, lastMoment));
+                return { ...bar, from, to };
+            })
+            .sort((a, b) => a.from - b.from || b.to - a.to);
+        if (!bars.length) return null;
+
+        const laneEnds = [];
+        for (const bar of bars) {
+            let lane = laneEnds.findIndex(end => end < bar.from);
+            if (lane === -1) {
+                lane = laneEnds.length;
+                laneEnds.push(bar.to);
+            } else {
+                laneEnds[lane] = bar.to;
+            }
+            bar.lane = lane;
+        }
+
+        const row = el('div', 'cal-row cal-multiday');
+        row.style.gridTemplateRows = `repeat(${laneEnds.length}, auto)`;
+        const label = el('div', 'cal-gutter-label', 'Multi-day');
+        label.style.gridColumn = '1';
+        label.style.gridRow = '1 / -1';
+        row.append(label);
+        days.forEach((day, index) => {
+            const cell = el('div', 'cal-multiday-cell');
+            cell.style.gridColumn = String(index + 2);
+            cell.style.gridRow = '1 / -1';
+            row.append(cell);
+        });
+
+        for (const bar of bars) {
+            const { item } = bar;
+            const role = roleOf(item);
+            const node = el('div', `cal-multiday-bar cal-${role} prio-${priorityOf(item)}`);
+            node.style.gridColumn = `${bar.from + 2} / ${bar.to + 3}`;
+            node.style.gridRow = String(bar.lane + 1);
+            const before = bar.start < firstDay ? '← ' : '';
+            const after = bar.end > afterLastDay ? ' →' : '';
+            const when = `${formatDayTime(bar.start)} → ${formatDayTime(bar.end)}`;
+            node.append(
+                el('span', 'cal-multiday-title', `${before}${item.title}${after}`),
+                el('span', 'cal-multiday-time', when)
+            );
+
+            let description = `${item.title}, ${when}, ${roleLabel(role)}, ${priorityOf(item)} priority`;
+            const clashes = item.occurrence ? null : conflictMap.get(item.id);
+            if (clashes && clashes.length) description += `. Conflicts with: ${clashes.join(', ')}`;
+            if (item.status === 'COMPLETED') {
+                node.classList.add('is-completed');
+                description += '. Completed';
+            }
+            if (item.occurrence) {
+                node.classList.add('is-repeat');
+                description += '. Weekly repeat';
+                makeActivatable(node, () => openPreview(item, node));
+            } else {
+                description += '. Click for details';
+                makeActivatable(node, () => openPreview(item, node));
+            }
+            node.title = description;
+            node.setAttribute('aria-label', description);
+            row.append(node);
+        }
+        return row;
+    }
+
+
     // id -> titles of the items it clashes with
     function buildConflictMap(pairs) {
         const map = new Map();
@@ -257,7 +593,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let clusterEnd = -Infinity;
 
         const closeCluster = () => {
-            for (const seg of cluster) seg.lanes = laneEnds.length;
+            const group = {
+                start: Math.min(...cluster.map(s => s.start)),
+                end: Math.max(...cluster.map(s => s.end)),
+                size: cluster.length
+            };
+            for (const seg of cluster) {
+                seg.lanes = laneEnds.length;
+                seg.group = group;   // KAN-354: used for the "N overlap" outline
+            }
             cluster = [];
             laneEnds = [];
         };
@@ -322,12 +666,17 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.classList.toggle('cal-grid--day', days.length === 1);
 
         state.itemsById = new Map(items.map(item => [item.id, item]));
+        const maxLanes = days.length === 1 ? MAX_LANES_DAY : MAX_LANES_WEEK;   // KAN-354
 
         const inner = el('div', 'cal-inner');
 
         // --- Header row: weekday + date ---
         const head = el('div', 'cal-row cal-head');
-        head.append(el('div', 'cal-corner'));
+        // KAN-354: previous / next arrows on the grid itself, so moving doesn't need a scroll back up to the toolbar
+        const unit = state.view === 'day' ? 'day' : 'week';
+        const corner = el('div', 'cal-corner');
+        corner.append(gridArrow('‹', `Previous ${unit}`, 'cal-prev'));
+        head.append(corner, gridArrow('›', `Next ${unit}`, 'cal-next', 'is-next'));
         for (const day of days) {
             const cell = el('div', 'cal-day-head');
             if (sameDay(day, today)) cell.classList.add('is-today');
@@ -335,8 +684,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 el('span', 'cal-dow', day.toLocaleDateString('en-US', { weekday: 'short' })),
                 el('span', 'cal-date', String(day.getDate()))
             );
+            const load = dayLoadText(day, items);   // KAN-354
+            if (load) cell.append(el('span', 'cal-day-load', load));
             head.append(cell);
         }
+
+        // --- KAN-354: Multi-day row (tasks of 24 hours or more), only when there is one ---
+        const multiDayRow = buildMultiDayRow(days, items, conflictMap);
 
         // --- Deadline row: a marker for every deadline that falls on a visible day ---
         const deadlines = el('div', 'cal-row cal-deadlines');
@@ -348,7 +702,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const withDeadline = items
-            .filter(item => item.deadline)
+            .filter(isDueRowItem)
             .map(item => ({ item, due: new Date(item.deadline) }))
             .sort((a, b) => a.due - b.due);
 
@@ -359,14 +713,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const marker = el('div', `cal-deadline-marker cal-${role} prio-${priorityOf(item)}`);
             if (item.status === 'COMPLETED') marker.classList.add('is-completed');
             if (!item.startTime) marker.classList.add('is-unscheduled');
-            marker.append(el('span', 'cal-deadline-text', `${formatTime(due)} ${item.title}`));
+            marker.append(el('span', 'cal-deadline-text', item.title), el('span', 'cal-deadline-time', formatTime(due)));
             const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)}, ${priorityOf(item)} priority)`
-                + (item.startTime ? '. Click to reschedule' : ' — not scheduled yet. Click to schedule');
+                + (item.startTime ? '' : ' — not scheduled yet') + '. Click for details';
             marker.title = label;
             marker.setAttribute('aria-label', label);
-            makeActivatable(marker, () => openScheduleForm({ item }));
+            makeActivatable(marker, () => openPreview(item, marker));
             deadlineCells[index].append(marker);
         }
+
+        // KAN-354: at most DUE_ROW_LIMIT deadlines per day; the rest behind "+N more" (click again for fewer)
+        deadlineCells.forEach(cell => {
+            const markers = [...cell.querySelectorAll('.cal-deadline-marker')];
+            if (markers.length <= DUE_ROW_LIMIT) return;
+            const extra = markers.slice(DUE_ROW_LIMIT);
+            extra.forEach(marker => { marker.hidden = true; });
+            const toggle = el('button', 'cal-deadline-more', `+${extra.length} more`);
+            toggle.type = 'button';
+            toggle.setAttribute('aria-expanded', 'false');
+            toggle.addEventListener('click', event => {
+                event.stopPropagation();
+                const open = toggle.getAttribute('aria-expanded') !== 'true';
+                extra.forEach(marker => { marker.hidden = !open; });
+                toggle.setAttribute('aria-expanded', String(open));
+                toggle.textContent = open ? 'Show fewer' : `+${extra.length} more`;
+            });
+            cell.append(toggle);
+        });
 
         // --- Time grid ---
         const scroll = el('div', 'cal-scroll');
@@ -380,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         body.append(times);
 
-        const timed = items.filter(item => item.startTime).map(item => {
+        const timed = items.filter(item => item.startTime && !isMultiDay(item)).map(item => {
             const start = new Date(item.startTime);
             // START_ONLY markers have no end time: give them a short slot so they lay out like a block
             const end = item.endTime ? new Date(item.endTime) : new Date(start.getTime() + MARKER_MINUTES * 60000);
@@ -417,9 +790,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     end: minutesSince(dayStart, t.end < dayEnd ? t.end : dayEnd)
                 }));
 
-            for (const seg of layoutLanes(segments)) {
+            const laidOut = layoutLanes(segments);
+
+            // KAN-354: at most maxLanes side by side; the rest of a group goes behind "+N more"
+            const hiddenByGroup = new Map();
+            for (const seg of laidOut) {
+                if (seg.lanes <= maxLanes) continue;
+                if (seg.lane >= maxLanes - 1) {
+                    seg.hidden = true;
+                    if (!hiddenByGroup.has(seg.group)) hiddenByGroup.set(seg.group, []);
+                    hiddenByGroup.get(seg.group).push(seg);
+                } else {
+                    seg.lanes = maxLanes;
+                }
+            }
+            const dayIndex = days.indexOf(day);
+            hiddenByGroup.forEach(hidden => {
+                const chip = el('button', 'cal-more', maxLanes === MAX_LANES_WEEK ? `+${hidden.length}` : `+${hidden.length} more`);
+                chip.setAttribute('aria-label', `${hidden.length} more tasks`);
+                chip.type = 'button';
+                chip.style.top = `${hidden[0].start / 60 * HOUR_HEIGHT}px`;
+                chip.style.left = `calc(${((maxLanes - 1) / maxLanes) * 100}% + 2px)`;
+                chip.style.width = `calc(${100 / maxLanes}% - 4px)`;
+                chip.setAttribute('aria-expanded', 'false');
+                chip.title = hidden.map(seg => `${formatTime(seg.realStart)} ${seg.item.title}`).join('\n');
+                chip.addEventListener('click', event => {
+                    event.stopPropagation();
+                    toggleMoreList(chip, hidden, day, dayIndex >= days.length - 2);
+                });
+                column.append(chip);
+            });
+
+            // KAN-354: one calm outline with an "N overlap" label per group of overlapping tasks
+            new Set(laidOut.map(seg => seg.group)).forEach(group => {
+                if (group.size < 2) return;
+                const outline = el('div', 'cal-overlap');
+                outline.style.top = `${group.start / 60 * HOUR_HEIGHT}px`;
+                outline.style.height = `${Math.max((group.end - group.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT)}px`;
+                outline.append(el('span', 'cal-overlap-label', `${group.size} overlap`));
+                if (group.end > 24 * 60 - 15) outline.classList.add('is-at-end');   // label would be cut off below 24:00
+                column.append(outline);
+            });
+
+            for (const seg of laidOut) {
                 earliestMinute = Math.min(earliestMinute, seg.start);
-                column.append(buildEvent(seg, conflictMap));
+                if (!seg.hidden) column.append(buildEvent(seg, conflictMap));   // KAN-354: hidden ones are behind "+N more"
             }
 
             // Current-time line on today's column
@@ -434,7 +849,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         scroll.append(body);
-        inner.append(head, deadlines, scroll);
+        inner.append(head);
+        if (multiDayRow) inner.append(multiDayRow);   // KAN-354
+        inner.append(deadlines, scroll);
         grid.append(inner);
 
         // The body's vertical scrollbar takes width; give the header rows the same space so columns line up
@@ -444,10 +861,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // First load, Today and Day/Week switch: show the first item (one hour before it),
         // or 07:00 when there is nothing. Previous/next keep the hours the user was looking at.
         if (state.scrollPending) {
-            const startHour = Number.isFinite(earliestMinute)
-                ? Math.floor(earliestMinute / 60) - 1
-                : DEFAULT_SCROLL_HOUR;
-            scroll.scrollTop = Math.max(0, startHour) * HOUR_HEIGHT;
+            // KAN-354: start at 07:00 (earlier if a task starts before then); only jump down when
+            // the first task would not be visible from 07:00 at all, e.g. an evening-only week
+            const viewHours = scroll.clientHeight / HOUR_HEIGHT;
+            let startHour = DEFAULT_SCROLL_HOUR;
+            if (Number.isFinite(earliestMinute)) {
+                const firstHour = Math.floor(earliestMinute / 60) - 1;
+                const firstVisibleFrom7 = earliestMinute / 60 < DEFAULT_SCROLL_HOUR + viewHours - 1;
+                startHour = firstVisibleFrom7 ? Math.min(firstHour, DEFAULT_SCROLL_HOUR) : firstHour;
+            }
+            scroll.scrollTop = Math.max(0, startHour * HOUR_HEIGHT - 12);   // KAN-354: a little above the hour, so its label isn't cut in half
             state.scrollPending = false;
         } else {
             scroll.scrollTop = previousScrollTop;
@@ -485,11 +908,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.occurrence) {
                 marker.classList.add('is-repeat');
                 description += '. Weekly repeat';
-                makeActivatable(marker, () => setStatus(
-                    `"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`));
+                makeActivatable(marker, () => openPreview(item, marker));
             } else {
-                description += '. Click to reschedule';
-                makeActivatable(marker, () => openScheduleForm({ item }));
+                description += '. Click for details';
+                makeActivatable(marker, () => openPreview(item, marker));
             }
             marker.title = description;
             marker.setAttribute('aria-label', description);
@@ -518,9 +940,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const clashes = item.occurrence ? null : conflictMap.get(item.id);
         if (clashes && clashes.length) {
             block.classList.add('is-conflict');
-            const badge = el('span', 'cal-conflict-badge', '!');
-            badge.setAttribute('aria-hidden', 'true');
-            block.append(badge);
             description += `. Conflicts with: ${clashes.join(', ')}`;
         }
         if (item.status === 'COMPLETED') {
@@ -532,12 +951,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // A generated repeat is read-only: the series is changed through the original item
             block.classList.add('is-repeat');
             description += '. Weekly repeat';
-            makeActivatable(block, () => setStatus(
-                `"${item.title}" repeats weekly. To change the time of the whole series, click the original (its first date).`));
+            makeActivatable(block, () => openPreview(item, block));
         } else {
             if (item.recurring) description += '. Repeats weekly';
-            description += '. Click to reschedule';
-            makeActivatable(block, () => openScheduleForm({ item }));
+            description += '. Click for details';
+            makeActivatable(block, () => openPreview(item, block));
         }
 
         block.title = description;
@@ -663,7 +1081,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ignore an older response if the user already clicked next/previous again
             if (requestId !== state.requestId) return;
 
-            render(days, items, buildConflictMap(conflicts));
+            state.conflicts = buildConflictMap(conflicts);
+            render(days, items, state.conflicts);
             loadWeekSummary(days, requestId);
             if (state.flash) {
                 setStatus(state.flash.message, state.flash.isError);
