@@ -2079,7 +2079,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     renderSummaryCards();
-
+    renderNotifList(dueReminders);   // KAN-344: due times need the tasks
     // KAN-259: every task change (load, create, edit, complete, delete) ends
     // here, so this is the one place that tells the Tasks page to re-render.
     document.dispatchEvent(new CustomEvent('aalsikke:tasks-loaded'));
@@ -3470,13 +3470,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // GET /api/reminders/due, PATCH /api/reminders/{id}/trigger
   // ============================================================
 
+  // KAN-344: the task's due time, looked up from the loaded tasks.
+  function dueTimeForReminder(reminder) {
+    const task = allTasks.find(t => String(t.id) === String(reminder.scheduleItemId));
+    return task ? (task.deadline || task.endTime || null) : null;
+  }
+
+  function removeReminderFromBell(id, li) {
+    dueReminders = dueReminders.filter(r => String(r.id) !== String(id));
+    li.remove();
+    updateNotifBadge();
+    if (notifEmpty) notifEmpty.hidden = notifList.children.length !== 0;
+  }
+
   function renderNotifList(reminders) {
     if (!notifList) return;
     notifList.innerHTML = '';
 
-    if (notifEmpty) {
-      notifEmpty.hidden = reminders.length !== 0;
-    }
+    if (notifEmpty) notifEmpty.hidden = reminders.length !== 0;
 
     reminders.forEach(reminder => {
       const li = document.createElement('li');
@@ -3484,22 +3495,49 @@ document.addEventListener('DOMContentLoaded', () => {
       li.dataset.id = reminder.id;
 
       const title = reminder.scheduleItemTitle || 'Reminder';
+      const dueIso = dueTimeForReminder(reminder);
 
       li.innerHTML = `
         <div class="notif-item-body">
           <p class="notif-item-title">${escapeHtml(title)}</p>
-          <span class="notif-item-time">Due ${escapeHtml(formatDue(reminder.remindAt))}</span>
+          <span class="notif-item-time">Reminder · ${escapeHtml(formatDue(reminder.remindAt))}</span>
+          ${dueIso ? `<span class="notif-item-time">Due ${escapeHtml(formatDue(dueIso))}</span>` : ''}
         </div>
-        <button type="button" class="notif-dismiss-btn" aria-label="Dismiss reminder">&#10003;</button>
+        <div class="notif-item-actions">
+          <button type="button" class="notif-snooze-btn" aria-label="Snooze 10 minutes">Snooze 10 min</button>
+          <button type="button" class="notif-dismiss-btn" aria-label="Dismiss reminder">&#10003;</button>
+        </div>
       `;
 
-      const dismissBtn = li.querySelector('.notif-dismiss-btn');
-      if (dismissBtn) {
-        dismissBtn.addEventListener('click', () => dismissReminder(reminder.id, li));
-      }
+      li.querySelector('.notif-dismiss-btn')
+          ?.addEventListener('click', () => dismissReminder(reminder.id, li));
+      li.querySelector('.notif-snooze-btn')
+          ?.addEventListener('click', () => snoozeReminder(reminder.id, li, 10));
 
       notifList.appendChild(li);
     });
+  }
+
+  async function snoozeReminder(id, li, minutes = 10) {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/reminders/${id}/snooze`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes })
+      });
+
+      if (!response.ok) {
+        const data = await readJsonSafely(response);
+        showToast((data && data.message) || 'Could not snooze the reminder.', { type: 'error' });
+        return;
+      }
+
+      removeReminderFromBell(id, li);   // it comes back when its new time arrives
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Failed to snooze reminder:', error);
+      showToast('Could not snooze the reminder.', { type: 'error' });
+    }
   }
 
   function updateNotifBadge() {
@@ -3534,13 +3572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(`Server responded ${response.status}`);
       }
 
-      dueReminders = dueReminders.filter(reminder => String(reminder.id) !== String(id));
-      li.remove();
-      updateNotifBadge();
-
-      if (notifEmpty) {
-        notifEmpty.hidden = notifList.children.length !== 0;
-      }
+      removeReminderFromBell(id, li);
 
     } catch (error) {
       if (error.sessionExpired) return;
@@ -3636,4 +3668,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadProfile();
   loadTasks();// renders the loading skeletons first, then the numbers
   loadDueReminders();
+
+  // KAN-351: keep the bell fresh without a reload
+  setInterval(() => { if (!document.hidden) loadDueReminders(); }, 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) loadDueReminders();
+  });
 });

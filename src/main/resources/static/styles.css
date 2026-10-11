@@ -1327,6 +1327,15 @@ select:focus-visible {
   color: var(--slate-light);
 }
 
+.notif-item-time { display: block; }
+.notif-item-actions { display: flex; align-items: center; gap: 0.5rem; }
+.notif-snooze-btn {
+  font-size: 0.75rem; padding: 0.25rem 0.5rem; cursor: pointer;
+  border: 1px solid currentColor; border-radius: 6px;
+  background: transparent; color: inherit;
+  white-space: nowrap;
+}
+
 .notif-dismiss-btn {
   flex-shrink: 0;
   width: 1.75rem;

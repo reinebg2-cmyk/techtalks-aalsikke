@@ -62,6 +62,11 @@ public class ReminderService {
                     return toResponse(reminderRepository.save(reminder));
                 });
     }
+    /** KAN-346: postpone a reminder. Same rules as editing it (task window, 10-minute gap). */
+    @Transactional
+    public Optional<ReminderResponseDTO> snoozeReminder(UUID id, int minutes, String email) {
+        return updateReminder(id, new UpdateReminderRequest(OffsetDateTime.now().plus(Duration.ofMinutes(minutes))), email);
+    }
 
     @Transactional
     public boolean deleteReminder(UUID id, String email) {

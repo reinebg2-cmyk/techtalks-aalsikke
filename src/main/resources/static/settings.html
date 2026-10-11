@@ -14,7 +14,11 @@
 
     <!-- Top bar -->
     <header class="topbar dash-topbar">
-        <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
+        <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard">
+            <svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke">
+                <use href="logo-sprite.svg#aal-logo"/>
+            </svg>
+        </a>
         <div class="topbar-actions">
             <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
             <div class="profile-menu" id="notif-menu">
@@ -86,7 +90,9 @@
                         <h2>Profile</h2>
                         <p class="card-subtitle">Your name, username and contact details.</p>
                     </div>
-                    <button type="button" class="btn-secondary settings-panel-action" id="sidebar-profile-btn">Edit profile</button>
+                    <button type="button" class="btn-secondary settings-panel-action" id="sidebar-profile-btn">Edit
+                        profile
+                    </button>
                 </div>
             </section>
 
@@ -97,7 +103,9 @@
                         <h2>Password</h2>
                         <p class="card-subtitle">Update the password you use to sign in.</p>
                     </div>
-                    <button type="button" class="btn-secondary settings-panel-action" id="settings-change-password-btn">Change password</button>
+                    <button type="button" class="btn-secondary settings-panel-action" id="settings-change-password-btn">
+                        Change password
+                    </button>
                 </div>
             </section>
 
@@ -108,7 +116,9 @@
                         <h2>Manage Notifications</h2>
                         <p class="card-subtitle">Configure WhatsApp and SMS delivery channels for your alerts.</p>
                     </div>
-                    <button type="button" class="btn-secondary settings-panel-action" id="settings-notif-prefs-btn">Event alerts</button>
+                    <button type="button" class="btn-secondary settings-panel-action" id="settings-notif-prefs-btn">
+                        Event alerts
+                    </button>
                 </div>
 
                 <form id="channel-prefs-form" style="margin-top: 1.5rem;">
@@ -175,7 +185,8 @@
             <section class="card settings-panel" id="settings-palette-panel">
                 <div>
                     <h2>Color palette</h2>
-                    <p class="card-subtitle">Pick the accent colors Aal Sikke uses everywhere. Works with both light and dark mode.</p>
+                    <p class="card-subtitle">Pick the accent colors Aal Sikke uses everywhere. Works with both light and
+                        dark mode.</p>
                 </div>
                 <div class="palette-grid" id="palette-grid" role="radiogroup" aria-label="Color palette"></div>
                 <p class="modal-message is-error" id="palette-message" role="alert"></p>
@@ -226,18 +237,21 @@
             <div class="form-grid">
                 <div class="field" id="field-profile-fullname">
                     <label for="profile-fullname">Full name</label>
-                    <div class="input-wrap"><input id="profile-fullname" type="text" autocomplete="name" maxlength="255"></div>
+                    <div class="input-wrap"><input id="profile-fullname" type="text" autocomplete="name"
+                                                   maxlength="255"></div>
                     <p class="hint error-text" role="alert"></p>
                 </div>
                 <div class="field">
                     <label for="profile-username">Username</label>
-                    <div class="input-wrap"><input id="profile-username" type="text" readonly aria-readonly="true"></div>
+                    <div class="input-wrap"><input id="profile-username" type="text" readonly aria-readonly="true">
+                    </div>
                 </div>
             </div>
 
             <div class="field" id="field-profile-email">
                 <label for="profile-email">Email</label>
-                <div class="input-wrap"><input id="profile-email" type="email" autocomplete="email" maxlength="255"></div>
+                <div class="input-wrap"><input id="profile-email" type="email" autocomplete="email" maxlength="255">
+                </div>
                 <p class="hint error-text" role="alert"></p>
             </div>
 
@@ -248,14 +262,16 @@
                 </div>
                 <div class="field" id="field-profile-phone">
                     <label for="profile-phone">Phone number</label>
-                    <div class="input-wrap"><input id="profile-phone" type="tel" autocomplete="tel" maxlength="50"></div>
+                    <div class="input-wrap"><input id="profile-phone" type="tel" autocomplete="tel" maxlength="50">
+                    </div>
                     <p class="hint error-text" role="alert"></p>
                 </div>
             </div>
 
             <div class="field" id="field-profile-current-password">
                 <label for="profile-current-password">Current password <span class="role-hint">(only needed to change your name, email or phone)</span></label>
-                <div class="input-wrap"><input id="profile-current-password" type="password" autocomplete="current-password"></div>
+                <div class="input-wrap"><input id="profile-current-password" type="password"
+                                               autocomplete="current-password"></div>
                 <p class="hint error-text" role="alert"></p>
             </div>
 

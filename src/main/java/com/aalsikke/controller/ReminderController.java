@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.aalsikke.dto.UpdateReminderRequest;
+import com.aalsikke.dto.SnoozeReminderRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +45,20 @@ public class ReminderController {
         }
         return ResponseEntity.status(403).build();
     }
+    /** KAN-346: postpone a reminder instead of dismissing it. */
+    @PatchMapping("/{id}/snooze")
+    public ResponseEntity<ReminderResponseDTO> snoozeReminder(@PathVariable UUID id,
+                                                              @RequestBody(required = false) SnoozeReminderRequest request,
+                                                              Authentication authentication) {
+        int minutes = (request == null || request.minutes() == null) ? 10 : request.minutes();
+        if (minutes < 1 || minutes > 1440) {
+            return ResponseEntity.badRequest().build();
+        }
+        return reminderService.snoozeReminder(id, minutes, authentication.getName())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ReminderResponseDTO> updateReminder(@PathVariable UUID id,
                                                               @RequestBody UpdateReminderRequest request,

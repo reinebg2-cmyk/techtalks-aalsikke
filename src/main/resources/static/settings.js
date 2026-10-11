@@ -6,13 +6,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const $ = id => document.getElementById(id);
 
-  // ---- Panel button opens the shared password modal ----
-  function openModal(id) {
-    const modal = $(id);
-    if (modal) modal.hidden = false;
-  }
-  $('settings-change-password-btn')?.addEventListener('click', () => openModal('password-modal'));
-
   // ---- WhatsApp / SMS channel preferences (KAN-314) ----
   const form = $('channel-prefs-form');
   if (!form) return;
@@ -52,16 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function showMessage(text, type = '') {
     message.textContent = text;
     message.className = `modal-message${type ? ` is-${type}` : ''}`;
-  }
-
-  let toastTimer;
-  function showToast(text) {
-    const toast = $('toast');
-    if (!toast) return;
-    toast.textContent = text;
-    toast.classList.add('is-visible', 'show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('is-visible', 'show'), 4000);
   }
 
   // Only allow a primary channel that is switched on
@@ -104,6 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     showMessage('');
-    showToast('Notification channels saved.');
+    window.AalSikke.showToast('Notification channels saved.');
   });
 });
