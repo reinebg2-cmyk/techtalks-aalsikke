@@ -181,7 +181,7 @@
         if (!section || !section.box.checked) return true;
         const problem = problemWith(section.read(), payload && payload.startTime, payload && payload.endTime);
         if (problem) {
-            alert(problem);
+            window.AalSikke.showToast(problem, { type: 'error' });
             return false;
         }
         return true;
@@ -220,7 +220,7 @@
         } catch (error) {
             if (error && error.sessionExpired) return;
             console.error('Weekly repeat could not be saved:', error);
-            alert(`The task was saved, but the weekly repeat could not be saved.\n\n${error.message}`);
+            window.AalSikke.showToast(`The task was saved, but the weekly repeat could not be saved. ${error.message}`, { type: 'error' });
         }
     }
 
