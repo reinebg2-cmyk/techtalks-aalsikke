@@ -2,7 +2,9 @@ package com.aalsikke.service;
 
 import com.aalsikke.exception.InvalidCurrentPasswordException;
 import com.aalsikke.mail.EmailSender;
+import com.aalsikke.model.ChecklistItem;
 import com.aalsikke.model.User;
+import com.aalsikke.repository.ChecklistItemRepository;
 import com.aalsikke.repository.CourseRepository;
 import com.aalsikke.repository.DailyReviewRepository;
 import com.aalsikke.repository.NotificationPreferenceRepository;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,7 +51,7 @@ class AccountServiceTest {
         emailSender = mock(EmailSender.class);
         service = new AccountService(users, mock(ScheduleItemRepository.class), mock(RecurrenceRuleRepository.class),
                 mock(CourseRepository.class), mock(WorkplaceRepository.class), mock(DailyReviewRepository.class),
-                mock(NotificationRepository.class), mock(NotificationPreferenceRepository.class),
+                mock(NotificationRepository.class), mock(NotificationPreferenceRepository.class), mock(ChecklistItemRepository.class),
                 encoder, emailSender);
 
         user = new User();
@@ -108,6 +111,31 @@ class AccountServiceTest {
     @Test
     void exportFileName() {
         assertEquals("aal-sikke-data-2026-10-10.json", AccountService.exportFileName(LocalDate.of(2026, 10, 10)));
+    }
+
+    @Test
+    void checklistStepsAreExportedInOrderWithTheirDoneFlag() {
+        List<Map<String, Object>> steps = AccountService.checklistOf(List.of(
+                step("Review answers", false, 2),
+                step("Read notes", true, 0),
+                step("Solve exercises", false, 1)));
+
+        assertEquals(3, steps.size());
+        assertEquals("Read notes", steps.get(0).get("text"));
+        assertEquals(true, steps.get(0).get("done"));
+        assertEquals("Solve exercises", steps.get(1).get("text"));
+        assertEquals("Review answers", steps.get(2).get("text"));
+        assertEquals(false, steps.get(2).get("done"));
+        assertEquals(List.of("text", "done"), List.copyOf(steps.get(0).keySet()));
+        assertTrue(AccountService.checklistOf(List.of()).isEmpty());
+    }
+
+    private static ChecklistItem step(String text, boolean done, int position) {
+        ChecklistItem item = new ChecklistItem();
+        item.setText(text);
+        item.setDone(done);
+        item.setPosition(position);
+        return item;
     }
 
     @Test

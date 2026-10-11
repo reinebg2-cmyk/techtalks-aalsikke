@@ -2,6 +2,7 @@ package com.aalsikke.service;
 
 import com.aalsikke.exception.InvalidCurrentPasswordException;
 import com.aalsikke.mail.EmailSender;
+import com.aalsikke.model.ChecklistItem;
 import com.aalsikke.model.Course;
 import com.aalsikke.model.DailyReview;
 import com.aalsikke.model.Notification;
@@ -10,6 +11,7 @@ import com.aalsikke.model.Reminder;
 import com.aalsikke.model.ScheduleItem;
 import com.aalsikke.model.User;
 import com.aalsikke.model.Workplace;
+import com.aalsikke.repository.ChecklistItemRepository;
 import com.aalsikke.repository.CourseRepository;
 import com.aalsikke.repository.DailyReviewRepository;
 import com.aalsikke.repository.NotificationPreferenceRepository;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,7 @@ public class AccountService {
     private final DailyReviewRepository dailyReviewRepository;
     private final NotificationRepository notificationRepository;
     private final NotificationPreferenceRepository notificationPreferenceRepository;
+    private final ChecklistItemRepository checklistItemRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailSender emailSender;
 
@@ -62,6 +66,7 @@ public class AccountService {
                           DailyReviewRepository dailyReviewRepository,
                           NotificationRepository notificationRepository,
                           NotificationPreferenceRepository notificationPreferenceRepository,
+                          ChecklistItemRepository checklistItemRepository,
                           PasswordEncoder passwordEncoder,
                           EmailSender emailSender) {
         this.userRepository = userRepository;
@@ -72,6 +77,7 @@ public class AccountService {
         this.dailyReviewRepository = dailyReviewRepository;
         this.notificationRepository = notificationRepository;
         this.notificationPreferenceRepository = notificationPreferenceRepository;
+        this.checklistItemRepository = checklistItemRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailSender = emailSender;
     }
@@ -85,6 +91,8 @@ public class AccountService {
 
         Map<UUID, RecurrenceRule> repeatByTask = recurrenceRuleRepository.findAllForUser(userId).stream()
                 .collect(Collectors.toMap(rule -> rule.getScheduleItem().getId(), Function.identity(), (a, b) -> a));
+        Map<UUID, List<ChecklistItem>> stepsByTask = checklistItemRepository.findAllForUser(userId).stream()
+                .collect(Collectors.groupingBy(step -> step.getScheduleItem().getId()));
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("format", "aal-sikke-export-v1");
@@ -101,7 +109,7 @@ public class AccountService {
         data.put("courses", courseRepository.findByUserId(userId).stream().map(AccountService::courseOf).toList());
         data.put("workplaces", workplaceRepository.findByUserId(userId).stream().map(AccountService::workplaceOf).toList());
         data.put("tasks", scheduleItemRepository.findByUserId(userId).stream()
-                .map(item -> taskOf(item, repeatByTask.get(item.getId())))
+                .map(item -> taskOf(item, repeatByTask.get(item.getId()), stepsByTask.getOrDefault(item.getId(), List.of())))
                 .toList());
         data.put("dailyReviews", dailyReviewRepository.findByUserIdOrderByReviewDateAsc(userId).stream()
                 .map(AccountService::reviewOf).toList());
@@ -131,7 +139,7 @@ public class AccountService {
                 "createdAt", user.getCreatedAt());
     }
 
-    private static Map<String, Object> taskOf(ScheduleItem item, RecurrenceRule repeat) {
+    private static Map<String, Object> taskOf(ScheduleItem item, RecurrenceRule repeat, List<ChecklistItem> steps) {
         List<Map<String, Object>> reminders = item.getReminders().stream()
                 .map(AccountService::reminderOf).toList();
         return fields(
@@ -148,6 +156,7 @@ public class AccountService {
                 "workplace", item.getWorkplace() != null ? item.getWorkplace().getCompanyName() : null,
                 "remindersOn", item.isReminderEnabled(),
                 "reminders", reminders,
+                "checklist", checklistOf(steps),
                 "weeklyRepeat", repeat == null ? null : fields(
                         "daysOfWeek", repeat.getDaysOfWeek(),
                         "everyWeeks", repeat.getIntervalValue(),
@@ -161,6 +170,14 @@ public class AccountService {
                 "halfwayReminder", reminder.isDefaultReminder(),
                 "shown", reminder.isTriggered(),
                 "emailedAt", reminder.getEmailedAt());
+    }
+
+    /** KAN-355: a task's checklist steps in display order, as {text, done}. No steps gives an empty list, never null. */
+    static List<Map<String, Object>> checklistOf(List<ChecklistItem> steps) {
+        return steps.stream()
+                .sorted(Comparator.comparingInt(ChecklistItem::getPosition))
+                .map(step -> fields("text", step.getText(), "done", step.isDone()))
+                .toList();
     }
 
     private static Map<String, Object> courseOf(Course course) {
