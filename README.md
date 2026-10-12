@@ -4,6 +4,45 @@ Spring Boot productivity application.
 
 
 
+## Testing emails locally (Mailpit)
+
+By default the app sends no emails: verification links are only written to the console by `LoggingEmailSender`, for example:
+
+```
+[EMAIL] Verify you@test.com -> http://localhost:8080/verify-email.html?token=...
+```
+
+The other mail defaults are for Gmail (port 587, SMTP login and STARTTLS required). Mailpit runs on your own machine without login or encryption, so it fails with those defaults.
+
+To send real emails to Mailpit:
+
+1. Start Mailpit by running `mailpit.exe` from the folder where you installed it. The inbox is at http://localhost:8025 and SMTP listens on port 1025.
+2. Start the app with these 5 environment variables:
+
+   | Variable | Value |
+   | --- | --- |
+   | `MAIL_ENABLED` | `true` |
+   | `MAIL_HOST` | `localhost` |
+   | `MAIL_PORT` | `1025` |
+   | `MAIL_SMTP_AUTH` | `false` |
+   | `MAIL_STARTTLS` | `false` |
+
+   In PowerShell (the variables only last for that window):
+
+   ```powershell
+   $env:MAIL_ENABLED='true'; $env:MAIL_HOST='localhost'; $env:MAIL_PORT='1025'; $env:MAIL_SMTP_AUTH='false'; $env:MAIL_STARTTLS='false'; ./mvnw spring-boot:run "-Dspring-boot.run.profiles=local"
+   ```
+
+   In IntelliJ: Run → Edit Configurations → Environment variables:
+
+   ```
+   MAIL_ENABLED=true;MAIL_HOST=localhost;MAIL_PORT=1025;MAIL_SMTP_AUTH=false;MAIL_STARTTLS=false
+   ```
+
+3. Register a new account. The `[EMAIL]` line no longer appears in the console, and the verification email shows up in Mailpit.
+
+To send through a real Gmail account instead, set `MAIL_ENABLED=true`, `MAIL_USERNAME` and `MAIL_PASSWORD` (a Gmail app password) and keep the other defaults.
+
 ## API decisions
 
 ### Updating a schedule item: `PUT /api/schedule-items/{id}` is a partial update
