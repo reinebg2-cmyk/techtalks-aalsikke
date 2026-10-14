@@ -188,4 +188,49 @@ public class SmtpEmailSender implements EmailSender {
                 </div>
                 """.formatted(safe, safe);
     }
+    @Override
+    public void sendPasswordResetEmail(String to, String resetLink) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(from, "Aal Sikke");
+            helper.setTo(to);
+            helper.setSubject("Reset your Aal Sikke password");
+            helper.setText(resetText(resetLink), resetHtml(resetLink));
+            mailSender.send(message);
+            log.info("[EMAIL] Password reset email sent to {}", to);
+        } catch (MailException | MessagingException | java.io.UnsupportedEncodingException e) {
+            // Silent for the user (so the response never reveals whether the account exists).
+            log.error("[EMAIL] Could not send password reset email to {}: {}", to, e.getMessage());
+        }
+    }
+
+    private static String resetText(String link) {
+        return """
+                We received a request to reset your Aal Sikke password.
+ 
+                Choose a new password by opening this link:
+                %s
+ 
+                The link is valid for 30 minutes and works once.
+                If you didn't ask for this, you can ignore this email. Your password will not change.
+                """.formatted(link);
+    }
+
+    private static String resetHtml(String link) {
+        String safe = HtmlUtils.htmlEscape(link);
+        return """
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1f2937">
+                  <h2 style="color:#2C6E9E">Reset your password</h2>
+                  <p>We received a request to reset your Aal Sikke password. Choose a new one with the button below.</p>
+                  <p style="margin:24px 0">
+                    <a href="%s" style="background:#2C6E9E;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Reset my password</a>
+                  </p>
+                  <p style="font-size:13px;color:#6b7280">Or copy this link into your browser:<br>%s</p>
+                  <p style="font-size:13px;color:#6b7280">The link is valid for 30 minutes and works once.
+                  If you didn't ask for this, you can ignore this email. Your password will not change.</p>
+                </div>
+                """.formatted(safe, safe);
+    }
+
 }

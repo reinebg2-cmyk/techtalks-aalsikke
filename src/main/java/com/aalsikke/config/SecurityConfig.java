@@ -48,9 +48,13 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/verify-email",        // KAN-262
-                                "/api/auth/resend-verification", // KAN-262
+                                "/api/auth/resend-verification",// KAN-262
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
                                 "/register.html",
-                                "/verify-email.html",            // KAN-262
+                                "/verify-email.html",// KAN-262
+                                "/forgot-password.html",
+                                "/reset-password.html",
                                 "/login.html",
                                 "/dashboard.html",
                                 "/calendar.html",
