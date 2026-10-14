@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const VIEW_KEY = 'aalsikke_board_view';
 
-    const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY']);
-    const WORK_TYPES = new Set(['SHIFT']);
+    const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY', 'PROJECT', 'QUIZ', 'LAB', 'PRESENTATION']);
+    const WORK_TYPES = new Set(['SHIFT', 'MEETING', 'WORK_TASK', 'PAYMENT_DUE']);
 
     const PRIORITY_RANK = { LOW: 1, MEDIUM: 2, HIGH: 3, URGENT: 4 };
 
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function titleCase(value) {
-        const text = String(value || '').toLowerCase();
+        const text = String(value || '').toLowerCase().replace(/_/g, ' ');
         return text.charAt(0).toUpperCase() + text.slice(1);
     }
 

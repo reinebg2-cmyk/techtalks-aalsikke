@@ -339,7 +339,31 @@
         <div class="field"><label for="edit-task-priority">Priority</label><div class="input-wrap"><select id="edit-task-priority"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select></div></div>
       </div>
       <div class="form-grid">
-        <div class="field"><label for="edit-task-category">Category / role</label><div class="input-wrap"><select id="edit-task-category"><option value="ASSIGNMENT">Assignment</option><option value="EXAM">Exam</option><option value="CLASS">Class</option><option value="STUDY">Study</option><option value="SHIFT">Work shift</option><option value="PERSONAL">Personal</option></select></div></div>
+        <div class="field"><label for="edit-task-category">Category / role</label><div class="input-wrap"><select id="edit-task-category">
+          <optgroup label="Student">
+            <option value="ASSIGNMENT">Assignment</option>
+            <option value="EXAM">Exam</option>
+            <option value="CLASS">Class</option>
+            <option value="STUDY">Study</option>
+            <option value="PROJECT">Project</option>
+            <option value="QUIZ">Quiz</option>
+            <option value="LAB">Lab</option>
+            <option value="PRESENTATION">Presentation</option>
+          </optgroup>
+          <optgroup label="Work">
+            <option value="SHIFT">Shift</option>
+            <option value="MEETING">Meeting</option>
+            <option value="WORK_TASK">Work task</option>
+            <option value="PAYMENT_DUE">Payment due</option>
+          </optgroup>
+          <optgroup label="Personal">
+            <option value="PERSONAL">Personal</option>
+            <option value="APPOINTMENT">Appointment</option>
+            <option value="ERRAND">Errand</option>
+            <option value="EVENT">Event</option>
+          </optgroup>
+        </select></div>
+        </div>
         <div class="field"><label for="edit-task-status">Status</label><div class="input-wrap"><select id="edit-task-status"><option value="PENDING">Pending</option><option value="COMPLETED">Completed</option></select></div></div>
       </div>
 
