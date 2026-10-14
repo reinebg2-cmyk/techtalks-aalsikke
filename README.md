@@ -43,6 +43,48 @@ To send real emails to Mailpit:
 
 To send through a real Gmail account instead, set `MAIL_ENABLED=true`, `MAIL_USERNAME` and `MAIL_PASSWORD` (a Gmail app password) and keep the other defaults.
 
+## Running with Docker / production (KAN-358, KAN-359)
+
+The `prod` profile (`application-prod.properties`) reads all configuration from environment variables; nothing secret is in git. If a required variable is missing or empty, the app refuses to start and names the missing ones.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DB_URL` | yes | JDBC format: `jdbc:postgresql://host:5432/dbname?sslmode=require` (not `postgres://...`) |
+| `DB_USERNAME` | yes | |
+| `DB_PASSWORD` | yes | |
+| `JWT_SECRET` | yes | Random, at least 32 characters. Changing it logs everyone out. |
+| `APP_BASE_URL` | yes | Public address used in email links, e.g. `https://your-domain` (no trailing slash) |
+| `MAIL_USERNAME` | yes | SMTP login (Gmail: the full Gmail address) |
+| `MAIL_PASSWORD` | yes | SMTP password (Gmail: an App Password, not the account password) |
+| `MAIL_FROM` | yes | Sender shown to users; must be an email address |
+| `MAIL_HOST` / `MAIL_PORT` | no | Default `smtp.gmail.com` / `587` |
+| `PORT` | no | Default `8080` (some platforms set it themselves) |
+| `DB_POOL_SIZE` | no | Default `5` |
+
+**Generate a JWT secret** (PowerShell, cryptographically random):
+
+```powershell
+$b = New-Object byte[] 48; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); [Convert]::ToBase64String($b)
+```
+
+**Gmail App Password:** the sending Gmail account needs 2-Step Verification turned on. Then search for "App passwords" in the Google Account settings, create one, and use it as `MAIL_PASSWORD`.
+
+**Build and run the image locally:**
+
+```powershell
+docker build -t aalsikke:local .
+```
+
+Set the variables in the same PowerShell window (`$env:DB_URL = "..."` and so on), then pass them by name so no secret appears in the command:
+
+```powershell
+docker run --rm -p 8080:8080 -e DB_URL -e DB_USERNAME -e DB_PASSWORD -e JWT_SECRET -e APP_BASE_URL -e MAIL_HOST -e MAIL_PORT -e MAIL_SMTP_AUTH -e MAIL_STARTTLS -e MAIL_USERNAME -e MAIL_PASSWORD -e MAIL_FROM aalsikke:local
+```
+
+Inside the container, `localhost` is the container itself: use `host.docker.internal` to reach PostgreSQL or Mailpit on your machine. With Mailpit, set `MAIL_HOST=host.docker.internal`, `MAIL_PORT=1025`, `MAIL_SMTP_AUTH=false`, `MAIL_STARTTLS=false`, and any non-empty `MAIL_USERNAME` / `MAIL_PASSWORD`.
+
+On an empty database Flyway runs every migration from V1 on the first start; later starts only run new migrations, so data is kept across deploys.
+
 ## API decisions
 
 ### Updating a schedule item: `PUT /api/schedule-items/{id}` is a partial update
