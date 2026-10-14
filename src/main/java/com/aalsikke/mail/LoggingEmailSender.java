@@ -27,4 +27,9 @@ public class LoggingEmailSender implements EmailSender {
     public void sendSecurityAlert(String to, String name, String title, String detail) {
         log.info("[EMAIL] Security alert to {}: {} - {}", to, title, detail);
     }
+
+    @Override
+    public void sendPasswordResetEmail(String to, String resetLink) {
+        log.info("[EMAIL] Password reset link for {}: {}", to, resetLink);
+    }
 }

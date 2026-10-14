@@ -21,4 +21,6 @@ public interface EmailSender {
      * Never throws: the change itself has already happened and must not fail because of email.
      */
     void sendSecurityAlert(String to, String name, String title, String detail);
+
+    void sendPasswordResetEmail(String to, String resetLink);
 }
