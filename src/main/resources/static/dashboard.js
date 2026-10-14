@@ -188,11 +188,18 @@ document.addEventListener('DOMContentLoaded', () => {
     'ASSIGNMENT',
     'EXAM',
     'CLASS',
-    'STUDY'
+    'STUDY',
+    'PROJECT',
+    'QUIZ',
+    'LAB',
+    'PRESENTATION'
   ]);
 
   const workTypes = new Set([
-    'SHIFT'
+    'SHIFT',
+    'MEETING',
+    'WORK_TASK',
+    'PAYMENT_DUE'
   ]);
 
   // ============================================================
@@ -864,15 +871,25 @@ document.addEventListener('DOMContentLoaded', () => {
       'ASSIGNMENT',
       'EXAM',
       'CLASS',
-      'STUDY'
+      'STUDY',
+      'PROJECT',
+      'QUIZ',
+      'LAB',
+      'PRESENTATION'
     ];
 
     const workOptions = [
-      'SHIFT'
+      'SHIFT',
+      'MEETING',
+      'WORK_TASK',
+      'PAYMENT_DUE'
     ];
 
     const sharedOptions = [
-      'PERSONAL'
+      'PERSONAL',
+       'APPOINTMENT',
+       'ERRAND',
+       'EVENT'
     ];
 
     let visibleValues;
@@ -907,6 +924,11 @@ document.addEventListener('DOMContentLoaded', () => {
           option.hidden =
               !visibleValues.includes(option.value);
         });
+
+    // hide a role group with no visible option left (e.g. "Student" for a Work user)
+    categorySelect.querySelectorAll('optgroup').forEach(group => {
+      group.hidden = !Array.from(group.children).some(option => !option.hidden);
+    });
 
     const selected =
         categorySelect.selectedOptions[0];

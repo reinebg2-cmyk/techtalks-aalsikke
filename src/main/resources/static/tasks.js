@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY']);
-    const WORK_TYPES = new Set(['SHIFT']);
+    const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY', 'PROJECT', 'QUIZ', 'LAB', 'PRESENTATION']);
+    const WORK_TYPES = new Set(['SHIFT', 'MEETING', 'WORK_TASK', 'PAYMENT_DUE']);
 
     // Display order. Completed starts collapsed so the page stays focused.
     const GROUPS = [

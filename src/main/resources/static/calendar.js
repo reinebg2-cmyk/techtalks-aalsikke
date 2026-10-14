@@ -20,8 +20,8 @@
 // would be a "has already been declared" SyntaxError.
 
 // Same grouping as the dashboard (dashboard.js roleForTask)
-const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY']);
-const WORK_TYPES = new Set(['SHIFT']);
+const STUDENT_TYPES = new Set(['ASSIGNMENT', 'EXAM', 'CLASS', 'STUDY','PROJECT', 'QUIZ', 'LAB', 'PRESENTATION']);
+const WORK_TYPES = new Set(['SHIFT', 'MEETING', 'WORK_TASK', 'PAYMENT_DUE']);
 
 const HOUR_HEIGHT = 48;       // px per hour; must match --cal-hour in calendar.css
 const MIN_EVENT_HEIGHT = 22;  // px, so very short items stay readable
