@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="theme-init.js"></script>
+  <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+  <title>Aal Sikke — Registration</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="screen">
+
+  <div class="topbar">
+    <button class="back-btn" aria-label="Go back">&#8592;</button>
+    <a class="brand" href="index.html" aria-label="Aal Sikke home"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
+    <div class="topbar-end">
+      <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
+      <a href="#" class="help-link">Help</a>
+    </div>
+  </div>
+
+  <div class="intro">
+    <h1>Create your workspace</h1>
+    <p>Organize coursework, schedules, and deadlines in one application</p>
+  </div>
+
+  <form class="card" id="register-form" novalidate>
+    <h2 class="field-label" style="margin-bottom:0;">I am using Aal Sikke primarily for:</h2>
+    <div class="segmented" role="radiogroup" aria-label="Primary use">
+      <input type="radio" name="role" id="role-student" value="student" checked>
+      <label for="role-student">Student</label>
+      <input type="radio" name="role" id="role-work" value="work">
+      <label for="role-work">Work</label>
+      <input type="radio" name="role" id="role-hybrid" value="hybrid">
+      <label for="role-hybrid">Hybrid</label>
+    </div>
+
+    <div class="field" id="field-fullname">
+      <label for="fullname">Full name</label>
+      <div class="input-wrap">
+        <input type="text" id="fullname" name="fullname" placeholder="Alex Chen" autocomplete="name" required>
+        <span class="icon-status success">&#10003;</span>
+      </div>
+    </div>
+
+    <div class="field" id="field-username">
+      <label for="username">Username</label>
+      <div class="input-wrap">
+        <input type="text" id="username" name="username" placeholder="alexchen" autocomplete="username" required>
+        <span class="icon-status success">&#10003;</span>
+        <span class="icon-status error">!</span>
+      </div>
+      <p class="hint error-text">This username is already taken.</p>
+    </div>
+
+    <div class="field" id="field-dob">
+      <label for="dob">Date of birth</label>
+      <div class="input-wrap">
+        <input type="date" id="dob" name="dob" required>
+        <span class="icon-status success">&#10003;</span>
+        <span class="icon-status error">!</span>
+      </div>
+      <p class="hint error-text">You must be at least 13 years old to register.</p>
+    </div>
+
+    <div class="field" id="field-email">
+      <label for="email">Email address</label>
+      <div class="input-wrap">
+        <input type="email" id="email" name="email" placeholder="alex.chen@university.edu" autocomplete="email" required>
+        <span class="icon-status success">&#10003;</span>
+        <span class="icon-status error">!</span>
+      </div>
+      <p class="hint error-text">This email is already registered. Try logging in.</p>
+    </div>
+
+    <div class="field" id="field-phone">
+      <label for="phone">Phone number</label>
+      <div class="phone-row">
+        <div class="input-wrap">
+          <select id="phone-code" name="phone-code">
+            <option>US +1</option>
+            <option>UK +44</option>
+            <option>LB +961</option>
+          </select>
+        </div>
+        <div class="input-wrap">
+          <input type="tel" id="phone" name="phone" placeholder="(555) 749-0194" autocomplete="tel">
+        </div>
+      </div>
+    </div>
+
+    <div class="field" id="field-password">
+      <label for="password">Password</label>
+      <div class="input-wrap">
+        <input type="password" id="password" name="password" placeholder="Create a password" autocomplete="new-password" required>
+        <button type="button" class="icon-toggle" id="toggle-password" aria-label="Show password">&#128065;</button>
+      </div>
+      <div class="strength-meter" id="strength-meter">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <p class="hint warning-text" id="password-hint">Good, but add a special symbol to make it bulletproof.</p>
+    </div>
+
+    <div class="field" id="field-confirm">
+      <label for="confirm-password">Confirm password</label>
+      <div class="input-wrap">
+        <input type="password" id="confirm-password" name="confirm-password" placeholder="Re-enter your password" autocomplete="new-password" required>
+        <span class="icon-status success">&#10003;</span>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary" id="submit-btn">Create account &#8594;</button>
+
+    <div class="link-row">Already have an account? <a href="login.html">Log in</a></div>
+  </form>
+
+  <p class="legal">By continuing, you agree to Aal Sikke's <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="theme-toggle.js"></script>
+<script src="register.js"></script>
+</body>
+</html>

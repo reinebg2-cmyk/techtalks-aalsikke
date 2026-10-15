@@ -1,0 +1,2 @@
+ALTER TABLE schedule_items
+    ADD COLUMN deadline TIMESTAMP WITH TIME ZONE;

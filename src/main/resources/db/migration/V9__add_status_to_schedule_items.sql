@@ -1,0 +1,3 @@
+ALTER TABLE schedule_items
+    ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'COMPLETED'));

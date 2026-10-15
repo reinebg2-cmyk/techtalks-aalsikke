@@ -1,0 +1,11 @@
+# Never send these into the image build
+.git/
+target/
+.idea/
+*.iml
+.vscode/
+*.log
+create-item.json
+src/main/resources/application-local.properties
+Dockerfile
+.dockerignore

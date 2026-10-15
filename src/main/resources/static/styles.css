@@ -1,0 +1,2106 @@
+/*
+ * Aal Sikke — Unified style.css
+ * Shared authentication + dashboard styles
+ */
+
+/* ===== Global + Authentication styles ===== */
+
+:root {
+  /* DEFAULT THEME = "brand" palette (navy + orange logo colors). Defined here so the
+     app opens correctly even if data-palette is missing; other palettes override below. */
+  --trust-blue: #2A4B80;
+  --trust-blue-bg: #E6EAF2;
+  --navy: #0F203E;
+  --ink-strong: #0F203E;
+  --bg-mist: #F5F7FA;
+  --card-mist: #E6EAF2;
+  --white: #FFFFFF;
+  --surface: #FFFFFF;
+  --slate: #2D3748;
+  --slate-light: #64748B;
+  --border: #D5DCE8;
+  /* logo colors, read by logo-sprite.svg via var(--logo-ink) / var(--logo-accent) */
+  --logo-ink: #0F203E;
+  --logo-accent: #F48A40;
+  /* KAN-292/293: task priority colors. Semantic (not tied to the palette) so "urgent" always reads as red. */
+  --prio-low: #2F9E6E;
+  --prio-low-bg: #EAF7F1;
+  --prio-medium: #2468B8;
+  --prio-medium-bg: #E6F0FB;
+  --prio-high: #D62839;
+  --prio-high-bg: #FCE9EB;
+  --prio-urgent: #7B2FBF;
+  --prio-urgent-bg: #F1E8FA;
+  /* Schedule conflicts are ORANGE everywhere (task list, calendar, dashboard).
+     No priority color is orange, so a conflict never gets mistaken for a priority. */
+  --conflict: #E8710A;
+  --conflict-strong: #C2570C;
+  --conflict-bg: #FDF0E3;
+  /* calendar role colors (were referenced by calendar.css but never defined) */
+  --role-student: var(--trust-blue);
+  --role-student-bg: var(--trust-blue-bg);
+  --success: #2F9E6E;
+  --success-bg: #EAF7F1;
+  --amber: #F0A202;
+  --amber-bg: #FEF6E6;
+  --coral: #E4572E;
+  --coral-bg: #FCEDE8;
+  --radius: 0.75rem;
+}
+
+/*
+ * KAN-239: dark theme. --white and --navy were each doing double duty in the
+ * light palette above — "literal white/dark" for text drawn on a colored
+ * button AND "the card surface / guaranteed-dark-background" color. Redefining
+ * them directly here breaks contrast (e.g. buttons and the toast go
+ * unreadable), so this override keeps --white and --navy for their text role
+ * and hands the surface/guaranteed-dark-background role to the new --surface
+ * and --ink-strong variables instead (see the var(--surface) / var(--ink-strong)
+ * usages throughout this file).
+ */
+:root[data-theme="dark"] {
+  --trust-blue: #7FA0DC;
+  --trust-blue-bg: #1A2640;
+  --navy: #F2F5FA;
+  --ink-strong: #0F203E;
+  --bg-mist: #0E1626;
+  --card-mist: #18233A;
+  --surface: #131D31;
+  --slate: #E8EEF3;
+  --slate-light: #94A3B8;
+  --border: #27344D;
+  --logo-ink: #F2F5FA;
+  --logo-accent: #F79A57;
+  --prio-low: #3FBF8F;
+  --prio-low-bg: #12291F;
+  --prio-medium: #5BA3F0;
+  --prio-medium-bg: #12243A;
+  --prio-high: #F2555F;
+  --prio-high-bg: #331519;
+  --prio-urgent: #B48AF0;
+  --prio-urgent-bg: #261A38;
+  --conflict: #F28C38;
+  --conflict-strong: #B9520A;
+  --conflict-bg: #33200F;
+  --success: #3FBF8F;
+  --success-bg: #12291F;
+  --amber: #F0A202;
+  --amber-bg: #2E2410;
+  --coral: #E4572E;
+  --coral-bg: #2E1712;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg-mist);
+  color: var(--slate);
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+}
+
+.screen {
+  width: 100%;
+  max-width: 25rem;
+}
+
+/* Header */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.25rem 1rem;
+}
+
+.topbar .back-btn {
+  background: none;
+  border: none;
+  color: var(--slate-light);
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.topbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--navy);
+  font-size: 1rem;
+}
+
+.topbar .brand .logo-dot {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.375rem;
+  background: var(--trust-blue);
+}
+
+.topbar .help-link {
+  color: var(--slate-light);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.topbar-end {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Intro block (registration) */
+.intro {
+  padding: 0.25rem 0.25rem 1.25rem;
+}
+
+.intro h1 {
+  font-size: 1.375rem;
+  margin: 0 0 0.375rem;
+  color: var(--slate);
+}
+
+.intro p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--slate-light);
+  line-height: 1.5;
+}
+
+/* Center brand block (login) */
+.center-brand {
+  text-align: center;
+  padding: 0.75rem 0 1.25rem;
+}
+
+.center-brand .logo-dot {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: var(--trust-blue);
+  margin: 0 auto 0.75rem;
+}
+
+.center-brand h1 {
+  font-size: 1.25rem;
+  margin: 0 0 0.125rem;
+  color: var(--navy);
+}
+
+.center-brand p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 0.0625rem solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.card h2 {
+  font-size: 1.0625rem;
+  margin: 0 0 0.25rem;
+}
+
+.card > p.subtitle {
+  margin: 0 0 1.125rem;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+  line-height: 1.5;
+}
+
+/* Segmented control (Student / Work / Hybrid) */
+.field-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 0.5rem;
+}
+
+.segmented {
+  display: flex;
+  background: var(--card-mist);
+  border-radius: 0.625rem;
+  padding: 0.25rem;
+  margin-bottom: 1.125rem;
+}
+
+.segmented input {
+  display: none;
+}
+
+.segmented label {
+  flex: 1;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--slate-light);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.segmented input:checked + label {
+  background: var(--trust-blue);
+  color: var(--white);
+}
+
+/* Form fields */
+.field {
+  margin-bottom: 1rem;
+}
+
+.field label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.375rem;
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap input,
+.input-wrap select {
+  width: 100%;
+  padding: 0.6875rem 2.5rem 0.6875rem 0.75rem;
+  font-size: 0.875rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--surface);
+  color: var(--slate);
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.input-wrap input:focus,
+.input-wrap select:focus {
+  border-color: var(--trust-blue);
+}
+
+.input-wrap .icon-status {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+  display: none;
+}
+
+.input-wrap .icon-toggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--slate-light);
+  font-size: 0.9375rem;
+}
+
+/* Validation states, toggled via JS by adding a class to .field */
+.field.is-success .input-wrap input { border-color: var(--success); background: var(--success-bg); }
+.field.is-success .icon-status.success { display: inline; color: var(--success); }
+
+.field.is-warning .input-wrap input { border-color: var(--amber); background: var(--amber-bg); }
+.field.is-warning .icon-status.warning { display: inline; color: var(--amber); }
+
+.field.is-error .input-wrap input { border-color: var(--coral); background: var(--coral-bg); }
+.field.is-error .icon-status.error { display: inline; color: var(--coral); }
+
+.hint {
+  display: none;
+  font-size: 0.75rem;
+  margin-top: 0.375rem;
+  line-height: 1.4;
+}
+
+.field.is-error .hint.error-text { display: block; color: var(--coral); }
+.field.is-warning .hint.warning-text { display: block; color: var(--amber); }
+
+/* Phone row */
+.phone-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 0.5rem;
+}
+
+/* Password strength meter */
+.strength-meter {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.strength-meter span {
+  flex: 1;
+  height: 0.25rem;
+  border-radius: 0.125rem;
+  background: var(--border);
+}
+
+/* JS toggles strength-1/2/3 classes on .strength-meter */
+.strength-meter.strength-1 span:nth-child(1) { background: var(--coral); }
+.strength-meter.strength-2 span:nth-child(1),
+.strength-meter.strength-2 span:nth-child(2) { background: var(--amber); }
+.strength-meter.strength-3 span:nth-child(1),
+.strength-meter.strength-3 span:nth-child(2),
+.strength-meter.strength-3 span:nth-child(3) { background: var(--success); }
+
+/* Buttons */
+.btn-primary {
+  width: 100%;
+  padding: 0.8125rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--trust-blue);
+  border: none;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-primary:hover { background: var(--ink-strong); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-secondary {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate);
+  background: var(--card-mist);
+  border: none;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.link-row {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+  margin-top: 0.875rem;
+}
+
+.link-row a {
+  color: var(--trust-blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Row helpers */
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--slate);
+  margin: 0.875rem 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.75rem;
+  color: var(--slate-light);
+  margin: 1rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 0.0625rem;
+  background: var(--border);
+}
+
+/* Footer / legal text */
+.legal {
+  text-align: center;
+  font-size: 0.7188rem;
+  color: var(--slate-light);
+  line-height: 1.5;
+  margin-top: 1rem;
+  padding: 0 0.5rem;
+}
+
+.legal a { color: var(--slate); font-weight: 600; text-decoration: underline; }
+
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--slate-light);
+  background: var(--card-mist);
+  padding: 0.375rem 0.75rem;
+  border-radius: 62.4375rem;
+  margin-top: 1rem;
+}
+
+.tag-row { text-align: center; }
+
+.footnote {
+  text-align: center;
+  font-size: 0.7188rem;
+  color: var(--slate-light);
+  margin-top: 0.875rem;
+}
+
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
+/* ===== Aal Sikke — Dashboard layout (KAN-36/37/38) ===== */
+/* All sizing uses rem/em, never px, so the layout scales with the user's
+   root/base font size for accessibility. */
+
+.dashboard-body {
+  display: block;
+  padding: 0;
+  align-items: initial;
+  justify-content: initial;
+}
+
+.app-shell {
+  max-width: 75rem;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Top bar ---- */
+.dash-topbar {
+  padding: 0.875rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 0.0625rem solid var(--border);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icon-btn {
+  position: relative;
+  background: none;
+  border: none;
+  font-size: 1.125rem;
+  cursor: pointer;
+  color: var(--slate-light);
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.badge-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 0.0938rem solid var(--surface);
+}
+
+.profile-menu {
+  position: relative;
+}
+
+.avatar-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--trust-blue);
+  color: var(--white);
+  border: none;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.profile-dropdown {
+  position: absolute;
+  right: 0;
+  top: 2.75rem;
+  background: var(--surface);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.625rem;
+  box-shadow: 0 0.25rem 0.75rem rgba(15, 76, 117, 0.12);
+  min-width: 9rem;
+  overflow: hidden;
+  z-index: 20;
+}
+
+.profile-dropdown a {
+  display: block;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: var(--slate);
+  text-decoration: none;
+}
+
+.profile-dropdown a:hover { background: var(--card-mist); }
+
+/* ---- Body layout: sidebar + main ---- */
+.app-body {
+  display: flex;
+  flex: 1;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.sidebar {
+  width: 15.5rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.profile-card {
+  background: var(--surface);
+  border: 0.0625rem solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.avatar-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 0.625rem;
+  border-radius: 50%;
+  background: var(--trust-blue);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.profile-name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.role-tag {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--trust-blue);
+  background: var(--card-mist);
+  padding: 0.125rem 0.5rem;
+  border-radius: 62.4375rem;
+}
+
+.profile-meta {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--slate-light);
+  line-height: 1.4;
+}
+
+.side-nav {
+  background: var(--surface);
+  border: 0.0625rem solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate-light);
+  text-decoration: none;
+}
+
+.nav-link .nav-icon { font-size: 1rem; width: 1.25rem; text-align: center; }
+
+.nav-link:hover { background: var(--card-mist); }
+
+.nav-link.active {
+  background: var(--trust-blue);
+  color: var(--white);
+}
+
+/* ---- Main content ---- */
+.main-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.greeting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.greeting-row h1 {
+  font-size: 1.375rem;
+  margin: 0 0 0.125rem;
+}
+
+.greeting-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.greeting-summary {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--card-mist);
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+/* ---- Task creation card (KAN-37) ---- */
+.task-create-card h2,
+.task-list-card h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--trust-blue);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.task-form { margin-top: 1rem; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.form-actions .btn-secondary,
+.form-actions .btn-primary { width: auto; flex: 1; }
+
+/* ---- Task list card (KAN-38) ---- */
+.filter-tabs {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.filter-tab {
+  border: none;
+  background: var(--card-mist);
+  color: var(--slate-light);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.375rem 0.75rem;
+  border-radius: 62.4375rem;
+  cursor: pointer;
+}
+
+.filter-tab.active {
+  background: var(--trust-blue);
+  color: var(--white);
+}
+
+.task-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.task-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--surface);
+}
+
+.task-card.is-complete { opacity: 0.55; }
+.task-card.is-complete .task-title { text-decoration: line-through; }
+
+.task-checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  accent-color: var(--trust-blue);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.task-body { flex: 1; min-width: 0; }
+
+.task-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--slate-light);
+  flex-wrap: wrap;
+}
+
+.priority-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.priority-dot { width: 0.625rem; height: 0.625rem; }
+.priority-dot.low { background: var(--prio-low); }
+.priority-dot.medium { background: var(--prio-medium); }
+.priority-dot.high { background: var(--prio-high); }
+
+/* ---- Conflict marking (S3-07 / KAN-233) ---- */
+.task-card.is-conflict {
+  /* top/right/bottom only: the left stripe keeps showing the priority color */
+  border-top-color: var(--conflict);
+  border-right-color: var(--conflict);
+  border-bottom-color: var(--conflict);
+  background: var(--conflict-bg);
+  box-shadow: 0 0 0 0.0625rem var(--conflict);
+}
+
+.conflict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1875rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: var(--conflict-strong);
+  color: #FFFFFF;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.task-menu-btn {
+  background: none;
+  border: none;
+  color: var(--slate-light);
+  font-size: 1.125rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.empty-state {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--slate-light);
+  padding: 2rem 1rem;
+  margin: 1rem 0 0;
+}
+
+/* ---- Mobile bottom nav (hidden on desktop) ---- */
+.bottom-nav {
+  display: none;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 48rem) {
+  .app-body {
+    flex-direction: column;
+    padding: 1rem;
+    padding-bottom: 5rem;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .profile-card { flex: 1; }
+  .side-nav { display: none; }
+
+  .form-grid { grid-template-columns: 1fr; }
+
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 0.0625rem solid var(--border);
+    padding: 0.5rem 0 0.75rem;
+  }
+
+  .bottom-nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+    font-size: 0.6875rem;
+    color: var(--slate-light);
+    text-decoration: none;
+  }
+
+  .bottom-nav a span { font-size: 1.125rem; }
+
+  .bottom-nav a.active { color: var(--trust-blue); }
+}
+
+
+/* =========================================================
+   SHARED ACCESSIBILITY / SMALL IMPROVEMENTS
+   ========================================================= */
+
+button,
+input,
+select {
+  font-family: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 0.125rem solid var(--trust-blue);
+  outline-offset: 0.125rem;
+}
+
+/* The task form also supports an URGENT priority. */
+.priority-dot.urgent {
+  background: var(--prio-urgent);
+}
+
+/* Prevent long task titles from overflowing their cards. */
+.task-title {
+  overflow-wrap: anywhere;
+}
+
+/* Extra protection for very small screens. */
+@media (max-width: 30rem) {
+  .dash-topbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .app-body {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .sidebar {
+    flex-direction: column;
+  }
+
+  .greeting-row {
+    align-items: flex-start;
+  }
+
+  .filter-tabs {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.125rem;
+  }
+
+  .filter-tab {
+    white-space: nowrap;
+  }
+
+  .task-card {
+    padding: 0.75rem;
+  }
+
+}
+
+
+/* =========================================================
+   PROFILE EDIT MODAL, ROLE TOGGLE, TOAST
+   (the dashboard markup already used these classes, but no
+   rules existed for them, so the modal rendered unstyled)
+   ========================================================= */
+
+/* ---- Modal shell (shared by the profile and task-edit modals) ---- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 76, 117, 0.45);
+  overflow-y: auto;
+}
+
+/* `display: flex` above would otherwise beat the [hidden] attribute. */
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 30rem;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);   /* phone browser bars: 100vh is taller than the visible area */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: 0 1rem 2.5rem rgba(15, 76, 117, 0.25);
+}
+
+.profile-modal-card {
+  max-width: 34rem;
+}
+
+/* Save / Cancel stay visible at the bottom of a long modal while the form scrolls. */
+.modal-card .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  background: var(--surface);
+  border-top: 0.0625rem solid var(--border);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.modal-header h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.125rem;
+  color: var(--navy);
+}
+
+.modal-header p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+  line-height: 1.4;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--card-mist);
+  color: var(--slate);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: var(--border);
+}
+
+.profile-modal-avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--trust-blue);
+  color: var(--white);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+/* ---- Role toggle (Student / Work / Dual) ---- */
+.role-field {
+  border: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  min-width: 0;
+}
+
+.role-field legend {
+  padding: 0;
+}
+
+/* The base .segmented hides radios with display:none, which also removes them
+   from the keyboard tab order. This variant keeps them focusable. */
+.segmented--a11y {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.segmented--a11y input {
+  display: block;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented--a11y input:focus-visible + label {
+  outline: 0.125rem solid var(--trust-blue);
+  outline-offset: 0.125rem;
+}
+
+.role-hint {
+  margin: 0;
+  min-height: 1.1rem;
+  font-size: 0.75rem;
+  color: var(--slate-light);
+}
+
+.role-field.is-error .segmented {
+  box-shadow: 0 0 0 0.0625rem var(--coral);
+}
+
+.role-field.is-error .hint.error-text {
+  display: block;
+  color: var(--coral);
+}
+
+/* ---- Read-only fields (username, date of birth) ---- */
+.input-wrap input[readonly] {
+  background: var(--card-mist);
+  color: var(--slate-light);
+  cursor: not-allowed;
+}
+
+/* ---- Status message under the form ---- */
+.modal-message {
+  min-height: 1.25rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.modal-message.is-success { color: var(--success); font-weight: 600; }
+.modal-message.is-error   { color: var(--coral);   font-weight: 600; }
+.modal-message.is-info    { color: var(--slate-light); }
+
+/* ---- Header button that opens the modal ---- */
+.profile-open-btn {
+  width: auto;
+  padding: 0.5rem 1rem;
+}
+
+/* ---- Notification preference toggles (KAN-244) ---- */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 0.0625rem solid var(--border);
+}
+
+.toggle-row:last-of-type { border-bottom: none; }
+
+.toggle-text { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
+
+.toggle-title { font-size: 0.875rem; font-weight: 600; color: var(--slate); }
+
+.toggle-subtitle { font-size: 0.75rem; color: var(--slate-light); line-height: 1.35; }
+
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-block;
+  width: 2.75rem;
+  height: 1.5rem;
+}
+
+.switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.switch-track::before {
+  content: "";
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  background: var(--white);
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+  box-shadow: 0 0.0625rem 0.125rem rgba(15, 76, 117, 0.25);
+}
+
+.switch input:checked + .switch-track { background: var(--trust-blue); }
+
+.switch input:checked + .switch-track::before { transform: translateX(1.25rem); }
+
+.switch input:focus-visible + .switch-track {
+  outline: 0.125rem solid var(--trust-blue);
+  outline-offset: 0.125rem;
+}
+
+/* ---- Toast ----
+ * Replaces browser alert() popups. Dark ink background + white text, so it reads the
+ * same in every palette and in light and dark mode (checked for all 14 combinations).
+ * The 1px light edge keeps it visible against dark pages. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 1100;
+  /* left: 50% would otherwise shrink the toast to half the screen width on phones */
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.625rem;
+  border: 0.0625rem solid rgba(255, 255, 255, 0.22);
+  background: var(--ink-strong);
+  color: #FFFFFF;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  box-shadow: 0 0.5rem 1.5rem rgba(15, 76, 117, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 0.75rem);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Problems (validation, failed saves): a coral bar on the left, text stays white. */
+.toast.is-error {
+  border-left: 0.3125rem solid var(--coral);
+  text-align: left;
+}
+
+/* While a modal is open the toast sits at the top, so it never covers the Save button. */
+.toast.is-top {
+  bottom: auto;
+  top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+  transform: translate(-50%, -0.75rem);
+}
+
+.toast.is-top.is-visible {
+  transform: translate(-50%, 0);
+}
+
+/* Keep the toast above the mobile bottom nav. */
+@media (max-width: 48rem) {
+  .toast { bottom: 5rem; }
+  .toast.is-top { bottom: auto; }
+}
+
+@media (max-width: 30rem) {
+  .modal-card { padding: 1.125rem; }
+}
+
+
+/* ---- Reminders bell dropdown (KAN-235/236) ---- */
+.notif-dropdown {
+  width: 18rem;
+  max-width: calc(100vw - 1.5rem);
+}
+
+/* Narrow phones: the bell is not at the right edge, so pin the list to the screen instead. */
+@media (max-width: 30rem) {
+  .notif-dropdown {
+    position: fixed;
+    top: 3.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - 5rem);
+    overflow-y: auto;
+  }
+}
+
+.notif-dropdown-header {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--navy);
+  padding: 0.25rem 1rem 0.625rem;
+}
+
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notif-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-top: 0.0625rem solid var(--border);
+}
+
+.notif-item-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.notif-item-time {
+  font-size: 0.75rem;
+  color: var(--slate-light);
+}
+
+.notif-item-time { display: block; }
+.notif-item-actions { display: flex; align-items: center; gap: 0.5rem; }
+.notif-snooze-btn {
+  font-size: 0.75rem; padding: 0.25rem 0.5rem; cursor: pointer;
+  border: 1px solid currentColor; border-radius: 6px;
+  background: transparent; color: inherit;
+  white-space: nowrap;
+}
+
+.notif-dismiss-btn {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--card-mist);
+  color: var(--trust-blue);
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+
+.notif-dismiss-btn:hover {
+  background: var(--border);
+}
+
+.notif-empty {
+  padding: 1rem;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+  text-align: center;
+}
+
+/* =========================================================
+   TASK LIST: ROLE / STATUS FILTERS + SORT
+   ========================================================= */
+
+.task-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.toolbar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.toolbar-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--slate-light);
+}
+
+.toolbar-field select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--slate);
+  background: var(--surface);
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.625rem;
+  cursor: pointer;
+}
+
+.toolbar-field select:hover {
+  border-color: var(--trust-blue);
+}
+
+/* Shows when a dropdown has been moved off its default option. */
+.toolbar-field select.is-active {
+  border-color: var(--trust-blue);
+  background: var(--card-mist);
+  font-weight: 600;
+}
+
+.task-count {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--slate-light);
+}
+
+.task-count:empty {
+  display: none;
+}
+
+/* KAN-262: email verification notice (login page) and verify-email page */
+.login-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 0.0625rem solid var(--trust-blue);
+  border-radius: 0.625rem;
+  background: var(--trust-blue-bg);
+  font-size: 0.8125rem;
+  color: var(--slate);
+}
+
+.login-notice[hidden] {
+  display: none;
+}
+
+.login-notice p {
+  margin: 0 0 0.25rem;
+}
+
+.notice-text {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.verify-login-btn {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.verify-login-btn[hidden] {
+  display: none;
+}
+
+/* KAN-265: "Has a start time" checkbox row in the task forms */
+.field label.check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.check-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--trust-blue);
+
+}
+
+/* KAN-352: on/off switch, halfway reminder and custom reminders per task */
+.reminder-hint { color: var(--slate-light); font-weight: 400; }
+.reminder-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.reminder-list:empty { display: none; }
+.reminder-row { display: flex; align-items: center; gap: 0.5rem; }
+.reminder-row .input-wrap { flex: 1; }
+.reminder-add-btn {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0;
+  background: none;
+  border: none;
+  color: var(--trust-blue);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reminder-add-btn:hover { text-decoration: underline; }
+
+/* ===== Color palettes (KAN-290/294) =====
+ * One block per preset and mode. "brand" (default) lives in :root / :root[data-theme="dark"] above.
+ * Each block also sets --logo-ink / --logo-accent so the logo follows the palette AND light/dark.
+ * Specificity is deliberately higher than :root[data-theme="dark"] so palette+dark combos win. */
+
+/* ocean */
+:root[data-palette="ocean"] {
+  --trust-blue: #1F6FA8;
+  --trust-blue-bg: #E3EEF7;
+  --navy: #0F4C75;
+  --bg-mist: #F4F7FA;
+  --card-mist: #E8EEF3;
+  --surface: #FFFFFF;
+  --border: #D8E1E8;
+  --logo-ink: #0F4C75;
+  --logo-accent: #2E9BD6;
+}
+:root[data-palette="ocean"][data-theme="dark"] {
+  --trust-blue: #4A9FD8;
+  --trust-blue-bg: #16283A;
+  --navy: #E8F1F8;
+  --bg-mist: #131A22;
+  --card-mist: #1E2833;
+  --surface: #1A232D;
+  --border: #2D3B48;
+  --logo-ink: #E3EEF7;
+  --logo-accent: #5DB6E8;
+}
+
+/* forest */
+:root[data-palette="forest"] {
+  --trust-blue: #1E7A57;
+  --trust-blue-bg: #E4F3EC;
+  --navy: #14513A;
+  --bg-mist: #F3F8F5;
+  --card-mist: #E4F3EC;
+  --surface: #FFFFFF;
+  --border: #D3E5DB;
+  --logo-ink: #14513A;
+  --logo-accent: #7DBB3C;
+}
+:root[data-palette="forest"][data-theme="dark"] {
+  --trust-blue: #4CB88A;
+  --trust-blue-bg: #13281F;
+  --navy: #E4F3EC;
+  --bg-mist: #101914;
+  --card-mist: #1B2A22;
+  --surface: #16221B;
+  --border: #2A3D32;
+  --logo-ink: #E4F3EC;
+  --logo-accent: #97D45A;
+}
+
+/* sunset */
+:root[data-palette="sunset"] {
+  --trust-blue: #B4531C;
+  --trust-blue-bg: #FCEBDD;
+  --navy: #7A3410;
+  --bg-mist: #FBF7F2;
+  --card-mist: #FCEBDD;
+  --surface: #FFFFFF;
+  --border: #EBD9C8;
+  --logo-ink: #7A3410;
+  --logo-accent: #F2A81D;
+}
+:root[data-palette="sunset"][data-theme="dark"] {
+  --trust-blue: #E8924F;
+  --trust-blue-bg: #2E1D12;
+  --navy: #FCEBDD;
+  --bg-mist: #1A1410;
+  --card-mist: #2A2019;
+  --surface: #211A14;
+  --border: #3D3026;
+  --logo-ink: #FCEBDD;
+  --logo-accent: #F5BA45;
+}
+
+/* violet */
+:root[data-palette="violet"] {
+  --trust-blue: #6247B5;
+  --trust-blue-bg: #ECE8F8;
+  --navy: #3F2C7A;
+  --bg-mist: #F6F4FB;
+  --card-mist: #ECE8F8;
+  --surface: #FFFFFF;
+  --border: #DDD7EE;
+  --logo-ink: #3F2C7A;
+  --logo-accent: #9B7BEA;
+}
+:root[data-palette="violet"][data-theme="dark"] {
+  --trust-blue: #9B83E0;
+  --trust-blue-bg: #221C3A;
+  --navy: #ECE8F8;
+  --bg-mist: #15121F;
+  --card-mist: #221D33;
+  --surface: #1B1729;
+  --border: #342D4B;
+  --logo-ink: #ECE8F8;
+  --logo-accent: #B79CF2;
+}
+
+/* rose */
+:root[data-palette="rose"] {
+  --trust-blue: #B8386D;
+  --trust-blue-bg: #FBE7EF;
+  --navy: #7A1F45;
+  --bg-mist: #FBF5F8;
+  --card-mist: #FBE7EF;
+  --surface: #FFFFFF;
+  --border: #EDD6E0;
+  --logo-ink: #7A1F45;
+  --logo-accent: #F0709F;
+}
+:root[data-palette="rose"][data-theme="dark"] {
+  --trust-blue: #E6709C;
+  --trust-blue-bg: #331822;
+  --navy: #FBE7EF;
+  --bg-mist: #1C1217;
+  --card-mist: #2D1D25;
+  --surface: #24171E;
+  --border: #42293A;
+  --logo-ink: #FBE7EF;
+  --logo-accent: #F58FB5;
+}
+
+/* graphite */
+:root[data-palette="graphite"] {
+  --trust-blue: #3F4B5C;
+  --trust-blue-bg: #E8EBEF;
+  --navy: #1F2937;
+  --bg-mist: #F4F5F7;
+  --card-mist: #E8EBEF;
+  --surface: #FFFFFF;
+  --border: #D5DAE0;
+  --logo-ink: #1F2937;
+  --logo-accent: #8B97A6;
+}
+:root[data-palette="graphite"][data-theme="dark"] {
+  --trust-blue: #9AA7B8;
+  --trust-blue-bg: #222A33;
+  --navy: #E8EBEF;
+  --bg-mist: #14171B;
+  --card-mist: #1F242B;
+  --surface: #1A1E24;
+  --border: #2E343C;
+  --logo-ink: #E8EBEF;
+  --logo-accent: #A5AFBC;
+}
+
+/* ===== Logo (inline svg using logo-sprite.svg) ===== */
+.brand-logo {
+  display: block;
+  height: 1.75rem;
+  width: auto;
+  aspect-ratio: 1476 / 240;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+.brand-logo--lg { height: 2.5rem; margin: 0 auto; }
+.center-brand h1 { line-height: 1; }
+
+/* ===== Palette picker (settings.html, rendered by palette.js) ===== */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.palette-option {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
+  padding: 0.375rem;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font: inherit;
+  color: var(--slate);
+}
+.palette-option:hover { border-color: var(--trust-blue); }
+.palette-option:focus-visible { outline: 2px solid var(--trust-blue); outline-offset: 2px; }
+.palette-option.is-selected { border-color: var(--trust-blue); box-shadow: 0 0 0 1px var(--trust-blue); }
+.palette-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 3.25rem;
+  border-radius: calc(var(--radius) - 0.25rem);
+}
+.palette-preview svg { height: 1.75rem; width: auto; }
+.palette-name { font-size: 0.8125rem; font-weight: 600; text-align: center; }
+
+/* ---- KAN-338: "Your data" panel and the Delete account window (Settings) ---- */
+.data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.data-actions .btn-secondary,
+.data-actions .btn-danger {
+  width: auto;
+  flex: 1 1 12rem;
+}
+
+.btn-danger {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--coral);
+  background: var(--coral-bg);
+  border: 0.0625rem solid var(--coral);
+  border-radius: 0.625rem;
+  cursor: pointer;
+}
+
+.btn-danger:hover:not(:disabled) { background: var(--coral); color: #fff; }
+.btn-danger:focus-visible { outline: 0.125rem solid var(--coral); outline-offset: 0.125rem; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+.form-actions .btn-danger { width: auto; flex: 1; }
+
+.delete-warning {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 0.25rem solid var(--coral);
+  border-radius: 0.5rem;
+  background: var(--coral-bg);
+  color: var(--slate);
+  font-size: 0.875rem;
+}
+
+.delete-warning p { margin: 0; }
+.delete-warning p + p { margin-top: 0.5rem; color: var(--slate-light); }
+#data-message:empty { display: none; }
+/* ===== Task priority colors (KAN-292/293) =====
+ * Same mapping everywhere: low = green, medium = blue, high = red, urgent = purple.
+ * Orange is reserved for schedule CONFLICTS (see --conflict).
+ * Task list + dashboard list: colored left stripe, dot and a text pill (color is never the only signal). */
+.task-card { border-left: 0.3125rem solid var(--prio-medium); }
+.task-card.priority-low { border-left-color: var(--prio-low); }
+.task-card.priority-medium { border-left-color: var(--prio-medium); }
+.task-card.priority-high { border-left-color: var(--prio-high); }
+.task-card.priority-urgent { border-left-color: var(--prio-urgent); }
+
+.priority-label {
+  display: inline-block;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+.priority-label.low { color: var(--prio-low); background: var(--prio-low-bg); }
+.priority-label.medium { color: var(--prio-medium); background: var(--prio-medium-bg); }
+.priority-label.high { color: var(--prio-high); background: var(--prio-high-bg); }
+.priority-label.urgent { color: var(--prio-urgent); background: var(--prio-urgent-bg); }
+
+
+/* ---- KAN-353: "Repeat weekly" in the task forms, and the "Weekly" label on task cards ---- */
+.repeat-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.repeat-note[hidden],
+.repeat-details[hidden] { display: none; }
+
+.repeat-field .check-row:has(input:disabled) {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.repeat-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 0.0625rem dashed var(--border);
+  border-radius: 0.625rem;
+}
+
+.repeat-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.repeat-days legend {
+  width: 100%;
+  margin-bottom: 0.375rem;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.repeat-day {
+  position: relative;
+  cursor: pointer;
+}
+
+.repeat-day input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.repeat-day span {
+  display: inline-block;
+  min-width: 2.75rem;
+  padding: 0.375rem 0.5rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--slate);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.repeat-day input:checked + span {
+  border-color: var(--trust-blue);
+  background: var(--trust-blue);
+  color: #fff;
+}
+
+.repeat-day input:focus-visible + span {
+  outline: 0.125rem solid var(--trust-blue);
+  outline-offset: 0.125rem;
+}
+
+.repeat-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.repeat-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.repeat-row input {
+  padding: 0.375rem 0.5rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--slate);
+  font: inherit;
+}
+
+.repeat-row .repeat-every { width: 4rem; }
+
+.repeat-optional { font-size: 0.75rem; }
+
+.repeat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: var(--card-mist);
+  color: var(--slate);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- KAN-343: "Suggest a time" panel (new-task, edit-task and calendar schedule forms) ---- */
+.free-slot-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.75rem;
+  padding: 0.75rem;
+  border: 0.0625rem dashed var(--border);
+  border-radius: 0.625rem;
+}
+
+.free-slot-row,
+.free-slot-options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.free-slot-row label,
+.free-slot-options-grid label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.free-slot-panel select,
+.free-slot-panel input[type="time"] {
+  padding: 0.375rem 0.5rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--slate);
+  font: inherit;
+}
+
+.free-slot-panel .free-slot-btn {
+  width: auto;
+  padding: 0.5rem 0.875rem;
+}
+
+.free-slot-options summary {
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--trust-blue);
+}
+
+.free-slot-options-grid { margin-top: 0.5rem; }
+
+.free-slot-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.free-slot-chip {
+  padding: 0.375rem 0.75rem;
+  border: 0.0625rem solid var(--trust-blue);
+  border-radius: 999px;
+  background: var(--trust-blue-bg);
+  color: var(--trust-blue);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.free-slot-chip:hover,
+.free-slot-chip:focus-visible {
+  background: var(--trust-blue);
+  color: var(--surface);
+  outline: none;
+  box-shadow: 0 0 0 0.1875rem var(--trust-blue-bg);
+}
+
+.free-slot-extra { font-weight: 400; }
+
+.free-slot-day-title {
+  margin: 0.25rem 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.free-slot-note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.free-slot-note.is-error { color: var(--coral); }
+
+/* ---- KAN-342: checklist (Edit task window) and "2/5" progress on task cards ---- */
+.checklist-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--slate-light);
+}
+
+.checklist-progress.is-complete { color: var(--trust-blue); }
+
+.checklist-bar {
+  display: inline-block;
+  width: 3rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--card-mist);
+  overflow: hidden;
+}
+
+.checklist-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--trust-blue);
+}
+
+.board-card .checklist-progress { margin-top: 0.25rem; }
+
+.checklist-heading {
+  margin: 0 0 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.checklist-summary {
+  font-weight: 500;
+  color: var(--slate-light);
+}
+
+.checklist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.checklist-text {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+  border: 0.0625rem solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--slate);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.checklist-text:hover,
+.checklist-text:focus {
+  border-color: var(--border);
+  background: var(--surface);
+  outline: none;
+}
+
+.checklist-item.is-done .checklist-text {
+  text-decoration: line-through;
+  color: var(--slate-light);
+}
+
+.checklist-icon {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--slate-light);
+  font: inherit;
+  cursor: pointer;
+}
+
+.checklist-icon:hover:not(:disabled),
+.checklist-icon:focus-visible {
+  background: var(--card-mist);
+  color: var(--slate);
+  outline: none;
+}
+
+.checklist-icon:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.checklist-remove:hover { color: var(--coral); }
+
+.checklist-add {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.checklist-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.625rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--slate);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.checklist-add .btn-secondary {
+  width: auto;
+  padding: 0.5rem 0.875rem;
+}
+
+.checklist-all-done {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--slate);
+}
+
+.checklist-message {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--slate-light);
+}
+
+.checklist-message:empty { display: none; }
+
+.checklist-message.is-error { color: var(--coral); }
