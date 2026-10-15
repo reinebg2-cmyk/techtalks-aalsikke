@@ -1,0 +1,7 @@
+package com.aalsikke.model;
+
+public enum ItemType {
+    ASSIGNMENT, EXAM, CLASS, STUDY, SHIFT, PERSONAL, PROJECT, QUIZ, LAB, PRESENTATION,
+    MEETING, WORK_TASK, PAYMENT_DUE,
+    APPOINTMENT, ERRAND, EVENT
+}

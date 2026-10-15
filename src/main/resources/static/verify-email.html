@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="theme-init.js"></script>
+    <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+
+    <title>Aal Sikke — Verify email</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="screen">
+
+    <div class="topbar">
+        <div class="brand"></div>
+        <div class="topbar-end">
+            <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
+        </div>
+    </div>
+
+    <div class="center-brand">
+        <h1><svg class="brand-logo brand-logo--lg" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></h1>
+        <p>Adaptive Life Management</p>
+    </div>
+
+    <!-- KAN-273: the link in the verification email opens this page -->
+    <div class="card">
+        <h2 id="verify-title">Verifying your email…</h2>
+        <p class="subtitle" id="verify-message" role="status" aria-live="polite">One moment.</p>
+
+        <a href="login.html" class="btn-primary verify-login-btn" id="verify-login-btn" hidden>Go to login &#8594;</a>
+
+        <!-- Shown when the link is invalid or expired (KAN-275) -->
+        <form id="resend-form" novalidate hidden>
+            <div class="field">
+                <label for="resend-email">Email</label>
+                <div class="input-wrap">
+                    <input type="email" id="resend-email" placeholder="alex.chen@university.edu" autocomplete="email">
+                </div>
+            </div>
+            <button type="submit" class="btn-primary" id="resend-btn">Send a new link</button>
+            <p class="notice-text" id="resend-message" role="status" aria-live="polite"></p>
+        </form>
+
+        <div class="link-row"><a href="login.html">Back to login</a></div>
+    </div>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="theme-toggle.js"></script>
+<script src="verify-email.js"></script>
+</body>
+</html>

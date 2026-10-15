@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="theme-init.js"></script>
+  <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+
+  <title>Aal Sikke — Login</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="screen">
+
+  <div class="topbar">
+    <button class="back-btn" aria-label="Go back">&#8592;</button>
+    <div class="brand"></div>
+    <div class="topbar-end">
+      <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
+      <a href="#" class="help-link">Help</a>
+    </div>
+  </div>
+
+  <div class="center-brand">
+    <h1><svg class="brand-logo brand-logo--lg" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></h1>
+    <p>Adaptive Life Management</p>
+  </div>
+
+  <form class="card" id="login-form" novalidate>
+    <h2>Welcome back</h2>
+    <p class="subtitle">Access your unified calendar, assignments, and daily flow.</p>
+
+
+    <!-- KAN-262: "check your email" after register, and the unverified-login message -->
+    <div class="login-notice" id="login-notice" role="status" aria-live="polite" hidden>
+      <p id="login-notice-text"></p>
+      <button type="button" class="link-btn" id="resend-verification-btn" hidden>Resend verification email</button>
+    </div>
+
+    <div class="field" id="field-identifier">
+      <label for="identifier">Email, phone number or username</label>
+      <div class="input-wrap">
+        <input type="text" id="identifier" name="identifier" placeholder="alex.chen@university.edu" autocomplete="username" required>
+        <span class="icon-status success">&#10003;</span>
+      </div>
+    </div>
+
+    <div class="field" id="field-login-password">
+      <div class="row-between">
+        <label for="login-password">Password</label>
+        <a href="forgot-password.html" style="font-size:13px; color:var(--trust-blue); text-decoration:none; font-weight:600;">Forgot password?</a>
+      </div>
+      <div class="input-wrap">
+        <input type="password" id="login-password" name="login-password" placeholder="Enter your password" autocomplete="current-password" required>
+        <button type="button" class="icon-toggle" id="toggle-login-password" aria-label="Show password">&#128065;</button>
+      </div>
+      <p class="hint error-text" id="login-error">Incorrect password. Try again.</p>
+    </div>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="remember-device" checked>
+      Keep me signed in on this device
+    </label>
+
+    <button type="submit" class="btn-primary" id="login-btn">Log in &#8594;</button>
+
+
+    <div class="link-row">Don't have an account? <a href="register.html">Register</a></div>
+  </form>
+
+  <div class="tag-row"><span class="tag">&#128274; Secured for academic and work workspaces</span></div>
+  <p class="footnote">Aal Sikke v2.4 &middot; Structured daily focus</p>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="theme-toggle.js"></script>
+<script src="login.js"></script>
+</body>
+</html>

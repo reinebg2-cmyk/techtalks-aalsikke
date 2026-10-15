@@ -1,0 +1,18 @@
+# Template for application-local.properties (git-ignored, one per developer).
+# Copy this file to src/main/resources/application-local.properties,
+# fill in your own values, and run with:
+#   ./mvnw spring-boot:run "-Dspring-boot.run.profiles=local"
+#
+# Shared settings (datasource URL, Flyway, ddl-auto=validate) live in
+# application.properties. Only put local-only values here.
+# Never commit real passwords or secrets.
+
+# Your local PostgreSQL password (database: productivity_db)
+spring.datasource.password=YOUR_LOCAL_DB_PASSWORD
+
+# JWT signing secret: any random string, at least 32 characters
+jwt.secret=YOUR_LOCAL_JWT_SECRET_AT_LEAST_32_CHARS
+
+# Local-only debug logging (S3-06): never enable in shared config
+spring.jpa.show-sql=true
+logging.level.org.springframework.security=DEBUG
