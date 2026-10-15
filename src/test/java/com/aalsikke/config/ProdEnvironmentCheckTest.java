@@ -12,7 +12,7 @@ class ProdEnvironmentCheckTest {
     @Test
     void passesWhenEveryRequiredVariableIsSet() {
         MockEnvironment environment = new MockEnvironment();
-        ProdEnvironmentCheck.REQUIRED.forEach(name -> environment.setProperty(name, "secret-" + name));
+        ProdEnvironmentCheck.required(environment).forEach(name -> environment.setProperty(name, "secret-" + name));
 
         assertThatCode(() -> ProdEnvironmentCheck.check(environment)).doesNotThrowAnyException();
     }
@@ -20,7 +20,7 @@ class ProdEnvironmentCheckTest {
     @Test
     void listsMissingAndBlankVariablesByNameWithoutTheirValues() {
         MockEnvironment environment = new MockEnvironment();
-        ProdEnvironmentCheck.REQUIRED.stream()
+        ProdEnvironmentCheck.required(environment).stream()
                 .filter(name -> !name.equals("DB_PASSWORD"))   // missing entirely
                 .forEach(name -> environment.setProperty(name, "secret-" + name));
         environment.setProperty("MAIL_PASSWORD", "   ");       // set but blank

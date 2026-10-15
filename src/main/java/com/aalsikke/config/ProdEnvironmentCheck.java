@@ -8,6 +8,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Stream;
 
 /**
  * KAN-358: in production, every required environment variable must be set.
@@ -24,10 +26,27 @@ import java.util.List;
 @Profile("prod")
 public class ProdEnvironmentCheck implements BeanFactoryPostProcessor, EnvironmentAware {
 
-    static final List<String> REQUIRED = List.of(
+    /** Needed whatever the mail transport. */
+    static final List<String> ALWAYS = List.of(
             "DB_URL", "DB_USERNAME", "DB_PASSWORD",
             "JWT_SECRET", "APP_BASE_URL",
-            "MAIL_USERNAME", "MAIL_PASSWORD", "MAIL_FROM");
+            "MAIL_FROM");
+
+    /** KAN-361: extra variables per mail transport (MAIL_TRANSPORT, default smtp). */
+    static final List<String> SMTP = List.of("MAIL_USERNAME", "MAIL_PASSWORD");
+    static final List<String> BREVO = List.of("BREVO_API_KEY");
+
+    /** ALWAYS plus what the chosen transport needs. An unknown transport stops startup. */
+    static List<String> required(Environment environment) {
+        String transport = environment.getProperty("MAIL_TRANSPORT", "smtp").trim().toLowerCase(Locale.ROOT);
+        List<String> extra = switch (transport.isEmpty() ? "smtp" : transport) {
+            case "smtp" -> SMTP;
+            case "brevo" -> BREVO;
+            default -> throw new IllegalStateException(
+                    "MAIL_TRANSPORT must be smtp or brevo, but is: " + transport);
+        };
+        return Stream.concat(ALWAYS.stream(), extra.stream()).toList();
+    }
 
     private Environment environment;
 
@@ -43,7 +62,7 @@ public class ProdEnvironmentCheck implements BeanFactoryPostProcessor, Environme
 
     /** Throws if any required variable is missing or blank. Names only, never values. */
     static void check(Environment environment) {
-        List<String> missing = REQUIRED.stream()
+        List<String> missing = required(environment).stream()
                 .filter(name -> {
                     String value = environment.getProperty(name);
                     return value == null || value.isBlank();
