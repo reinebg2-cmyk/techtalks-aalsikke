@@ -97,7 +97,7 @@ public class AuthService {
         // KAN-274: checked after the password, so this never reveals anything to someone
         // who doesn't know the password.
         if (!user.isEmailVerified()) {
-            emailVerificationService.resend(user.getEmail());
+            emailVerificationService.sendIfNoOpenLink(user);
             throw new EmailNotVerifiedException(user.getEmail());
         }
 

@@ -19,7 +19,10 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
     /** The most recent link sent to this user (used for the resend cooldown). */
     Optional<EmailVerificationToken> findFirstByUserIdOrderByCreatedAtDesc(UUID userId);
 
-    /** A new link replaces the old ones: mark every still-open link for this user as used. */
+    /** KAN-362: does the user still have a usable link for this email (not used, not expired)? */
+    boolean existsByUserIdAndEmailIgnoreCaseAndUsedAtIsNullAndExpiresAtAfter(UUID userId, String email, OffsetDateTime now);
+
+    /** KAN-362: after a successful verification, mark every still-open link for this user as used. */
     @Modifying
     @Query("""
             UPDATE EmailVerificationToken t
