@@ -7,5 +7,7 @@ import jakarta.validation.constraints.Pattern;
 public record StatusUpdateRequest(
         @NotNull(message = "Status is required.")
         @Pattern(regexp = "PENDING|COMPLETED", message = "Must be one of: PENDING, COMPLETED")
-        String status
+        String status,
+        // KAN-363: set when one weekly repeat is marked, e.g. "2026-10-23"; absent for the item itself
+        java.time.LocalDate occurrenceDate
 ) {}

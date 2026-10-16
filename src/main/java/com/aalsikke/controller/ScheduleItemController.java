@@ -99,7 +99,7 @@ public class ScheduleItemController {
     public ResponseEntity<ScheduleItemResponse> updateStatus(@PathVariable UUID id,
                                                              @Valid @RequestBody StatusUpdateRequest request,
                                                              Authentication authentication) {
-        return scheduleItemService.updateStatus(id, request.status(), authentication.getName())
+        return scheduleItemService.updateStatus(id, request.status(), request.occurrenceDate(), authentication.getName())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(403).build());
     }
