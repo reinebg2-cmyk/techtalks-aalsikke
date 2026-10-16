@@ -31,6 +31,10 @@ public class ScheduleItemResponse {
     private Summary workplace;
     private List<ConflictSummary> conflicts = List.of();
     private boolean occurrence;
+    /** KAN-363: the repeat's local date (only on repeats). Sent back when a repeat is marked done. */
+    private java.time.LocalDate occurrenceDate;
+    /** KAN-363: start of the series' original item (only on repeats), for "Go to original". */
+    private OffsetDateTime seriesStart;
     private int checklistTotal;   // KAN-342: "2/5" on the task cards
     private int checklistDone;
 
@@ -75,12 +79,18 @@ public class ScheduleItemResponse {
      * its own start/end, no deadline (the deadline marker belongs to the real item only), and
      * "occurrence": true so the calendar can show it as a read-only repeat.
      */
-    public static ScheduleItemResponse occurrenceOf(ScheduleItem item, OffsetDateTime start, OffsetDateTime end) {
+    public static ScheduleItemResponse occurrenceOf(ScheduleItem item, OffsetDateTime start, OffsetDateTime end,
+                                                    java.time.LocalDate occurrenceDate, boolean completed) {
         ScheduleItemResponse dto = from(item);
         dto.startTime = start.withOffsetSameInstant(java.time.ZoneOffset.UTC);
         dto.endTime = end.withOffsetSameInstant(java.time.ZoneOffset.UTC);
         dto.deadline = null;
         dto.occurrence = true;
+        dto.occurrenceDate = occurrenceDate;
+        dto.seriesStart = item.getStartTime() != null
+                ? item.getStartTime().withOffsetSameInstant(java.time.ZoneOffset.UTC) : null;
+        // KAN-363: a repeat has its own done state, never the base item's
+        dto.status = completed ? "COMPLETED" : "PENDING";
         return dto;
     }
 
@@ -138,6 +148,8 @@ public class ScheduleItemResponse {
     public Summary getWorkplace() { return workplace; }
     public List<ConflictSummary> getConflicts() { return conflicts; }
     public boolean isOccurrence() { return occurrence; }
+    public java.time.LocalDate getOccurrenceDate() { return occurrenceDate; }
+    public OffsetDateTime getSeriesStart() { return seriesStart; }
     public int getChecklistTotal() { return checklistTotal; }
     public int getChecklistDone() { return checklistDone; }
 

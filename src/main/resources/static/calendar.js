@@ -134,7 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollPending: true,
         flash: null,        // { message, isError } shown after the next load (e.g. "Scheduled …")
         itemsById: new Map(),
-        conflicts: new Map()   // KAN-354: id -> titles it clashes with (for the preview card)
+        conflicts: new Map(),   // KAN-354: id -> titles it clashes with (for the preview card)
+        openAfterLoad: null     // KAN-363: id of an original whose card opens after the next load ("Go to original")
     };
 
     // ============================================================
@@ -383,23 +384,31 @@ document.addEventListener('DOMContentLoaded', () => {
             card.append(el('p', 'cal-preview-overlap', `Overlaps with: ${clashes.join(', ')}`));
         }
 
+        const actions = el('div', 'cal-preview-actions');
         if (item.occurrence) {
+            // KAN-363: a repeat can be marked done on its own; the series is changed on the original
             card.append(el('p', 'cal-preview-note',
-                'This is a weekly repeat. To change the series, open the original (its first date).'));
+                'This is a weekly repeat. Marking it done only affects this week. To change the whole series, go to the original.'));
+            if (item.seriesStart) {
+                const original = el('button', 'btn-secondary', 'Go to original');
+                original.type = 'button';
+                original.addEventListener('click', () => goToOriginal(item));
+                actions.append(original);
+            }
         } else {
-            const actions = el('div', 'cal-preview-actions');
             const edit = el('button', 'btn-secondary', item.startTime ? 'Reschedule' : 'Schedule');
             edit.type = 'button';
             edit.addEventListener('click', () => {
                 closePreview(true);
                 openScheduleForm({ item });
             });
-            const toggle = el('button', 'btn-primary', done ? 'Mark not done' : 'Mark done');
-            toggle.type = 'button';
-            toggle.addEventListener('click', () => setDone(item, !done, toggle));
-            actions.append(edit, toggle);
-            card.append(actions);
+            actions.append(edit);
         }
+        const toggle = el('button', 'btn-primary', done ? 'Mark not done' : 'Mark done');
+        toggle.type = 'button';
+        toggle.addEventListener('click', () => setDone(item, !done, toggle));
+        actions.append(toggle);
+        card.append(actions);
 
         document.body.append(card);
         previewCard = card;
@@ -417,13 +426,37 @@ document.addEventListener('DOMContentLoaded', () => {
         card.querySelector('.cal-preview-actions button, .cal-preview-close').focus();
     }
 
+    // KAN-363: "Go to original" shows the week (or day) of the series' first date and opens its card there
+    function goToOriginal(item) {
+        closePreview();
+        state.anchor = startOfDay(new Date(item.seriesStart));
+        state.scrollPending = false;
+        state.openAfterLoad = item.id;
+        load();
+    }
+
+    function openPendingOriginal(items) {
+        const id = state.openAfterLoad;
+        state.openAfterLoad = null;
+        if (!id) return;
+        const original = items.find(i => i.id === id && !i.occurrence);
+        const node = original && grid.querySelector(`[data-original-id="${CSS.escape(id)}"]`);
+        if (!node) return;
+        node.scrollIntoView({ block: 'center' });
+        // Open once the scroll has settled: the card closes itself on scroll
+        setTimeout(() => openPreview(original, node), 150);
+    }
+
     async function setDone(item, done, button) {
         button.disabled = true;
         try {
             const response = await apiRequest(`/api/schedule-items/${encodeURIComponent(item.id)}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: done ? 'COMPLETED' : 'PENDING' })
+                // KAN-363: a repeat sends its own date, so only that week changes
+                body: JSON.stringify(item.occurrence
+                    ? { status: done ? 'COMPLETED' : 'PENDING', occurrenceDate: item.occurrenceDate }
+                    : { status: done ? 'COMPLETED' : 'PENDING' })
             });
             if (!response.ok) {
                 throw new Error(errorMessageFrom(await readJsonSafely(response), `Server responded ${response.status}`));
@@ -955,6 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if (item.recurring) description += '. Repeats weekly';
             description += '. Click for details';
+            block.dataset.originalId = item.id;   // KAN-363: found again by "Go to original"
             makeActivatable(block, () => openPreview(item, block));
         }
 
@@ -1084,6 +1118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.conflicts = buildConflictMap(conflicts);
             render(days, items, state.conflicts);
             loadWeekSummary(days, requestId);
+            openPendingOriginal(items);
             if (state.flash) {
                 setStatus(state.flash.message, state.flash.isError);
                 state.flash = null;

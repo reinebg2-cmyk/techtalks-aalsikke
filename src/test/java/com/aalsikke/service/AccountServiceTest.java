@@ -5,6 +5,10 @@ import com.aalsikke.mail.EmailSender;
 import com.aalsikke.model.ChecklistItem;
 import com.aalsikke.model.User;
 import com.aalsikke.repository.ChecklistItemRepository;
+import com.aalsikke.repository.OccurrenceCompletionRepository;
+import com.aalsikke.model.OccurrenceCompletion;
+import com.aalsikke.model.RecurrenceRule;
+import com.aalsikke.model.ScheduleItem;
 import com.aalsikke.repository.CourseRepository;
 import com.aalsikke.repository.DailyReviewRepository;
 import com.aalsikke.repository.NotificationPreferenceRepository;
@@ -43,16 +47,22 @@ class AccountServiceTest {
     private EmailSender emailSender;
     private AccountService service;
     private User user;
+    private ScheduleItemRepository scheduleItems;
+    private RecurrenceRuleRepository rules;
+    private OccurrenceCompletionRepository completions;
 
     @BeforeEach
     void setUp() {
         users = mock(UserRepository.class);
         encoder = mock(PasswordEncoder.class);
         emailSender = mock(EmailSender.class);
-        service = new AccountService(users, mock(ScheduleItemRepository.class), mock(RecurrenceRuleRepository.class),
+        scheduleItems = mock(ScheduleItemRepository.class);
+        rules = mock(RecurrenceRuleRepository.class);
+        completions = mock(OccurrenceCompletionRepository.class);
+        service = new AccountService(users, scheduleItems, rules,
                 mock(CourseRepository.class), mock(WorkplaceRepository.class), mock(DailyReviewRepository.class),
                 mock(NotificationRepository.class), mock(NotificationPreferenceRepository.class), mock(ChecklistItemRepository.class),
-                encoder, emailSender);
+                completions, encoder, emailSender);
 
         user = new User();
         user.setId(UUID.randomUUID());
@@ -146,6 +156,28 @@ class AccountServiceTest {
         assertEquals("Ahmad", profile.get("fullName"));
         assertFalse(profile.containsKey("passwordHash"));
         assertFalse(profile.containsValue("hash"));
+    }
+
+    @Test
+    void exportListsTheDatesWhenAWeeklyRepeatWasDone() {
+        ScheduleItem task = new ScheduleItem();
+        task.setId(UUID.randomUUID());
+        task.setUser(user);
+        task.setTitle("Weekly class");
+        RecurrenceRule rule = new RecurrenceRule();
+        rule.setScheduleItem(task);
+        rule.setDaysOfWeek("FRI");
+        when(scheduleItems.findByUserId(user.getId())).thenReturn(List.of(task));
+        when(rules.findAllForUser(user.getId())).thenReturn(List.of(rule));
+        when(completions.findAllForUser(user.getId())).thenReturn(List.of(
+                new OccurrenceCompletion(task, LocalDate.of(2026, 10, 23)),
+                new OccurrenceCompletion(task, LocalDate.of(2026, 10, 30))));
+
+        Map<String, Object> data = service.exportData("ahmad@gmail.com");
+
+        Map<?, ?> exported = (Map<?, ?>) ((List<?>) data.get("tasks")).get(0);
+        Map<?, ?> repeat = (Map<?, ?>) exported.get("weeklyRepeat");
+        assertEquals(List.of(LocalDate.of(2026, 10, 23), LocalDate.of(2026, 10, 30)), repeat.get("doneDates"));
     }
 
     @Test
