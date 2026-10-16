@@ -16,7 +16,7 @@ import java.time.OffsetDateTime;
 /**
  * KAN-262 email verification:
  * - a link is valid for 1 hour and works once,
- * - a new link replaces the previous ones,
+ * - KAN-362: earlier links keep working until they expire; verifying closes all of them,
  * - the link stops working if the user changes their email in the meantime,
  * - resend has a 60-second cooldown and never reveals whether an email exists.
  */
@@ -45,7 +45,7 @@ public class EmailVerificationService {
     @Transactional
     public void sendVerification(User user) {
         OffsetDateTime now = OffsetDateTime.now();
-        tokenRepository.invalidateOpenTokens(user.getId(), now);
+        // KAN-362: earlier links stay valid; a resend no longer cancels them.
 
         String rawToken = VerificationTokens.newRawToken();
 
@@ -57,6 +57,22 @@ public class EmailVerificationService {
         tokenRepository.save(token);
 
         emailSender.sendVerificationEmail(user.getEmail(), baseUrl + "/verify-email.html?token=" + rawToken);
+    }
+
+    /**
+     * KAN-362: used when an unverified user logs in. Sends a link only if they have no valid one
+     * for their current email, so repeated logins don't pile up emails. The Resend button uses resend().
+     */
+    @Transactional
+    public void sendIfNoOpenLink(User user) {
+        if (user.isEmailVerified()) {
+            return;
+        }
+        boolean hasOpenLink = tokenRepository.existsByUserIdAndEmailIgnoreCaseAndUsedAtIsNullAndExpiresAtAfter(
+                user.getId(), user.getEmail(), OffsetDateTime.now());
+        if (!hasOpenLink) {
+            sendVerification(user);
+        }
     }
 
     /** KAN-273: the link was opened. Marks the email verified, or throws a 400 with a clear message. */
@@ -83,6 +99,8 @@ public class EmailVerificationService {
         }
 
         user.setEmailVerified(true);
+        // KAN-362: close every other open link of this user, so leftover emails can't be reused.
+        tokenRepository.invalidateOpenTokens(user.getId(), now);
         token.setUsedAt(now);
         userRepository.save(user);
         tokenRepository.save(token);

@@ -1,14 +1,10 @@
 package com.aalsikke.mail;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.HtmlUtils;
 
@@ -18,9 +14,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * S5-02: sends the verification link as a real email over SMTP.
+ * S5-02: sends the app's real emails (verification, reminders, security alerts, password reset).
  * Active only when app.mail.enabled=true (env MAIL_ENABLED); otherwise LoggingEmailSender is used.
+ * KAN-361: this class builds the content; the active MailTransport delivers it
+ * (SMTP by default, Brevo's HTTPS API with MAIL_TRANSPORT=brevo).
  * A sending failure is logged and swallowed, so registration still succeeds and the user can press Resend.
+ * Reminders are the exception: their failure is thrown so the reminder job retries.
  */
 @Component
 @ConditionalOnProperty(name = "app.mail.enabled", havingValue = "true")
@@ -32,30 +31,21 @@ public class SmtpEmailSender implements EmailSender {
     private static final ZoneId APP_ZONE = ZoneId.of("Asia/Beirut");
     private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("EEE d MMM, HH:mm", Locale.ENGLISH);
 
-    private final JavaMailSender mailSender;
-    private final String from;
+    private final MailTransport transport;
     private final String baseUrl;
 
-    public SmtpEmailSender(JavaMailSender mailSender,
-                           @Value("${app.mail.from}") String from,
+    public SmtpEmailSender(MailTransport transport,
                            @Value("${app.base-url}") String baseUrl) {
-        this.mailSender = mailSender;
-        this.from = from;
+        this.transport = transport;
         this.baseUrl = baseUrl;
     }
 
     @Override
     public void sendVerificationEmail(String to, String verificationLink) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(from, "Aal Sikke");
-            helper.setTo(to);
-            helper.setSubject("Verify your Aal Sikke email");
-            helper.setText(plainText(verificationLink), html(verificationLink));
-            mailSender.send(message);
+            transport.send(to, "Verify your Aal Sikke email", plainText(verificationLink), html(verificationLink));
             log.info("[EMAIL] Verification email sent to {}", to);
-        } catch (MailException | MessagingException | java.io.UnsupportedEncodingException e) {
+        } catch (MailException e) {
             // Don't fail registration or resend: the user can request a new link later.
             log.error("[EMAIL] Could not send verification email to {}: {}", to, e.getMessage());
         }
@@ -63,36 +53,21 @@ public class SmtpEmailSender implements EmailSender {
 
     @Override
     public void sendReminderEmail(String to, String name, String taskTitle, OffsetDateTime dueAt) {
-        // Thrown on failure (no catch for MailException): the reminder job retries next minute.
-        try {
-            String title = taskTitle.replaceAll("[\\r\\n]+", " ");   // keep the subject on one line
-            String due = dueAt == null ? null : WHEN.format(dueAt.atZoneSameInstant(APP_ZONE));
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(from, "Aal Sikke");
-            helper.setTo(to);
-            helper.setSubject("Reminder: " + title);
-            helper.setText(reminderText(name, title, due), reminderHtml(name, title, due));
-            mailSender.send(message);
-            log.info("[EMAIL] Reminder email sent to {}", to);
-        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
-            throw new IllegalStateException("Could not build reminder email: " + e.getMessage(), e);
-        }
+        // Thrown on failure (MailException is not caught): the reminder job retries next minute.
+        String title = taskTitle.replaceAll("[\\r\\n]+", " ");   // keep the subject on one line
+        String due = dueAt == null ? null : WHEN.format(dueAt.atZoneSameInstant(APP_ZONE));
+        transport.send(to, "Reminder: " + title, reminderText(name, title, due), reminderHtml(name, title, due));
+        log.info("[EMAIL] Reminder email sent to {}", to);
     }
 
     @Override
     public void sendSecurityAlert(String to, String name, String title, String detail) {
         try {
             String when = WHEN.format(OffsetDateTime.now().atZoneSameInstant(APP_ZONE));
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(from, "Aal Sikke");
-            helper.setTo(to);
-            helper.setSubject("Security alert: " + title);
-            helper.setText(securityText(name, title, detail, when), securityHtml(name, title, detail, when));
-            mailSender.send(message);
+            transport.send(to, "Security alert: " + title,
+                    securityText(name, title, detail, when), securityHtml(name, title, detail, when));
             log.info("[EMAIL] Security alert sent to {}", to);
-        } catch (MailException | MessagingException | java.io.UnsupportedEncodingException e) {
+        } catch (MailException e) {
             // KAN-337: the change already happened; a failed alert must not undo or block it.
             log.error("[EMAIL] Could not send security alert to {}: {}", to, e.getMessage());
         }
@@ -188,18 +163,13 @@ public class SmtpEmailSender implements EmailSender {
                 </div>
                 """.formatted(safe, safe);
     }
+
     @Override
     public void sendPasswordResetEmail(String to, String resetLink) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(from, "Aal Sikke");
-            helper.setTo(to);
-            helper.setSubject("Reset your Aal Sikke password");
-            helper.setText(resetText(resetLink), resetHtml(resetLink));
-            mailSender.send(message);
+            transport.send(to, "Reset your Aal Sikke password", resetText(resetLink), resetHtml(resetLink));
             log.info("[EMAIL] Password reset email sent to {}", to);
-        } catch (MailException | MessagingException | java.io.UnsupportedEncodingException e) {
+        } catch (MailException e) {
             // Silent for the user (so the response never reveals whether the account exists).
             log.error("[EMAIL] Could not send password reset email to {}: {}", to, e.getMessage());
         }
@@ -208,10 +178,10 @@ public class SmtpEmailSender implements EmailSender {
     private static String resetText(String link) {
         return """
                 We received a request to reset your Aal Sikke password.
- 
+
                 Choose a new password by opening this link:
                 %s
- 
+
                 The link is valid for 30 minutes and works once.
                 If you didn't ask for this, you can ignore this email. Your password will not change.
                 """.formatted(link);
