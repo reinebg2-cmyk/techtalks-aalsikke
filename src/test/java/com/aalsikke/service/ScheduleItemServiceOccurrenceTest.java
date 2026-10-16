@@ -106,6 +106,7 @@ class ScheduleItemServiceOccurrenceTest {
         assertEquals("COMPLETED", repeats.get(0).getStatus());
         assertEquals(LocalDate.of(2026, 10, 30), repeats.get(1).getOccurrenceDate());
         assertEquals("PENDING", repeats.get(1).getStatus());
+        assertEquals(base.getStartTime().toInstant(), repeats.get(0).getSeriesStart().toInstant());
     }
 
     @Test
