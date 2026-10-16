@@ -171,6 +171,10 @@ Returns the caller's items for a date range, so the calendar does not download e
 
 - Body: `{"status":"COMPLETED"}` or `{"status":"PENDING"}` (anything else → 400). Returns the updated
   item. Only the owner can change it (otherwise 403). Used by the dashboard's done checkbox.
+- KAN-363: add `"occurrenceDate": "YYYY-MM-DD"` to mark one weekly repeat instead of the item itself,
+  e.g. `{"status":"COMPLETED","occurrenceDate":"2026-10-23"}`. Only that week changes; the original
+  and its other repeats keep their own status. A date that is not a repeat of the item gives 400.
+  Returns the repeat. Stored in `occurrence_completions` (V26); deleting the item deletes them.
 
 
 
@@ -184,6 +188,10 @@ Returns the caller's items for a date range, so the calendar does not download e
   (same `id` as the original item, own `startTime`/`endTime`, no deadline). The original keeps
   `"occurrence": false`. Repeats keep the original's local start time (server time zone), so 09:00
   stays 09:00 across daylight-saving changes.
-- The calendar shows repeats striped with a ↻ and read-only; the series is changed through the original.
-- Known limitations: conflict detection, the dashboard lists and the weekly review counts only look at
-  real items, not generated repeats. Single repeats cannot be moved or skipped yet.
+- KAN-363: each repeat has its own `status` (from `occurrence_completions`, never the original's),
+  its `occurrenceDate` (local date, sent back when marking it done) and `seriesStart` (the original's
+  start, used by "Go to original").
+- The calendar shows repeats striped with a ↻ and read-only except Mark done (that week only); the series is changed through the original ("Go to original").
+- The weekly review counts the repeats due in the range too, each with its own status (KAN-363).
+- Known limitations: conflict detection and the dashboard lists only look at real items, not generated
+  repeats. Single repeats cannot be moved or skipped yet.

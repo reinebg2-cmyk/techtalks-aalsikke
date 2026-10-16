@@ -17,6 +17,10 @@ public interface OccurrenceCompletionRepository extends JpaRepository<Occurrence
 
     boolean existsByScheduleItemIdAndOccurrenceDate(UUID scheduleItemId, LocalDate occurrenceDate);
 
+    /** KAN-363: all of a user's completed repeats, oldest first (for the data export). */
+    @Query("SELECT c FROM OccurrenceCompletion c WHERE c.scheduleItem.user.id = :userId ORDER BY c.occurrenceDate")
+    List<OccurrenceCompletion> findAllForUser(@Param("userId") UUID userId);
+
     @Transactional
     long deleteByScheduleItemIdAndOccurrenceDate(UUID scheduleItemId, LocalDate occurrenceDate);
 

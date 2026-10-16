@@ -12,6 +12,7 @@ import com.aalsikke.model.ScheduleItem;
 import com.aalsikke.model.User;
 import com.aalsikke.model.Workplace;
 import com.aalsikke.repository.ChecklistItemRepository;
+import com.aalsikke.repository.OccurrenceCompletionRepository;
 import com.aalsikke.repository.CourseRepository;
 import com.aalsikke.repository.DailyReviewRepository;
 import com.aalsikke.repository.NotificationPreferenceRepository;
@@ -55,6 +56,7 @@ public class AccountService {
     private final NotificationRepository notificationRepository;
     private final NotificationPreferenceRepository notificationPreferenceRepository;
     private final ChecklistItemRepository checklistItemRepository;
+    private final OccurrenceCompletionRepository occurrenceCompletionRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailSender emailSender;
 
@@ -67,6 +69,7 @@ public class AccountService {
                           NotificationRepository notificationRepository,
                           NotificationPreferenceRepository notificationPreferenceRepository,
                           ChecklistItemRepository checklistItemRepository,
+                          OccurrenceCompletionRepository occurrenceCompletionRepository,
                           PasswordEncoder passwordEncoder,
                           EmailSender emailSender) {
         this.userRepository = userRepository;
@@ -78,6 +81,7 @@ public class AccountService {
         this.notificationRepository = notificationRepository;
         this.notificationPreferenceRepository = notificationPreferenceRepository;
         this.checklistItemRepository = checklistItemRepository;
+        this.occurrenceCompletionRepository = occurrenceCompletionRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailSender = emailSender;
     }
@@ -93,6 +97,10 @@ public class AccountService {
                 .collect(Collectors.toMap(rule -> rule.getScheduleItem().getId(), Function.identity(), (a, b) -> a));
         Map<UUID, List<ChecklistItem>> stepsByTask = checklistItemRepository.findAllForUser(userId).stream()
                 .collect(Collectors.groupingBy(step -> step.getScheduleItem().getId()));
+        // KAN-363: the dates on which a weekly repeat was marked done, oldest first
+        Map<UUID, List<LocalDate>> doneDatesByTask = occurrenceCompletionRepository.findAllForUser(userId).stream()
+                .collect(Collectors.groupingBy(done -> done.getScheduleItem().getId(),
+                        Collectors.mapping(done -> done.getOccurrenceDate(), Collectors.toList())));
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("format", "aal-sikke-export-v1");
@@ -109,7 +117,8 @@ public class AccountService {
         data.put("courses", courseRepository.findByUserId(userId).stream().map(AccountService::courseOf).toList());
         data.put("workplaces", workplaceRepository.findByUserId(userId).stream().map(AccountService::workplaceOf).toList());
         data.put("tasks", scheduleItemRepository.findByUserId(userId).stream()
-                .map(item -> taskOf(item, repeatByTask.get(item.getId()), stepsByTask.getOrDefault(item.getId(), List.of())))
+                .map(item -> taskOf(item, repeatByTask.get(item.getId()), stepsByTask.getOrDefault(item.getId(), List.of()),
+                        doneDatesByTask.getOrDefault(item.getId(), List.of())))
                 .toList());
         data.put("dailyReviews", dailyReviewRepository.findByUserIdOrderByReviewDateAsc(userId).stream()
                 .map(AccountService::reviewOf).toList());
@@ -139,7 +148,8 @@ public class AccountService {
                 "createdAt", user.getCreatedAt());
     }
 
-    private static Map<String, Object> taskOf(ScheduleItem item, RecurrenceRule repeat, List<ChecklistItem> steps) {
+    private static Map<String, Object> taskOf(ScheduleItem item, RecurrenceRule repeat, List<ChecklistItem> steps,
+                                              List<LocalDate> doneDates) {
         List<Map<String, Object>> reminders = item.getReminders().stream()
                 .map(AccountService::reminderOf).toList();
         return fields(
@@ -160,7 +170,8 @@ public class AccountService {
                 "weeklyRepeat", repeat == null ? null : fields(
                         "daysOfWeek", repeat.getDaysOfWeek(),
                         "everyWeeks", repeat.getIntervalValue(),
-                        "until", repeat.getUntilDate()),
+                        "until", repeat.getUntilDate(),
+                        "doneDates", doneDates),   // KAN-363: weekly repeats marked done
                 "createdAt", item.getCreatedAt());
     }
 
