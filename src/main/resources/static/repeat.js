@@ -6,11 +6,11 @@
 //   AalSikkeRepeat.afterSave(kind, task)    after the task is saved: creates, updates or removes the repeat
 // kind is 'new' or 'edit'. labelHtml(task) is the small "Weekly" label on task cards.
 // Repeats use /api/recurrence-rules (POST creates or replaces, DELETE removes).
+// Needs i18n.js loaded first (t, lang, LANGS).
 
 (function () {
 
     const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    const DAY_NAMES = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' };
 
     // ---------------- small helpers (pure) ----------------
 
@@ -34,22 +34,22 @@
     /** The problem with a repeat's settings, or '' when they're fine. */
     function problemWith(settings, startTime, endTime) {
         if (!startTime || !endTime) {
-            return 'A task needs a start time to repeat weekly. Tick "Has a start time", or untick "Repeat weekly".';
+            return t('repeat.needStart');
         }
-        if (!settings.days.length) return 'Pick at least one day for the weekly repeat.';
+        if (!settings.days.length) return t('repeat.pickDay');
         const every = Number(settings.every);
         if (!Number.isInteger(every) || every < 1 || every > 52) {
-            return '"Every" must be a whole number of weeks from 1 to 52.';
+            return t('repeat.everyRange');
         }
         if (settings.until && settings.until < localDateOf(startTime)) {
-            return '"Until" can\'t be before the task\'s start date.';
+            return t('repeat.untilBefore');
         }
         return '';
     }
 
     function labelHtml(task) {
         return task && task.recurring
-            ? '<span class="repeat-label" title="Repeats weekly">&#8635; Weekly</span>'
+            ? `<span class="repeat-label" title="${t('repeat.title')}">&#8635; ${t('repeat.weekly')}</span>`
             : '';
     }
 
@@ -64,6 +64,13 @@
         return node;
     }
 
+    /** An element whose text comes from the dictionary (and follows the language switcher). */
+    function tr(tag, className, key) {
+        const node = el(tag, className, t(key));
+        node.dataset.i18n = key;
+        return node;
+    }
+
     function buildSection(prefix, hasStart, startInput) {
         const field = el('div', 'field repeat-field');
 
@@ -71,15 +78,15 @@
         const box = el('input');
         box.type = 'checkbox';
         box.id = `${prefix}-repeat`;
-        toggleLabel.append(box, ' Repeat weekly');
+        toggleLabel.append(box, ' ', tr('span', '', 'repeat.toggle'));
 
-        const note = el('p', 'repeat-note', 'Add a start time to make this task repeat.');
+        const note = tr('p', 'repeat-note', 'repeat.note');
 
         const details = el('div', 'repeat-details');
         details.hidden = true;
 
         const days = el('fieldset', 'repeat-days');
-        const legend = el('legend', '', 'On');
+        const legend = tr('legend', '', 'repeat.on');
         days.append(legend);
         let autoDay = false;   // true while the day was picked from the start time, not by the user
         const dayBoxes = DAYS.map(code => {
@@ -88,7 +95,7 @@
             input.type = 'checkbox';
             input.value = code;
             input.addEventListener('change', () => { autoDay = false; });   // the user chose the days
-            label.append(input, el('span', '', DAY_NAMES[code]));
+            label.append(input, tr('span', '', 'day.' + code));
             days.append(label);
             return input;
         });
@@ -102,13 +109,13 @@
         every.max = '52';
         every.step = '1';
         every.value = '1';
-        everyLabel.append('Every ', every, ' week(s)');
+        everyLabel.append(tr('span', '', 'repeat.every'), ' ', every, ' ', tr('span', '', 'repeat.weeks'));
 
         const untilLabel = el('label');
         const until = el('input', 'repeat-until');
         until.type = 'date';
         until.id = `${prefix}-repeat-until`;
-        untilLabel.append('Until ', until, el('span', 'repeat-optional', '(optional)'));
+        untilLabel.append(tr('span', '', 'repeat.until'), ' ', until, ' ', tr('span', 'repeat-optional', 'repeat.optional'));
         row.append(everyLabel, untilLabel);
 
         details.append(days, row);
@@ -220,7 +227,7 @@
         } catch (error) {
             if (error && error.sessionExpired) return;
             console.error('Weekly repeat could not be saved:', error);
-            window.AalSikke.showToast(`The task was saved, but the weekly repeat could not be saved. ${error.message}`, { type: 'error' });
+            window.AalSikke.showToast(t('repeat.saveFailed', { error: error.message }), { type: 'error' });
         }
     }
 
@@ -228,9 +235,9 @@
         try {
             const data = await response.json();
             if (data.errors) return Object.values(data.errors).join('\n');
-            return data.message || data.error || `Server responded ${response.status}`;
+            return data.message || data.error || t('err.server', { status: response.status });
         } catch (_) {
-            return `Server responded ${response.status}`;
+            return t('err.server', { status: response.status });
         }
     }
 

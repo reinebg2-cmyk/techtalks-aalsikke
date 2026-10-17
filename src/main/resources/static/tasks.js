@@ -6,6 +6,7 @@
 //
 // dashboard.js fires 'aalsikke:tasks-loaded' after every task change (load,
 // create, edit, complete, delete), so this page re-renders by itself.
+// Needs i18n.js loaded first (t, lang, LANGS).
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -31,12 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const WORK_TYPES = new Set(['SHIFT', 'MEETING', 'WORK_TASK', 'PAYMENT_DUE']);
 
     // Display order. Completed starts collapsed so the page stays focused.
+    // The visible title comes from t('tasks.group.<key>').
     const GROUPS = [
-        { key: 'OVERDUE', title: 'Overdue', open: true },
-        { key: 'TODAY', title: 'Today', open: true },
-        { key: 'UPCOMING', title: 'Upcoming', open: true },
-        { key: 'NO_DATE', title: 'No date', open: true },
-        { key: 'COMPLETED', title: 'Completed', open: false }
+        { key: 'OVERDUE', open: true },
+        { key: 'TODAY', open: true },
+        { key: 'UPCOMING', open: true },
+        { key: 'NO_DATE', open: true },
+        { key: 'COMPLETED', open: false }
     ];
 
     // Remembers which groups the user opened/closed across re-renders.
@@ -60,8 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatDue(date) {
-        if (!date) return 'No deadline';
-        return date.toLocaleString(undefined, {
+        if (!date) return t('due.none');
+        return date.toLocaleString(LANGS[lang].locale, {
             month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
         });
     }
@@ -137,32 +139,34 @@ document.addEventListener('DOMContentLoaded', () => {
     function cardHtml(task) {
         const completed = isCompleted(task);
         const partners = conflictPartners(task);
+        const clashTitle = t('conflict.clashes', { names: partners.map(p => p.title).join(t('common.listSep')) });
         const badge = partners.length === 0 ? '' :
-            `<span class="conflict-badge" title="Clashes with ${escapeHtml(partners.map(p => p.title).join(', '))}">&#9888; Conflict</span>`;
+            `<span class="conflict-badge" title="${escapeHtml(clashTitle)}">&#9888; ${escapeHtml(t('conflict.badge'))}</span>`;
+        const typeLabel = task.itemType ? t('cat.' + String(task.itemType).toUpperCase()) : '';
 
         return `
       <li class="task-card priority-${priorityOf(task).toLowerCase()}${partners.length ? ' is-conflict' : ''}${completed ? ' is-complete' : ''}"
           data-id="${escapeHtml(String(task.id))}">
         <input type="checkbox" class="task-checkbox"
-               aria-label="Mark ${escapeHtml(task.title)} complete" ${completed ? 'checked' : ''}>
+               aria-label="${escapeHtml(t('task.markComplete', { title: task.title }))}" ${completed ? 'checked' : ''}>
         <div class="task-body">
           <p class="task-title">${escapeHtml(task.title)}</p>
           <div class="task-meta">
             <span class="priority-dot ${priorityOf(task).toLowerCase()}"></span>
-            <span class="priority-label ${priorityOf(task).toLowerCase()}">${escapeHtml(priorityOf(task).toLowerCase())}</span>
-            ${task.itemType ? escapeHtml(task.itemType) + ' &middot; ' : ''}
-            Due ${escapeHtml(formatDue(taskDate(task)))}
+            <span class="priority-label ${priorityOf(task).toLowerCase()}">${escapeHtml(t('prio.' + priorityOf(task)))}</span>
+            ${typeLabel ? escapeHtml(typeLabel) + ' &middot; ' : ''}
+            ${escapeHtml(t('task.dueLabel'))} ${escapeHtml(formatDue(taskDate(task)))}
                         ${window.AalSikkeRepeat ? window.AalSikkeRepeat.labelHtml(task) : ''}
             ${badge}
                         ${window.AalSikkeChecklist ? window.AalSikkeChecklist.progressHtml(task) : ''}
           </div>
         </div>
         <div class="task-actions">
-          <button type="button" class="task-menu-btn" aria-label="Task actions"
-                  aria-expanded="false" title="Task actions">&#8942;</button>
+          <button type="button" class="task-menu-btn" aria-label="${escapeHtml(t('task.actions'))}"
+                  aria-expanded="false" title="${escapeHtml(t('task.actions'))}">&#8942;</button>
           <div class="task-menu" hidden>
-            <button type="button" class="task-action-edit">Edit</button>
-            <button type="button" class="task-action-delete">Delete</button>
+            <button type="button" class="task-action-edit">${escapeHtml(t('common.edit'))}</button>
+            <button type="button" class="task-action-delete">${escapeHtml(t('common.delete'))}</button>
           </div>
         </div>
       </li>`;
@@ -180,14 +184,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (countEl) {
             countEl.textContent = all.length === 0 ? '' :
-                `Showing ${visible.length} of ${all.length} task${all.length === 1 ? '' : 's'}`;
+                t(all.length === 1 ? 'tasks.showingOne' : 'tasks.showing', { n: visible.length, total: all.length });
         }
 
         if (visible.length === 0) {
             groupsEl.innerHTML = '';
-            showState(all.length === 0
-                ? 'No tasks yet. Tap “+ New task” above to add your first one.'
-                : 'No tasks match these filters.');
+            showState(all.length === 0 ? t('tasks.emptyAllPage') : t('tasks.noMatch'));
             return;
         }
 
@@ -200,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return `
         <details class="tasks-group" data-group="${group.key}"${openGroups.get(group.key) ? ' open' : ''}>
           <summary>
-            <strong>${group.title}</strong>
+            <strong>${escapeHtml(t('tasks.group.' + group.key))}</strong>
             <span class="tasks-group-count">(${items.length})</span>
           </summary>
           <ul class="task-list">${items.map(cardHtml).join('')}</ul>
@@ -237,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to update task status:', error);
             checkbox.checked = !checkbox.checked;
             checkbox.disabled = false;
-            app.showToast('Could not update the task status. Please try again.', { type: 'error' });
+            app.showToast(t('err.statusUpdate'), { type: 'error' });
         }
     }
 
@@ -263,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 if (error.sessionExpired) return;
                 console.error('Failed to export calendar:', error);
-                app.showToast('Could not export your calendar. Please try again.', { type: 'error' });
+                app.showToast(t('tasks.exportFailed'), { type: 'error' });
             } finally {
                 exportBtn.disabled = false;
             }
@@ -326,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('aalsikke:tasks-error', () => {
         groupsEl.innerHTML = '';
         if (countEl) countEl.textContent = '';
-        showState("Couldn't load your tasks. Please refresh the page.");
+        showState(t('tasks.loadFailedPage'));
     });
 
     // If dashboard.js already finished loading before this ran, render now.

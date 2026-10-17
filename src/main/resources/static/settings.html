@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="theme-init.js"></script>
+    <script src="i18n.js"></script>
     <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
     <title>Aal Sikke — Settings</title>
     <link rel="stylesheet" href="styles.css">
@@ -27,18 +28,18 @@
                     <span class="badge-dot" id="notif-badge" hidden></span>
                 </button>
                 <div class="profile-dropdown notif-dropdown" id="notif-dropdown" hidden>
-                    <div class="notif-dropdown-header">Reminders</div>
+                    <div class="notif-dropdown-header" data-i18n="notif.header">Reminders</div>
                     <ul class="notif-list" id="notif-list"></ul>
-                    <p class="notif-empty" id="notif-empty" hidden>Nothing due right now.</p>
+                    <p class="notif-empty" id="notif-empty" data-i18n="notif.empty" hidden>Nothing due right now.</p>
                 </div>
             </div>
             <div class="profile-menu">
                 <button class="avatar-btn" id="avatar-btn" aria-label="Open profile menu">AC</button>
                 <div class="profile-dropdown" id="profile-dropdown" hidden>
-                    <a href="#" id="edit-profile-link">Edit Profile</a>
-                    <a href="#" id="change-password-link">Change password</a>
-                    <a href="#" id="notification-prefs-link">Notification preferences</a>
-                    <a href="index.html" id="logout-link">Log out</a>
+                    <a href="#" id="edit-profile-link" data-i18n="menu.editProfile">Edit Profile</a>
+                    <a href="#" id="change-password-link" data-i18n="menu.changePassword">Change password</a>
+                    <a href="#" id="notification-prefs-link" data-i18n="menu.notificationPrefs">Notification preferences</a>
+                    <a href="index.html" id="logout-link" data-i18n="menu.logout">Log out</a>
                 </div>
             </div>
         </div>
@@ -59,18 +60,19 @@
 
             <nav class="side-nav">
                 <a href="dashboard.html" class="nav-link">
-                    <span class="nav-icon">&#9635;</span> Dashboard
+                    <span class="nav-icon">&#9635;</span> <span data-i18n="nav.dashboard">Dashboard</span>
                 </a>
                 <a href="calendar.html" class="nav-link">
-                    <span class="nav-icon">&#128197;</span> Calendar
+                    <span class="nav-icon">&#128197;</span> <span data-i18n="nav.calendar">Calendar</span>
                 </a>
                 <a href="tasks.html" class="nav-link">
-                    <span class="nav-icon">&#9745;</span> Tasks
+                    <span class="nav-icon">&#9745;</span> <span data-i18n="nav.tasks">Tasks</span>
                 </a>
                 <a href="settings.html" class="nav-link active" id="settings-nav-link">
-                    <span class="nav-icon">&#9881;</span> Settings
+                    <span class="nav-icon">&#9881;</span> <span data-i18n="nav.settings">Settings</span>
                 </a>
             </nav>
+
         </aside>
 
         <!-- Main content -->
@@ -78,8 +80,8 @@
 
             <section class="greeting-row">
                 <div>
-                    <h1>Settings</h1>
-                    <span class="greeting-sub">Manage your profile, security and notifications.</span>
+                    <h1 data-i18n="nav.settings">Settings</h1>
+                    <span class="greeting-sub" data-i18n="settings.subtitle">Manage your profile, security and notifications.</span>
                 </div>
             </section>
 
@@ -87,12 +89,10 @@
             <section class="card settings-panel" id="settings-profile-panel">
                 <div class="row-between">
                     <div>
-                        <h2>Profile</h2>
-                        <p class="card-subtitle">Your name, username and contact details.</p>
+                        <h2 data-i18n="settings.profile.title">Profile</h2>
+                        <p class="card-subtitle" data-i18n="settings.profile.subtitle">Your name, username and contact details.</p>
                     </div>
-                    <button type="button" class="btn-secondary settings-panel-action" id="sidebar-profile-btn">Edit
-                        profile
-                    </button>
+                    <button type="button" class="btn-secondary settings-panel-action" id="sidebar-profile-btn" data-i18n="settings.profile.edit">Edit profile</button>
                 </div>
             </section>
 
@@ -100,12 +100,10 @@
             <section class="card settings-panel" id="settings-password-panel">
                 <div class="row-between">
                     <div>
-                        <h2>Password</h2>
-                        <p class="card-subtitle">Update the password you use to sign in.</p>
+                        <h2 data-i18n="settings.password.title">Password</h2>
+                        <p class="card-subtitle" data-i18n="settings.password.subtitle">Update the password you use to sign in.</p>
                     </div>
-                    <button type="button" class="btn-secondary settings-panel-action" id="settings-change-password-btn">
-                        Change password
-                    </button>
+                    <button type="button" class="btn-secondary settings-panel-action" id="settings-change-password-btn" data-i18n="menu.changePassword">Change password</button>
                 </div>
             </section>
 
@@ -113,20 +111,18 @@
             <section class="card settings-panel" id="settings-notifications-panel">
                 <div class="row-between">
                     <div>
-                        <h2>Manage Notifications</h2>
-                        <p class="card-subtitle">Configure WhatsApp and SMS delivery channels for your alerts.</p>
+                        <h2 data-i18n="settings.notif.title">Manage Notifications</h2>
+                        <p class="card-subtitle" data-i18n="settings.notif.subtitle">Configure WhatsApp and SMS delivery channels for your alerts.</p>
                     </div>
-                    <button type="button" class="btn-secondary settings-panel-action" id="settings-notif-prefs-btn">
-                        Event alerts
-                    </button>
+                    <button type="button" class="btn-secondary settings-panel-action" id="settings-notif-prefs-btn" data-i18n="settings.notif.eventAlerts">Event alerts</button>
                 </div>
 
                 <form id="channel-prefs-form" style="margin-top: 1.5rem;">
                     <!-- WhatsApp Channel Toggle -->
                     <div class="toggle-row">
                         <div class="toggle-text">
-                            <span class="toggle-title">WhatsApp Notifications</span>
-                            <span class="toggle-subtitle">Receive instant reminders and task updates directly on WhatsApp.</span>
+                            <span class="toggle-title" data-i18n="settings.notif.whatsapp.title">WhatsApp Notifications</span>
+                            <span class="toggle-subtitle" data-i18n="settings.notif.whatsapp.subtitle">Receive instant reminders and task updates directly on WhatsApp.</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-whatsapp-enabled" name="whatsappEnabled">
@@ -137,8 +133,8 @@
                     <!-- SMS Channel Toggle -->
                     <div class="toggle-row">
                         <div class="toggle-text">
-                            <span class="toggle-title">SMS Notifications</span>
-                            <span class="toggle-subtitle">Receive urgent alerts and system notifications via text message.</span>
+                            <span class="toggle-title" data-i18n="settings.notif.sms.title">SMS Notifications</span>
+                            <span class="toggle-subtitle" data-i18n="settings.notif.sms.subtitle">Receive urgent alerts and system notifications via text message.</span>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="pref-sms-enabled" name="smsEnabled">
@@ -148,21 +144,21 @@
 
                     <!-- Primary Channel Selection -->
                     <div class="field" style="margin-top: 1rem;">
-                        <label for="pref-primary-channel">Primary Delivery Channel</label>
+                        <label for="pref-primary-channel" data-i18n="settings.notif.primary.label">Primary Delivery Channel</label>
                         <div class="input-wrap">
                             <select id="pref-primary-channel" name="primaryChannel">
-                                <option value="WHATSAPP">WhatsApp (Recommended)</option>
-                                <option value="SMS">SMS</option>
-                                <option value="IN_APP">In-App Only</option>
+                                <option value="WHATSAPP" data-i18n="settings.notif.primary.whatsapp">WhatsApp (Recommended)</option>
+                                <option value="SMS" data-i18n="settings.notif.primary.sms">SMS</option>
+                                <option value="IN_APP" data-i18n="settings.notif.primary.inapp">In-App Only</option>
                             </select>
                         </div>
-                        <p class="hint">This channel will be prioritized for deadline and schedule notifications.</p>
+                        <p class="hint" data-i18n="settings.notif.primary.hint">This channel will be prioritized for deadline and schedule notifications.</p>
                     </div>
 
                     <p class="modal-message" id="channel-prefs-message" role="status" aria-live="polite"></p>
 
                     <div class="form-actions" style="margin-top: 1rem;">
-                        <button type="submit" class="btn-primary" id="save-channel-prefs-btn">Save channels</button>
+                        <button type="submit" class="btn-primary" id="save-channel-prefs-btn" data-i18n="settings.notif.save">Save channels</button>
                     </div>
                 </form>
             </section>
@@ -171,8 +167,8 @@
             <section class="card settings-panel" id="settings-theme-panel">
                 <div class="row-between">
                     <div>
-                        <h2>Theme</h2>
-                        <p class="card-subtitle">Switch between light and dark mode.</p>
+                        <h2 data-i18n="settings.theme.title">Theme</h2>
+                        <p class="card-subtitle" data-i18n="settings.theme.subtitle">Switch between light and dark mode.</p>
                     </div>
                     <label class="switch">
                         <input type="checkbox" id="theme-toggle">
@@ -181,12 +177,24 @@
                 </div>
             </section>
 
+            <!-- Language panel -->
+            <section class="card settings-panel" id="settings-language-panel">
+                <div class="row-between">
+                    <div>
+                        <h2 data-i18n="settings.language.title">Language</h2>
+                        <p class="card-subtitle" data-i18n="settings.language.subtitle">Choose the language of the app.</p>
+                    </div>
+                    <div class="input-wrap">
+                        <select id="lang-select" aria-label="Language"></select>
+                    </div>
+                </div>
+            </section>
+
             <!-- Color palette panel (KAN-290). Options are rendered by palette.js into #palette-grid. -->
             <section class="card settings-panel" id="settings-palette-panel">
                 <div>
-                    <h2>Color palette</h2>
-                    <p class="card-subtitle">Pick the accent colors Aal Sikke uses everywhere. Works with both light and
-                        dark mode.</p>
+                    <h2 data-i18n="settings.palette.title">Color palette</h2>
+                    <p class="card-subtitle" data-i18n="settings.palette.subtitle">Pick the accent colors Aal Sikke uses everywhere. Works with both light and dark mode.</p>
                 </div>
                 <div class="palette-grid" id="palette-grid" role="radiogroup" aria-label="Color palette"></div>
                 <p class="modal-message is-error" id="palette-message" role="alert"></p>
@@ -198,10 +206,10 @@
 
     <!-- Mobile bottom nav -->
     <nav class="bottom-nav">
-        <a href="dashboard.html"><span>&#9635;</span>Dashboard</a>
-        <a href="calendar.html"><span>&#128197;</span>Calendar</a>
-        <a href="tasks.html"><span>&#9745;</span>Tasks</a>
-        <a href="settings.html" class="active" id="settings-bottom-link"><span>&#9881;</span>Settings</a>
+        <a href="dashboard.html"><span>&#9635;</span><span data-i18n="nav.dashboard">Dashboard</span></a>
+        <a href="calendar.html"><span>&#128197;</span><span data-i18n="nav.calendar">Calendar</span></a>
+        <a href="tasks.html"><span>&#9745;</span><span data-i18n="nav.tasks">Tasks</span></a>
+        <a href="settings.html" class="active" id="settings-bottom-link"><span>&#9881;</span><span data-i18n="nav.settings">Settings</span></a>
     </nav>
 
 </div>
@@ -211,8 +219,8 @@
     <div class="modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
         <div class="modal-header">
             <div>
-                <h2 id="profile-modal-title">Edit profile</h2>
-                <p id="profile-modal-subtitle">Update your details and how you use Aal Sikke.</p>
+                <h2 id="profile-modal-title" data-i18n="settings.profile.edit">Edit profile</h2>
+                <p id="profile-modal-subtitle" data-i18n="modal.profile.subtitle">Update your details and how you use Aal Sikke.</p>
             </div>
             <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close">&#10005;</button>
         </div>
@@ -221,14 +229,14 @@
             <div class="profile-modal-avatar" id="modal-profile-avatar" aria-hidden="true">AC</div>
 
             <fieldset class="role-field" id="field-profile-mode">
-                <legend class="field-label">I use Aal Sikke primarily for</legend>
+                <legend class="field-label" data-i18n="modal.profile.roleLegend">I use Aal Sikke primarily for</legend>
                 <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role">
                     <input type="radio" name="profile-role" id="profile-role-student" value="STUDENT">
-                    <label for="profile-role-student">Student</label>
+                    <label for="profile-role-student" data-i18n="role.student">Student</label>
                     <input type="radio" name="profile-role" id="profile-role-work" value="WORK">
-                    <label for="profile-role-work">Work</label>
+                    <label for="profile-role-work" data-i18n="role.work">Work</label>
                     <input type="radio" name="profile-role" id="profile-role-dual" value="HYBRID">
-                    <label for="profile-role-dual">Dual</label>
+                    <label for="profile-role-dual" data-i18n="role.dual">Dual</label>
                 </div>
                 <p class="role-hint" id="profile-role-hint"></p>
                 <p class="hint error-text" role="alert"></p>
@@ -236,20 +244,20 @@
 
             <div class="form-grid">
                 <div class="field" id="field-profile-fullname">
-                    <label for="profile-fullname">Full name</label>
+                    <label for="profile-fullname" data-i18n="form.fullName">Full name</label>
                     <div class="input-wrap"><input id="profile-fullname" type="text" autocomplete="name"
                                                    maxlength="255"></div>
                     <p class="hint error-text" role="alert"></p>
                 </div>
                 <div class="field">
-                    <label for="profile-username">Username</label>
+                    <label for="profile-username" data-i18n="form.username">Username</label>
                     <div class="input-wrap"><input id="profile-username" type="text" readonly aria-readonly="true">
                     </div>
                 </div>
             </div>
 
             <div class="field" id="field-profile-email">
-                <label for="profile-email">Email</label>
+                <label for="profile-email" data-i18n="form.email">Email</label>
                 <div class="input-wrap"><input id="profile-email" type="email" autocomplete="email" maxlength="255">
                 </div>
                 <p class="hint error-text" role="alert"></p>
@@ -257,11 +265,11 @@
 
             <div class="form-grid">
                 <div class="field">
-                    <label for="profile-dob">Date of birth</label>
+                    <label for="profile-dob" data-i18n="form.dob">Date of birth</label>
                     <div class="input-wrap"><input id="profile-dob" type="date" readonly aria-readonly="true"></div>
                 </div>
                 <div class="field" id="field-profile-phone">
-                    <label for="profile-phone">Phone number</label>
+                    <label for="profile-phone" data-i18n="form.phone">Phone number</label>
                     <div class="input-wrap"><input id="profile-phone" type="tel" autocomplete="tel" maxlength="50">
                     </div>
                     <p class="hint error-text" role="alert"></p>
@@ -269,7 +277,7 @@
             </div>
 
             <div class="field" id="field-profile-current-password">
-                <label for="profile-current-password">Current password <span class="role-hint">(only needed to change your name, email or phone)</span></label>
+                <label for="profile-current-password"><span data-i18n="form.currentPassword">Current password</span> <span class="role-hint" data-i18n="form.currentPasswordNote">(only needed to change your name, email or phone)</span></label>
                 <div class="input-wrap"><input id="profile-current-password" type="password"
                                                autocomplete="current-password"></div>
                 <p class="hint error-text" role="alert"></p>
@@ -278,8 +286,8 @@
             <p class="modal-message" id="profile-message" role="status" aria-live="polite"></p>
 
             <div class="form-actions">
-                <button type="button" class="btn-secondary" id="cancel-profile-btn">Cancel</button>
-                <button type="submit" class="btn-primary" id="save-profile-btn">Save profile</button>
+                <button type="button" class="btn-secondary" id="cancel-profile-btn" data-i18n="common.cancel">Cancel</button>
+                <button type="submit" class="btn-primary" id="save-profile-btn" data-i18n="modal.profile.save">Save profile</button>
             </div>
         </form>
     </div>
@@ -290,15 +298,15 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
         <div class="modal-header">
             <div>
-                <h2 id="password-modal-title">Change password</h2>
-                <p>Choose a new password for your account.</p>
+                <h2 id="password-modal-title" data-i18n="menu.changePassword">Change password</h2>
+                <p data-i18n="modal.password.subtitle">Choose a new password for your account.</p>
             </div>
             <button type="button" class="modal-close" id="close-password-modal" aria-label="Close">&#10005;</button>
         </div>
 
         <form id="password-form" novalidate>
             <div class="field" id="field-current-password">
-                <label for="current-password">Current password</label>
+                <label for="current-password" data-i18n="form.currentPassword">Current password</label>
                 <div class="input-wrap">
                     <input id="current-password" type="password" autocomplete="current-password">
                 </div>
@@ -306,7 +314,7 @@
             </div>
 
             <div class="field" id="field-new-password">
-                <label for="new-password">New password</label>
+                <label for="new-password" data-i18n="form.newPassword">New password</label>
                 <div class="input-wrap">
                     <input id="new-password" type="password" autocomplete="new-password">
                 </div>
@@ -316,7 +324,7 @@
             </div>
 
             <div class="field" id="field-confirm-new-password">
-                <label for="confirm-new-password">Confirm new password</label>
+                <label for="confirm-new-password" data-i18n="form.confirmNewPassword">Confirm new password</label>
                 <div class="input-wrap">
                     <input id="confirm-new-password" type="password" autocomplete="new-password">
                 </div>
@@ -326,8 +334,8 @@
             <p class="modal-message" id="password-message" role="status" aria-live="polite"></p>
 
             <div class="form-actions">
-                <button type="button" class="btn-secondary" id="cancel-password-btn">Cancel</button>
-                <button type="submit" class="btn-primary" id="save-password-btn">Update password</button>
+                <button type="button" class="btn-secondary" id="cancel-password-btn" data-i18n="common.cancel">Cancel</button>
+                <button type="submit" class="btn-primary" id="save-password-btn" data-i18n="modal.password.save">Update password</button>
             </div>
         </form>
     </div>
@@ -338,8 +346,8 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="notif-prefs-modal-title">
         <div class="modal-header">
             <div>
-                <h2 id="notif-prefs-modal-title">Notification preferences</h2>
-                <p>Choose which activity alerts Aal Sikke sends you.</p>
+                <h2 id="notif-prefs-modal-title" data-i18n="menu.notificationPrefs">Notification preferences</h2>
+                <p data-i18n="modal.prefs.subtitle">Choose which activity alerts Aal Sikke sends you.</p>
             </div>
             <button type="button" class="modal-close" id="close-notif-prefs-modal" aria-label="Close">&#10005;</button>
         </div>
@@ -347,8 +355,8 @@
         <form id="notif-prefs-form">
             <div class="toggle-row">
                 <div class="toggle-text">
-                    <span class="toggle-title">Deadline reminders</span>
-                    <span class="toggle-subtitle">Get notified as a task's deadline approaches.</span>
+                    <span class="toggle-title" data-i18n="prefs.deadline.title">Deadline reminders</span>
+                    <span class="toggle-subtitle" data-i18n="prefs.deadline.subtitle">Get notified as a task's deadline approaches.</span>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="pref-deadline-reminders">
@@ -358,8 +366,8 @@
 
             <div class="toggle-row">
                 <div class="toggle-text">
-                    <span class="toggle-title">Overdue alerts</span>
-                    <span class="toggle-subtitle">Get notified when a task passes its deadline.</span>
+                    <span class="toggle-title" data-i18n="prefs.overdue.title">Overdue alerts</span>
+                    <span class="toggle-subtitle" data-i18n="prefs.overdue.subtitle">Get notified when a task passes its deadline.</span>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="pref-overdue-alerts">
@@ -369,8 +377,8 @@
 
             <div class="toggle-row">
                 <div class="toggle-text">
-                    <span class="toggle-title">Schedule conflicts</span>
-                    <span class="toggle-subtitle">Get notified when two items overlap on your calendar.</span>
+                    <span class="toggle-title" data-i18n="prefs.conflicts.title">Schedule conflicts</span>
+                    <span class="toggle-subtitle" data-i18n="prefs.conflicts.subtitle">Get notified when two items overlap on your calendar.</span>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="pref-schedule-conflicts">
@@ -380,8 +388,8 @@
 
             <div class="toggle-row">
                 <div class="toggle-text">
-                    <span class="toggle-title">Weekly review readiness</span>
-                    <span class="toggle-subtitle">Get notified when your weekly summary is ready.</span>
+                    <span class="toggle-title" data-i18n="prefs.weekly.title">Weekly review readiness</span>
+                    <span class="toggle-subtitle" data-i18n="prefs.weekly.subtitle">Get notified when your weekly summary is ready.</span>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="pref-weekly-review-ready">
@@ -390,8 +398,8 @@
             </div>
             <div class="toggle-row">
                 <div class="toggle-text">
-                    <span class="toggle-title">Email notifications</span>
-                    <span class="toggle-subtitle">Get your reminders by email, even when the app is closed.</span>
+                    <span class="toggle-title" data-i18n="prefs.email.title">Email notifications</span>
+                    <span class="toggle-subtitle" data-i18n="prefs.email.subtitle">Get your reminders by email, even when the app is closed.</span>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="pref-email-enabled">
@@ -402,8 +410,8 @@
             <p class="modal-message" id="notif-prefs-message" role="status" aria-live="polite"></p>
 
             <div class="form-actions">
-                <button type="button" class="btn-secondary" id="cancel-notif-prefs-btn">Close</button>
-                <button type="submit" class="btn-primary" id="save-notif-prefs-btn">Save preferences</button>
+                <button type="button" class="btn-secondary" id="cancel-notif-prefs-btn" data-i18n="common.close">Close</button>
+                <button type="submit" class="btn-primary" id="save-notif-prefs-btn" data-i18n="modal.prefs.save">Save preferences</button>
             </div>
         </form>
     </div>

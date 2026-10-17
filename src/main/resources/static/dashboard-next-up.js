@@ -5,6 +5,7 @@
 // Uses the calendar range endpoint, so today's repeats of weekly classes count too.
 // Re-fetches on 'aalsikke:tasks-loaded' (fired by dashboard.js after every load,
 // create, edit, complete and delete) and refreshes the countdown every minute.
+// Needs i18n.js loaded first (t, lang, LANGS).
 
 (function () {
 
@@ -30,11 +31,13 @@
     }
 
     function formatCountdown(minutes) {
-        if (minutes <= 0) return 'starting now';
-        if (minutes < 60) return `in ${minutes} min`;
+        if (minutes <= 0) return t('next.now');
+        if (minutes < 60) return t('next.inMin', { n: minutes });
         const hours = Math.floor(minutes / 60);
         const rest = minutes % 60;
-        return rest === 0 ? `in ${hours} h` : `in ${hours} h ${rest} min`;
+        return rest === 0
+            ? t('next.inH', { h: hours })
+            : t('next.inHM', { h: hours, m: rest });
     }
 
     // For quick checks in the browser console
@@ -63,12 +66,12 @@
             card.classList.toggle('is-empty', !next);
 
             if (!next) {
-                titleEl.textContent = 'Nothing else scheduled today';
+                titleEl.textContent = t('next.none');
                 metaEl.textContent = '';
                 return;
             }
 
-            const time = next.start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            const time = next.start.toLocaleTimeString(LANGS[lang].locale, { hour: 'numeric', minute: '2-digit' });
             titleEl.textContent = next.item.title;
             metaEl.textContent = `${time} · ${formatCountdown(minutesUntil(next.start, now))}`;
         }
@@ -95,7 +98,7 @@
                 if (error.sessionExpired) return;
                 console.error('Failed to load the next-up card:', error);
                 card.classList.add('is-empty');
-                titleEl.textContent = "Couldn't load today's schedule";
+                titleEl.textContent = t('next.loadFailed');
                 metaEl.textContent = '';
             }
         }

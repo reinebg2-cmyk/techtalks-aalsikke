@@ -1,16 +1,11 @@
 // Aal Sikke — "Your data" on the Settings page (KAN-338)
-//
-// Adds a panel after the Color palette panel with:
-//   - Download my data: saves GET /api/users/me/export as a JSON file
-//   - Delete account:   a window asking for the current password and the word DELETE,
-//                       then DELETE /api/users/me, clears this browser and goes to the login page
-// Loaded after dashboard.js on settings.html.
+// Loaded after i18n.js and dashboard.js on settings.html.
 
 (function () {
 
     const TOKEN_KEY = 'aalsikke_token';
     const API_BASE = window.location.origin;
-    const CONFIRMATION_WORD = 'DELETE';
+    const CONFIRMATION_WORD = 'DELETE';   // sent to the API as-is: never translate
 
     function el(tag, className, text) {
         const node = document.createElement(tag);
@@ -34,7 +29,7 @@
         if (response.status === 401) {
             localStorage.removeItem(TOKEN_KEY);
             window.location.href = 'login.html';
-            const expired = new Error('Your session has expired.');
+            const expired = new Error(t('data.sessionExpired'));
             expired.sessionExpired = true;
             throw expired;
         }
@@ -43,16 +38,16 @@
 
     /** The API's error message(s): { message } or a list of { field, message }. */
     async function errorMessage(response) {
+        const fallback = `${t('data.serverResponded')} ${response.status}`;
         try {
             const body = await response.json();
             if (Array.isArray(body)) return body.map(e => e.message).filter(Boolean).join(' ');
-            return body.message || body.error || `Server responded ${response.status}`;
+            return body.message || body.error || fallback;
         } catch (_) {
-            return `Server responded ${response.status}`;
+            return fallback;
         }
     }
 
-    /** "aal-sikke-data-2026-10-10.json" from the Content-Disposition header, or a sensible default. */
     function fileNameFrom(response) {
         const header = response.headers.get('Content-Disposition') || '';
         const match = header.match(/filename="?([^";]+)"?/i);
@@ -68,13 +63,13 @@
         panel.id = 'settings-data-panel';
 
         const intro = el('div');
-        intro.append(el('h2', '', 'Your data'),
-            el('p', 'card-subtitle', 'Download a copy of everything Aal Sikke stores about you, or delete your account.'));
+        intro.append(el('h2', '', t('data.title')),
+            el('p', 'card-subtitle', t('data.subtitle')));
 
         const actions = el('div', 'data-actions');
-        const downloadBtn = button('btn-secondary', 'Download my data');
+        const downloadBtn = button('btn-secondary', t('data.download'));
         downloadBtn.id = 'download-data-btn';
-        const deleteBtn = button('btn-danger', 'Delete account');
+        const deleteBtn = button('btn-danger', t('data.delete'));
         deleteBtn.id = 'delete-account-btn';
         actions.append(downloadBtn, deleteBtn);
 
@@ -94,7 +89,7 @@
         // ---------------- download ----------------
         downloadBtn.addEventListener('click', async () => {
             downloadBtn.disabled = true;
-            sayInPanel('Preparing your file…', 'info');
+            sayInPanel(t('data.preparing'), 'info');
             try {
                 const response = await call('/api/users/me/export');
                 if (!response.ok) throw new Error(await errorMessage(response));
@@ -107,11 +102,11 @@
                 link.click();
                 link.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
-                sayInPanel(`Downloaded ${link.download}.`, 'success');
+                sayInPanel(`${t('data.downloaded')} ${link.download}`, 'success');
             } catch (error) {
                 if (error.sessionExpired) return;
                 console.error('Data export failed:', error);
-                sayInPanel(`Could not download your data. ${error.message}`, 'error');
+                sayInPanel(`${t('data.downloadFailed')} ${error.message}`, 'error');
             } finally {
                 downloadBtn.disabled = false;
             }
@@ -129,23 +124,23 @@
 
         const header = el('div', 'modal-header');
         const titles = el('div');
-        const title = el('h2', '', 'Delete account');
+        const title = el('h2', '', t('data.delete'));
         title.id = 'delete-account-title';
-        titles.append(title, el('p', '', 'This permanently deletes your account and everything in it.'));
+        titles.append(title, el('p', '', t('data.modalSubtitle')));
         const closeBtn = button('modal-close', '✕');
-        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.setAttribute('aria-label', t('data.close'));
         header.append(titles, closeBtn);
 
         const warning = el('div', 'delete-warning');
         warning.append(
-            el('p', '', 'Your tasks, reminders, weekly repeats, reviews, courses, workplaces and settings will be deleted. This cannot be undone.'),
-            el('p', '', 'Tip: use "Download my data" first if you want to keep a copy.'));
+            el('p', '', t('data.warning')),
+            el('p', '', t('data.tip')));
 
         const form = el('form');
         form.noValidate = true;
 
         const passwordField = el('div', 'field');
-        const passwordLabel = el('label', '', 'Current password');
+        const passwordLabel = el('label', '', t('data.currentPassword'));
         passwordLabel.htmlFor = 'delete-password';
         const passwordWrap = el('div', 'input-wrap');
         const passwordInput = el('input');
@@ -158,13 +153,14 @@
         const confirmField = el('div', 'field');
         const confirmLabel = el('label');
         confirmLabel.htmlFor = 'delete-confirmation';
-        confirmLabel.append('Type ', el('strong', '', CONFIRMATION_WORD), ' to confirm');
+        confirmLabel.append(t('data.typePrefix'), ' ', el('strong', '', CONFIRMATION_WORD), ' ', t('data.typeSuffix'));
         const confirmWrap = el('div', 'input-wrap');
         const confirmInput = el('input');
         confirmInput.type = 'text';
         confirmInput.id = 'delete-confirmation';
         confirmInput.autocomplete = 'off';
         confirmInput.spellcheck = false;
+        confirmInput.dir = 'ltr';   // the word to type is always Latin
         confirmWrap.append(confirmInput);
         confirmField.append(confirmLabel, confirmWrap);
 
@@ -172,8 +168,8 @@
         modalMessage.setAttribute('role', 'alert');
 
         const formActions = el('div', 'form-actions');
-        const cancelBtn = button('btn-secondary', 'Cancel');
-        const confirmBtn = el('button', 'btn-danger', 'Delete my account');
+        const cancelBtn = button('btn-secondary', t('data.cancel'));
+        const confirmBtn = el('button', 'btn-danger', t('data.confirmDelete'));
         confirmBtn.type = 'submit';
         confirmBtn.id = 'confirm-delete-account-btn';
         confirmBtn.disabled = true;
@@ -231,7 +227,7 @@
             busy = true;
             confirmBtn.disabled = true;
             cancelBtn.disabled = true;
-            confirmBtn.textContent = 'Deleting…';
+            confirmBtn.textContent = t('data.deleting');
             sayInModal('');
 
             try {
@@ -245,11 +241,10 @@
                 });
                 if (response.status !== 204 && !response.ok) {
                     const problem = new Error(await errorMessage(response));
-                    problem.expected = response.status === 400;   // wrong password / word: the message says it all
+                    problem.expected = response.status === 400;
                     throw problem;
                 }
 
-                // Gone: forget this account in this browser and leave
                 try {
                     localStorage.removeItem(TOKEN_KEY);
                     localStorage.removeItem('aalsikke_channel_prefs');
@@ -257,11 +252,11 @@
                 window.location.href = 'login.html?account-deleted=1';
             } catch (error) {
                 if (error.sessionExpired) return;
-                if (!error.expected) console.error('Account deletion failed:', error);   // only real failures
+                if (!error.expected) console.error('Account deletion failed:', error);
                 sayInModal(error.message, 'error');
                 busy = false;
                 cancelBtn.disabled = false;
-                confirmBtn.textContent = 'Delete my account';
+                confirmBtn.textContent = t('data.confirmDelete');
                 syncConfirmButton();
                 passwordInput.focus();
             }

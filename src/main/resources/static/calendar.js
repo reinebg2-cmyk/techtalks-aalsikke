@@ -14,6 +14,8 @@
 // into the user's local time, and every calculation below works in local time.
 //
 // Open the schedule form for one task from another page with: calendar.html?schedule=<itemId>
+//
+// Needs i18n.js loaded first (t, lang, LANGS).
 
 // API_BASE and TOKEN_KEY come from dashboard.js, which calendar.html loads first
 // (it also runs the bell and avatar menu in the header). Declaring them again here
@@ -62,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (response.status === 401) {
             redirectToLogin();
-            const expired = new Error('Your session has expired.');
+            const expired = new Error(t('err.session'));
             expired.sessionExpired = true;
             throw expired;
         }
@@ -72,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function apiFetch(path) {
         const response = await apiRequest(path);
         if (!response.ok) {
-            throw new Error(`Server responded ${response.status}`);
+            throw new Error(t('err.server', { status: response.status }));
         }
         return response.json();
     }
@@ -95,28 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logout-link').addEventListener('click', () => {
         localStorage.removeItem(TOKEN_KEY);
     });
-// // ============================================================
-//     // THEME (KAN-239)
-//     // ============================================================
-//
-//     const THEME_KEY = 'aalsikke_theme';
-//
-//     function applyTheme(theme) {
-//         document.documentElement.setAttribute('data-theme', theme);
-//     }
-//
-//     const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
-//     applyTheme(savedTheme);
-//
-//     const themeToggle = document.getElementById('theme-toggle');
-//     if (themeToggle) {
-//         themeToggle.checked = savedTheme === 'dark';
-//         themeToggle.addEventListener('change', () => {
-//             const newTheme = themeToggle.checked ? 'dark' : 'light';
-//             localStorage.setItem(THEME_KEY, newTheme);
-//             applyTheme(newTheme);
-//         });
-//     }
+
     // ============================================================
     // DOM + STATE
     // ============================================================
@@ -141,6 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // DATE HELPERS (local time)
     // ============================================================
+
+    // The locale of the selected language ("en-GB" or "ar-LB")
+    const loc = () => LANGS[lang].locale;
 
     function startOfDay(date) {
         return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -172,21 +156,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatTime(date) {
         // 12-hour clock ("11:00 PM"), the same as the Tasks page and the dashboard
-        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        return date.toLocaleTimeString(loc(), { hour: 'numeric', minute: '2-digit', hour12: true });
     }
 
     function formatShortDate(date) {
-        return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        return date.toLocaleDateString(loc(), { weekday: 'short', month: 'short', day: 'numeric' });
     }
 
     function formatTitle(days) {
         const first = days[0];
         const last = days[days.length - 1];
         if (days.length === 1) {
-            return first.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            return first.toLocaleDateString(loc(), { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
         }
-        const left = first.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const right = last.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const left = first.toLocaleDateString(loc(), { month: 'short', day: 'numeric' });
+        const right = last.toLocaleDateString(loc(), { month: 'short', day: 'numeric', year: 'numeric' });
         return `${left} – ${right}`;
     }
 
@@ -227,7 +211,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function roleLabel(role) {
-        return { student: 'Student', work: 'Work', personal: 'Personal' }[role];
+        return t('group.' + role);   // student | work | personal
+    }
+
+    // "Medium priority" in the current language
+    function prioText(item) {
+        return t('board.priorityLabel', { p: t('prio.' + priorityOf(item).toUpperCase()) });
+    }
+
+    // Joins the parts of a screen-reader description: "A. B. C"
+    function describe(parts) {
+        return parts.filter(Boolean).join('. ');
+    }
+
+    function namesList(names) {
+        return names.join(t('common.listSep'));
     }
 
     function hasTimeSlot(item) {
@@ -269,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = el('div', `cal-more-list${alignRight ? ' is-right' : ''}`);
         list.style.top = `calc(${chip.style.top} + 1.5rem)`;
         list.setAttribute('role', 'dialog');
-        list.setAttribute('aria-label', `${hidden.length} more tasks`);
+        list.setAttribute('aria-label', t('cal.moreTasks', { n: hidden.length }));
         list.addEventListener('click', event => event.stopPropagation());
 
         for (const seg of hidden) {
@@ -286,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (state.view !== 'day') {
-            const dayLink = el('button', 'cal-more-day', 'Open in day view →');
+            const dayLink = el('button', 'cal-more-day', t('cal.openDay'));
             dayLink.type = 'button';
             dayLink.addEventListener('click', () => {
                 closeMoreLists();
@@ -341,12 +339,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`
                     : `${formatShortDate(start)} ${formatTime(start)} → ${formatShortDate(end)} ${formatTime(end)}`);
             } else {
-                lines.push(`${formatShortDate(start)} at ${formatTime(start)}`);
+                lines.push(t('cal.at', { date: formatShortDate(start), time: formatTime(start) }));
             }
         }
         if (isDueRowItem(item)) {
             const due = new Date(item.deadline);
-            lines.push(`Due ${formatShortDate(due)}, ${formatTime(due)}`);
+            lines.push(t('cal.dueAt', { date: formatShortDate(due), time: formatTime(due) }));
         }
         return lines;
     }
@@ -357,7 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sameTask) return;
 
         const role = roleOf(item);
-        const priority = priorityOf(item);
         const done = item.status === 'COMPLETED';
 
         const card = el('div', `cal-preview cal-${role}`);
@@ -368,36 +365,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const head = el('div', 'cal-preview-head');
         const close = el('button', 'cal-preview-close', '✕');
         close.type = 'button';
-        close.setAttribute('aria-label', 'Close');
+        close.setAttribute('aria-label', t('common.close'));
         close.addEventListener('click', () => closePreview(true));
         head.append(el('span', 'cal-preview-dot'), el('strong', 'cal-preview-title', item.title), close);
         card.append(head);
 
         for (const line of previewWhen(item)) card.append(el('p', 'cal-preview-when', line));
 
-        const meta = [roleLabel(role), `${priority[0].toUpperCase()}${priority.slice(1)} priority`];
-        if (item.recurring || item.occurrence) meta.push('Repeats weekly');
-        if (done) meta.push('Done');
+        const meta = [roleLabel(role), prioText(item)];
+        if (item.recurring || item.occurrence) meta.push(t('repeat.title'));
+        if (done) meta.push(t('board.done'));
         card.append(el('p', 'cal-preview-meta', meta.join(' · ')));
 
         const clashes = item.occurrence ? null : state.conflicts.get(item.id);
         if (clashes && clashes.length) {
-            card.append(el('p', 'cal-preview-overlap', `Overlaps with: ${clashes.join(', ')}`));
+            card.append(el('p', 'cal-preview-overlap', t('cal.overlapsWith', { names: namesList(clashes) })));
         }
 
         const actions = el('div', 'cal-preview-actions');
         if (item.occurrence) {
             // KAN-363: a repeat can be marked done on its own; the series is changed on the original
-            card.append(el('p', 'cal-preview-note',
-                'This is a weekly repeat. Marking it done only affects this week. To change the whole series, go to the original.'));
+            card.append(el('p', 'cal-preview-note', t('cal.repeatNote')));
             if (item.seriesStart) {
-                const original = el('button', 'btn-secondary', 'Go to original');
+                const original = el('button', 'btn-secondary', t('cal.goOriginal'));
                 original.type = 'button';
                 original.addEventListener('click', () => goToOriginal(item));
                 actions.append(original);
             }
         } else {
-            const edit = el('button', 'btn-secondary', item.startTime ? 'Reschedule' : 'Schedule');
+            const edit = el('button', 'btn-secondary', item.startTime ? t('cal.reschedule') : t('cal.scheduleBtn'));
             edit.type = 'button';
             edit.addEventListener('click', () => {
                 closePreview(true);
@@ -405,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             actions.append(edit);
         }
-        const toggle = el('button', 'btn-primary', done ? 'Mark not done' : 'Mark done');
+        const toggle = el('button', 'btn-primary', done ? t('cal.markNotDone') : t('cal.markDone'));
         toggle.type = 'button';
         toggle.addEventListener('click', () => setDone(item, !done, toggle));
         actions.append(toggle);
@@ -460,16 +456,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     : { status: done ? 'COMPLETED' : 'PENDING' })
             });
             if (!response.ok) {
-                throw new Error(errorMessageFrom(await readJsonSafely(response), `Server responded ${response.status}`));
+                throw new Error(errorMessageFrom(await readJsonSafely(response), t('err.server', { status: response.status })));
             }
             closePreview();
-            state.flash = { message: `"${item.title}" marked ${done ? 'done' : 'not done'}.`, isError: false };
+            state.flash = { message: t(done ? 'cal.markedDone' : 'cal.markedNotDone', { title: item.title }), isError: false };
             load();
         } catch (error) {
             if (error.sessionExpired) return;
             console.error(error);
             button.disabled = false;
-            setStatus(`Could not update "${item.title}". ${error.message}`, true);
+            setStatus(t('cal.updateFailed', { title: item.title, error: error.message }), true);
         }
     }
 
@@ -507,14 +503,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const minutes = Math.round(busy / 900000) * 15;   // nearest 15 minutes
         const h = Math.floor(minutes / 60);
         const m = minutes % 60;
-        const busyText = h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
-        const tasks = `${count} task${count === 1 ? '' : 's'}`;
-        return minutes > 0 ? `${tasks} · busy ${busyText}` : tasks;
+        const busyText = h && m ? t('cal.durHM', { h, m }) : h ? t('cal.durH', { h }) : t('cal.durM', { m });
+        const tasks = `${count} ${t(count === 1 ? 'task.one' : 'task.many')}`;
+        return minutes > 0 ? `${tasks} · ${t('cal.busy', { time: busyText })}` : tasks;
     }
 
     // "Sun 4:00 PM"
     function formatDayTime(date) {
-        return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${formatTime(date)}`;
+        return `${date.toLocaleDateString(loc(), { weekday: 'short' })} ${formatTime(date)}`;
     }
 
     /*
@@ -552,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const row = el('div', 'cal-row cal-multiday');
         row.style.gridTemplateRows = `repeat(${laneEnds.length}, auto)`;
-        const label = el('div', 'cal-gutter-label', 'Multi-day');
+        const label = el('div', 'cal-gutter-label', t('cal.multiDay'));
         label.style.gridColumn = '1';
         label.style.gridRow = '1 / -1';
         row.append(label);
@@ -577,21 +573,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 el('span', 'cal-multiday-time', when)
             );
 
-            let description = `${item.title}, ${when}, ${roleLabel(role)}, ${priorityOf(item)} priority`;
+            const parts = [t('cal.blockDesc', { title: item.title, time: when, role: roleLabel(role), prio: prioText(item) })];
             const clashes = item.occurrence ? null : conflictMap.get(item.id);
-            if (clashes && clashes.length) description += `. Conflicts with: ${clashes.join(', ')}`;
+            if (clashes && clashes.length) parts.push(t('cal.conflictsWith', { names: namesList(clashes) }));
             if (item.status === 'COMPLETED') {
                 node.classList.add('is-completed');
-                description += '. Completed';
+                parts.push(t('status.COMPLETED'));
             }
             if (item.occurrence) {
                 node.classList.add('is-repeat');
-                description += '. Weekly repeat';
+                parts.push(t('cal.weeklyRepeat'));
                 makeActivatable(node, () => openPreview(item, node));
             } else {
-                description += '. Click for details';
+                parts.push(t('cal.clickDetails'));
                 makeActivatable(node, () => openPreview(item, node));
             }
+            const description = describe(parts);
             node.title = description;
             node.setAttribute('aria-label', description);
             row.append(node);
@@ -707,16 +704,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Header row: weekday + date ---
         const head = el('div', 'cal-row cal-head');
         // KAN-354: previous / next arrows on the grid itself, so moving doesn't need a scroll back up to the toolbar
-        const unit = state.view === 'day' ? 'day' : 'week';
+        const isDay = state.view === 'day';
         const corner = el('div', 'cal-corner');
-        corner.append(gridArrow('‹', `Previous ${unit}`, 'cal-prev'));
-        head.append(corner, gridArrow('›', `Next ${unit}`, 'cal-next', 'is-next'));
+        corner.append(gridArrow('‹', t(isDay ? 'cal.prevDay' : 'cal.prevWeek'), 'cal-prev'));
+        head.append(corner, gridArrow('›', t(isDay ? 'cal.nextDay' : 'cal.nextWeek'), 'cal-next', 'is-next'));
         for (const day of days) {
             const cell = el('div', 'cal-day-head');
             if (sameDay(day, today)) cell.classList.add('is-today');
             cell.append(
-                el('span', 'cal-dow', day.toLocaleDateString('en-US', { weekday: 'short' })),
-                el('span', 'cal-date', String(day.getDate()))
+                el('span', 'cal-dow', day.toLocaleDateString(loc(), { weekday: 'short' })),
+                el('span', 'cal-date', day.toLocaleDateString(loc(), { day: 'numeric' }))
             );
             const load = dayLoadText(day, items);   // KAN-354
             if (load) cell.append(el('span', 'cal-day-load', load));
@@ -728,7 +725,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Deadline row: a marker for every deadline that falls on a visible day ---
         const deadlines = el('div', 'cal-row cal-deadlines');
-        deadlines.append(el('div', 'cal-gutter-label', 'Due'));
+        deadlines.append(el('div', 'cal-gutter-label', t('task.dueLabel')));
         const deadlineCells = days.map(() => {
             const cell = el('div', 'cal-deadline-cell');
             deadlines.append(cell);
@@ -748,8 +745,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.status === 'COMPLETED') marker.classList.add('is-completed');
             if (!item.startTime) marker.classList.add('is-unscheduled');
             marker.append(el('span', 'cal-deadline-text', item.title), el('span', 'cal-deadline-time', formatTime(due)));
-            const label = `Due ${formatTime(due)}: ${item.title} (${roleLabel(role)}, ${priorityOf(item)} priority)`
-                + (item.startTime ? '' : ' — not scheduled yet') + '. Click for details';
+            const label = describe([
+                t('cal.dueMarker', { time: formatTime(due), title: item.title, role: roleLabel(role), prio: prioText(item) })
+                    + (item.startTime ? '' : ` — ${t('cal.notScheduled')}`),
+                t('cal.clickDetails')
+            ]);
             marker.title = label;
             marker.setAttribute('aria-label', label);
             makeActivatable(marker, () => openPreview(item, marker));
@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (markers.length <= DUE_ROW_LIMIT) return;
             const extra = markers.slice(DUE_ROW_LIMIT);
             extra.forEach(marker => { marker.hidden = true; });
-            const toggle = el('button', 'cal-deadline-more', `+${extra.length} more`);
+            const toggle = el('button', 'cal-deadline-more', t('cal.moreN', { n: extra.length }));
             toggle.type = 'button';
             toggle.setAttribute('aria-expanded', 'false');
             toggle.addEventListener('click', event => {
@@ -770,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const open = toggle.getAttribute('aria-expanded') !== 'true';
                 extra.forEach(marker => { marker.hidden = !open; });
                 toggle.setAttribute('aria-expanded', String(open));
-                toggle.textContent = open ? 'Show fewer' : `+${extra.length} more`;
+                toggle.textContent = open ? t('cal.showFewer') : t('cal.moreN', { n: extra.length });
             });
             cell.append(toggle);
         });
@@ -781,7 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const times = el('div', 'cal-times');
         for (let hour = 1; hour < 24; hour++) {
-            const label = el('span', 'cal-time-label', `${hour % 12 === 0 ? 12 : hour % 12} ${hour < 12 ? 'AM' : 'PM'}`);
+            const label = el('span', 'cal-time-label', `${hour % 12 === 0 ? 12 : hour % 12} ${hour < 12 ? t('cal.am') : t('cal.pm')}`);
             label.style.top = `${hour * HOUR_HEIGHT}px`;
             times.append(label);
         }
@@ -801,7 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dayEnd = addDays(day, 1);
             const column = el('div', 'cal-day-col');
             if (sameDay(day, today)) column.classList.add('is-today');
-            column.title = 'Click an empty slot to schedule a task here';
+            column.title = t('cal.emptySlot');
 
             // S3-12: click an empty slot -> schedule form for that day and time (snapped to the half hour)
             column.addEventListener('click', event => {
@@ -813,15 +813,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Clip each item to this day (an item from 23:00 to 01:00 shows in both days)
             const segments = timed
-                .filter(t => isStartOnlyTask(t.item)
-                    ? t.start >= dayStart && t.start < dayEnd      // a marker shows only on its own day
-                    : t.start < dayEnd && t.end > dayStart)
-                .map(t => ({
-                    item: t.item,
-                    realStart: t.start,
-                    realEnd: t.end,
-                    start: minutesSince(dayStart, t.start > dayStart ? t.start : dayStart),
-                    end: minutesSince(dayStart, t.end < dayEnd ? t.end : dayEnd)
+                .filter(entry => isStartOnlyTask(entry.item)
+                    ? entry.start >= dayStart && entry.start < dayEnd      // a marker shows only on its own day
+                    : entry.start < dayEnd && entry.end > dayStart)
+                .map(entry => ({
+                    item: entry.item,
+                    realStart: entry.start,
+                    realEnd: entry.end,
+                    start: minutesSince(dayStart, entry.start > dayStart ? entry.start : dayStart),
+                    end: minutesSince(dayStart, entry.end < dayEnd ? entry.end : dayEnd)
                 }));
 
             const laidOut = layoutLanes(segments);
@@ -840,8 +840,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const dayIndex = days.indexOf(day);
             hiddenByGroup.forEach(hidden => {
-                const chip = el('button', 'cal-more', maxLanes === MAX_LANES_WEEK ? `+${hidden.length}` : `+${hidden.length} more`);
-                chip.setAttribute('aria-label', `${hidden.length} more tasks`);
+                const chip = el('button', 'cal-more', maxLanes === MAX_LANES_WEEK ? `+${hidden.length}` : t('cal.moreN', { n: hidden.length }));
+                chip.setAttribute('aria-label', t('cal.moreTasks', { n: hidden.length }));
                 chip.type = 'button';
                 chip.style.top = `${hidden[0].start / 60 * HOUR_HEIGHT}px`;
                 chip.style.left = `calc(${((maxLanes - 1) / maxLanes) * 100}% + 2px)`;
@@ -861,7 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const outline = el('div', 'cal-overlap');
                 outline.style.top = `${group.start / 60 * HOUR_HEIGHT}px`;
                 outline.style.height = `${Math.max((group.end - group.start) / 60 * HOUR_HEIGHT, MIN_EVENT_HEIGHT)}px`;
-                outline.append(el('span', 'cal-overlap-label', `${group.size} overlap`));
+                outline.append(el('span', 'cal-overlap-label', t('cal.overlap', { n: group.size })));
                 if (group.end > 24 * 60 - 15) outline.classList.add('is-at-end');   // label would be cut off below 24:00
                 column.append(outline);
             });
@@ -929,24 +929,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 el('span', 'marker-title', item.title)
             );
 
-            let description = `${item.title} at ${formatTime(seg.realStart)}, ${roleLabel(role)}, ${priorityOf(item)} priority (start time marker)`;
+            const parts = [t('cal.markerDesc', {
+                title: item.title, time: formatTime(seg.realStart), role: roleLabel(role), prio: prioText(item)
+            })];
             const markerClashes = item.occurrence ? null : conflictMap.get(item.id);
             if (markerClashes && markerClashes.length) {
                 marker.classList.add('is-conflict');
-                description += `. Conflicts with: ${markerClashes.join(', ')}`;
+                parts.push(t('cal.conflictsWith', { names: namesList(markerClashes) }));
             }
             if (item.status === 'COMPLETED') {
                 marker.classList.add('is-completed');
-                description += '. Completed';
+                parts.push(t('status.COMPLETED'));
             }
             if (item.occurrence) {
                 marker.classList.add('is-repeat');
-                description += '. Weekly repeat';
+                parts.push(t('cal.weeklyRepeat'));
                 makeActivatable(marker, () => openPreview(item, marker));
             } else {
-                description += '. Click for details';
+                parts.push(t('cal.clickDetails'));
                 makeActivatable(marker, () => openPreview(item, marker));
             }
+            const description = describe(parts);
             marker.title = description;
             marker.setAttribute('aria-label', description);
             return marker;
@@ -968,31 +971,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeText = `${formatTime(seg.realStart)}–${formatTime(seg.realEnd)}`;
         block.append(el('span', 'cal-event-title', titleText), el('span', 'cal-event-time', timeText));
 
-        let description = `${item.title}, ${timeText}, ${roleLabel(role)}, ${priorityOf(item)} priority`;
+        const parts = [t('cal.blockDesc', { title: item.title, time: timeText, role: roleLabel(role), prio: prioText(item) })];
 
         // Conflicts are computed for the real item only, so a repeat never shows the original's badge
         const clashes = item.occurrence ? null : conflictMap.get(item.id);
         if (clashes && clashes.length) {
             block.classList.add('is-conflict');
-            description += `. Conflicts with: ${clashes.join(', ')}`;
+            parts.push(t('cal.conflictsWith', { names: namesList(clashes) }));
         }
         if (item.status === 'COMPLETED') {
             block.classList.add('is-completed');
-            description += '. Completed';
+            parts.push(t('status.COMPLETED'));
         }
 
         if (item.occurrence) {
             // A generated repeat is read-only: the series is changed through the original item
             block.classList.add('is-repeat');
-            description += '. Weekly repeat';
+            parts.push(t('cal.weeklyRepeat'));
             makeActivatable(block, () => openPreview(item, block));
         } else {
-            if (item.recurring) description += '. Repeats weekly';
-            description += '. Click for details';
+            if (item.recurring) parts.push(t('repeat.title'));
+            parts.push(t('cal.clickDetails'));
             block.dataset.originalId = item.id;   // KAN-363: found again by "Go to original"
             makeActivatable(block, () => openPreview(item, block));
         }
 
+        const description = describe(parts);
         block.title = description;
         block.setAttribute('aria-label', description);
         return block;
@@ -1015,19 +1019,19 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryEl.replaceChildren();
 
         const head = el('div', 'cal-summary-head');
-        head.append(el('h2', 'cal-summary-title', 'Weekly review'));
+        head.append(el('h2', 'cal-summary-title', t('cal.weekly.title')));
 
         const due = data.completedTasks + data.missedTasks;
         const rateText = due === 0
-            ? 'Nothing was due yet this week.'
-            : `${data.completedTasks} of ${due} due tasks done (${Math.round(data.completedTasks / due * 100)}%).`;
+            ? t('cal.weekly.nothingDue')
+            : t('cal.weekly.rate', { done: data.completedTasks, due, pct: Math.round(data.completedTasks / due * 100) });
         head.append(el('p', 'cal-summary-rate', rateText));
 
         const stats = el('div', 'cal-stats');
         stats.append(
-            statTile('is-completed', data.completedTasks, 'Completed'),
-            statTile('is-missed', data.missedTasks, 'Missed'),
-            statTile('is-upcoming', data.upcomingTasks, 'Upcoming')
+            statTile('is-completed', data.completedTasks, t('status.COMPLETED')),
+            statTile('is-missed', data.missedTasks, t('cal.weekly.missed')),
+            statTile('is-upcoming', data.upcomingTasks, t('cal.weekly.upcoming'))
         );
 
         // Completed vs missed bar (only when something was due)
@@ -1044,17 +1048,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const reviewText = data.daysReviewed === 0
-            ? 'No daily reviews this week.'
-            : `Productivity ${data.averageProductivityScore ?? '—'} / 5 across ${data.daysReviewed} reviewed day${data.daysReviewed === 1 ? '' : 's'}.`;
+            ? t('cal.weekly.noReviews')
+            : t(data.daysReviewed === 1 ? 'cal.weekly.prodOne' : 'cal.weekly.prodMany',
+                { score: data.averageProductivityScore ?? '—', n: data.daysReviewed });
 
         summaryEl.append(head, stats, bar, el('p', 'cal-summary-reviews', reviewText));
 
         // KAN-341: busiest day (left out when nothing happens this week)
         if (data.busiestDay) {
             const [y, m, d] = data.busiestDay.split('-').map(Number);
-            const label = new Date(y, m - 1, d).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
-            const count = `${data.busiestDayCount} task${data.busiestDayCount === 1 ? '' : 's'}`;
-            summaryEl.append(el('p', 'cal-summary-reviews cal-summary-busiest', `Busiest day: ${label} · ${count}`));
+            const label = new Date(y, m - 1, d).toLocaleDateString(loc(), { weekday: 'long', month: 'short', day: 'numeric' });
+            const count = `${data.busiestDayCount} ${t(data.busiestDayCount === 1 ? 'task.one' : 'task.many')}`;
+            summaryEl.append(el('p', 'cal-summary-reviews cal-summary-busiest', t('cal.weekly.busiest', { label, count })));
         }
         summaryEl.hidden = false;
     }
@@ -1103,7 +1108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const to = addDays(days[days.length - 1], 1);
 
         updateToolbar(days);
-        setStatus('Loading your calendar…');
+        setStatus(t('cal.loading'));
         grid.setAttribute('aria-busy', 'true');
 
         try {
@@ -1124,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setStatus(state.flash.message, state.flash.isError);
                 state.flash = null;
             } else if (items.length === 0) {
-                setStatus(state.view === 'day' ? 'Nothing scheduled for this day.' : 'Nothing scheduled this week. Tap “+ Schedule task” to add something.');
+                setStatus(t(state.view === 'day' ? 'cal.emptyDay' : 'cal.emptyWeek'));
             } else {
                 setStatus('');
             }
@@ -1132,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (error.sessionExpired || requestId !== state.requestId) return;
             console.error(error);
             render(days, [], new Map());
-            setStatus('Could not load your calendar. Please try again.', true);
+            setStatus(t('cal.loadFailed'), true);
         } finally {
             if (requestId === state.requestId) grid.removeAttribute('aria-busy');
         }
@@ -1200,11 +1205,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (item) {
             const scheduled = Boolean(item.startTime);
-            modalTitle.textContent = scheduled ? 'Reschedule task' : 'Schedule task';
+            modalTitle.textContent = t(scheduled ? 'cal.sched.reschedule' : 'cal.sched.schedule1');
             taskField.hidden = true;
             taskName.hidden = false;
             taskName.textContent = item.deadline
-                ? `${item.title} (due ${formatShortDate(new Date(item.deadline))}, ${formatTime(new Date(item.deadline))})`
+                ? t('cal.sched.itemDue', {
+                    title: item.title,
+                    date: formatShortDate(new Date(item.deadline)),
+                    time: formatTime(new Date(item.deadline))
+                })
                 : item.title;
             if (scheduled) {
                 const markerStart = new Date(item.startTime);
@@ -1217,12 +1226,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             const begin = start || nextFullHour();
-            modalTitle.textContent = 'Schedule a task';
+            modalTitle.textContent = t('cal.sched.title');
             taskField.hidden = false;
             taskName.hidden = true;
             fillTimes(begin, new Date(begin.getTime() + DEFAULT_BLOCK_MINUTES * 60000));
 
-            taskSelect.replaceChildren(new Option('Loading your tasks…', ''));
+            taskSelect.replaceChildren(new Option(t('tasks.loading'), ''));
             taskSelect.disabled = true;
             saveButton.disabled = true;
         }
@@ -1235,19 +1244,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tasks = await loadUnscheduledTasks();
                 taskSelect.replaceChildren();
                 if (tasks.length === 0) {
-                    taskSelect.append(new Option('No unscheduled tasks', ''));
-                    const dashboardLink = el('a', 'modal-link', 'add a task on the dashboard');
+                    taskSelect.append(new Option(t('cal.sched.noneUnscheduled'), ''));
+                    const dashboardLink = el('a', 'modal-link', t('cal.sched.noneLink'));
                     dashboardLink.href = 'dashboard.html';
                     setModalMessage('', 'info');
                     modalMessage.append(
-                        'Every task already has a time slot. To schedule something new, ',
+                        t('cal.sched.noneMsg1'),
                         dashboardLink,
-                        ' (a deadline is enough), or click a task in the calendar to reschedule it.'
+                        t('cal.sched.noneMsg2')
                     );
                     return;
                 }
                 for (const task of tasks) {
-                    const due = task.deadline ? ` — due ${formatShortDate(new Date(task.deadline))}` : '';
+                    const due = task.deadline ? t('cal.sched.optionDue', { date: formatShortDate(new Date(task.deadline)) }) : '';
                     taskSelect.append(new Option(`${task.title}${due}`, task.id));
                 }
                 taskSelect.disabled = false;
@@ -1256,8 +1265,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 if (error.sessionExpired) return;
                 console.error(error);
-                taskSelect.replaceChildren(new Option('Could not load tasks', ''));
-                setModalMessage('Could not load your tasks. Please try again.', 'error');
+                taskSelect.replaceChildren(new Option(t('cal.sched.loadTasksFailed'), ''));
+                setModalMessage(t('cal.sched.loadTasksFailedMsg'), 'error');
             }
         }
     }
@@ -1275,15 +1284,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = fixedItem ? fixedItem.title : taskSelect.selectedOptions[0]?.textContent;
 
         if (!itemId) {
-            setModalMessage('Choose a task to schedule.', 'error');
+            setModalMessage(t('cal.sched.chooseTask'), 'error');
             return;
         }
         const startOnly = startOnlyInput.checked;
 
         if (!dateInput.value || !startInput.value || (!startOnly && !endInput.value)) {
-            setModalMessage(startOnly
-                ? 'Pick a date and a start time.'
-                : 'Pick a date, a start time and an end time.', 'error');
+            setModalMessage(t(startOnly ? 'cal.sched.pickStart' : 'cal.sched.pickAll'), 'error');
             return;
         }
 
@@ -1292,13 +1299,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Client-side check required by S3-12 (the backend checks it too)
         if (end && end <= start) {
-            setModalMessage('The end time must be after the start time.', 'error');
+            setModalMessage(t('cal.sched.endAfterStart'), 'error');
             endInput.focus();
             return;
         }
 
         saveButton.disabled = true;
-        setModalMessage('Saving…', 'info');
+        setModalMessage(t('common.saving'), 'info');
 
         try {
             // Partial update: only the slot and its type are sent, so the deadline and other fields are unchanged
@@ -1313,12 +1320,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const body = await readJsonSafely(response);
 
             if (response.status === 403) {
-                setModalMessage('You can only schedule your own tasks.', 'error');
+                setModalMessage(t('cal.sched.notYours'), 'error');
                 saveButton.disabled = false;
                 return;
             }
             if (!response.ok) {
-                setModalMessage(errorMessageFrom(body, 'Could not save. Please try again.'), 'error');
+                setModalMessage(errorMessageFrom(body, t('cal.sched.saveFailed')), 'error');
                 saveButton.disabled = false;
                 return;
             }
@@ -1328,14 +1335,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const conflicts = (body && body.conflicts) || [];
             const slotText = end
                 ? `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`
-                : `${formatShortDate(start)} at ${formatTime(start)}`;
+                : t('cal.at', { date: formatShortDate(start), time: formatTime(start) });
             const savedTitle = (body && body.title) || title;
             state.flash = conflicts.length
                 ? {
-                    message: `Scheduled "${savedTitle}" on ${slotText}. Heads-up: it overlaps with ${conflicts.map(c => `"${c.title}"`).join(', ')}.`,
+                    message: t('cal.sched.scheduledOverlap', {
+                        title: savedTitle,
+                        slot: slotText,
+                        names: conflicts.map(c => `“${c.title}”`).join(t('common.listSep'))
+                    }),
                     isError: true
                 }
-                : { message: `Scheduled "${savedTitle}" on ${slotText}.`, isError: false };
+                : { message: t('cal.sched.scheduled', { title: savedTitle, slot: slotText }), isError: false };
 
             closeScheduleForm();
 
@@ -1346,7 +1357,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             if (error.sessionExpired) return;
             console.error(error);
-            setModalMessage('Could not save. Please check your connection and try again.', 'error');
+            setModalMessage(t('cal.sched.saveNetwork'), 'error');
             saveButton.disabled = false;
         }
     });
@@ -1414,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item) {
                 openScheduleForm({ item });
             } else {
-                setStatus('That task was not found.', true);
+                setStatus(t('cal.sched.notFound'), true);
             }
         } catch (error) {
             if (!error.sessionExpired) console.error(error);

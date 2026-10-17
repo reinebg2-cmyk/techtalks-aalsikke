@@ -6,6 +6,7 @@
 //  - edit-task form (tasks/dashboard)     -> Start + Due, leaves the task itself out of "busy"
 //  - calendar schedule window (calendar)  -> Date + Start + End
 // Each page only gets the panels whose form exists on it.
+// Needs i18n.js loaded first (t, lang, LANGS).
 
 (function () {
 
@@ -28,7 +29,14 @@
 
     function formatDay(dateString) {
         const [y, m, d] = dateString.split('-').map(Number);
-        return new Date(y, m - 1, d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        return new Date(y, m - 1, d).toLocaleDateString(LANGS[lang].locale, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    /** "30 min", "1 h", "1 h 30 min" in the current language. */
+    function lengthLabel(minutes) {
+        if (minutes < 60) return t('slots.min', { n: minutes });
+        if (minutes % 60 === 0) return t('slots.hours', { n: minutes / 60 });
+        return t('slots.hoursMin', { h: Math.floor(minutes / 60), m: minutes % 60 });
     }
 
     /** "YYYY-MM-DD" from a date/datetime-local value, never before today; today if empty. */
@@ -42,6 +50,13 @@
         const node = document.createElement(tag);
         if (className) node.className = className;
         if (text !== undefined) node.textContent = text;
+        return node;
+    }
+
+    /** An element whose text comes from the dictionary (and follows the language switcher). */
+    function tr(tag, className, key) {
+        const node = el(tag, className, t(key));
+        node.dataset.i18n = key;
         return node;
     }
 
@@ -66,12 +81,12 @@
         if (response.status === 401) {
             localStorage.removeItem(TOKEN_KEY);
             window.location.href = 'login.html';
-            throw new Error('Your session has expired.');
+            throw new Error(t('err.session'));
         }
         let data = null;
         try { data = await response.json(); } catch (_) { /* no body */ }
         if (!response.ok) {
-            throw new Error((data && data.message) || `Server responded ${response.status}`);
+            throw new Error((data && data.message) || t('err.server', { status: response.status }));
         }
         return data;
     }
@@ -88,51 +103,50 @@
         const panel = el('div', 'free-slot-panel');
 
         const row = el('div', 'free-slot-row');
-        const lengthLabel = el('label', 'free-slot-length');
-        lengthLabel.htmlFor = `${idPrefix}-length`;
-        lengthLabel.append('Length ');
+        const lengthLabelEl = el('label', 'free-slot-length');
+        lengthLabelEl.htmlFor = `${idPrefix}-length`;
         const lengthSelect = el('select');
         lengthSelect.id = `${idPrefix}-length`;
-        LENGTHS.forEach(m => lengthSelect.append(new Option(m < 60 ? `${m} min` : `${m / 60} h`.replace('.5 h', ' h 30'), m)));
+        LENGTHS.forEach(m => lengthSelect.append(new Option(lengthLabel(m), m)));
         lengthSelect.value = '60';
-        lengthLabel.append(lengthSelect);
+        lengthLabelEl.append(tr('span', '', 'slots.length'), ' ', lengthSelect);
 
-        const button = el('button', 'btn-secondary free-slot-btn', 'Suggest a time');
+        const button = tr('button', 'btn-secondary free-slot-btn', 'slots.suggest');
         button.type = 'button';
-        row.append(lengthLabel, button);
+        row.append(lengthLabelEl, button);
 
         // Less common options stay folded away
         const options = el('details', 'free-slot-options');
-        options.append(el('summary', '', 'Options'));
+        options.append(tr('summary', '', 'slots.options'));
         const optionsGrid = el('div', 'free-slot-options-grid');
 
-        const timeField = (labelText, id, value) => {
-            const label = el('label', '', labelText);
+        const timeField = (labelKey, id, value) => {
+            const label = el('label');
             label.htmlFor = id;
             const input = el('input');
             input.type = 'time';
             input.id = id;
             input.value = value;
             input.step = '900';
-            label.append(input);
+            label.append(tr('span', '', labelKey), ' ', input);
             return { label, input };
         };
-        const from = timeField('Between ', `${idPrefix}-from`, '08:00');
-        const to = timeField('and ', `${idPrefix}-to`, '22:00');
+        const from = timeField('slots.between', `${idPrefix}-from`, '08:00');
+        const to = timeField('slots.and', `${idPrefix}-to`, '22:00');
 
-        const bufferLabel = el('label', '', 'Gap after other tasks ');
+        const bufferLabel = el('label');
         bufferLabel.htmlFor = `${idPrefix}-buffer`;
         const bufferSelect = el('select');
         bufferSelect.id = `${idPrefix}-buffer`;
-        BUFFERS.forEach(m => bufferSelect.append(new Option(m === 0 ? 'none' : `${m} min`, m)));
-        bufferLabel.append(bufferSelect);
+        BUFFERS.forEach(m => bufferSelect.append(new Option(m === 0 ? t('slots.none') : t('slots.min', { n: m }), m)));
+        bufferLabel.append(tr('span', '', 'slots.gap'), ' ', bufferSelect);
 
         const weekLabel = el('label', 'check-row');
         const weekBox = el('input');
         weekBox.type = 'checkbox';
         weekBox.id = `${idPrefix}-week`;
         weekLabel.htmlFor = weekBox.id;
-        weekLabel.append(weekBox, ' Next 7 days');
+        weekLabel.append(weekBox, ' ', tr('span', '', 'slots.next7'));
 
         optionsGrid.append(from.label, to.label, bufferLabel, weekLabel);
         options.append(optionsGrid);
@@ -147,7 +161,7 @@
         async function search() {
             const days = weekBox.checked ? 7 : 1;
             const day = addDays(getDay(), shiftDays);
-            results.replaceChildren(el('p', 'free-slot-note', 'Looking for free time…'));
+            results.replaceChildren(el('p', 'free-slot-note', t('slots.looking')));
             button.disabled = true;
             try {
                 const params = {
@@ -173,16 +187,18 @@
             const end = new Date(slot.end);
             const freeUntil = new Date(slot.freeUntil);
             const label = `${toTimeInput(start)}–${toTimeInput(end)}`;
-            const extra = freeUntil > end ? `free until ${toTimeInput(freeUntil)}` : '';
+            const extra = freeUntil > end ? t('slots.freeUntil', { time: toTimeInput(freeUntil) }) : '';
 
             const b = el('button', 'free-slot-chip');
             b.type = 'button';
             b.append(el('span', 'free-slot-time', label));
             if (extra) b.append(el('span', 'free-slot-extra', ` · ${extra}`));
-            b.setAttribute('aria-label', `Use ${label}${extra ? `, ${extra}` : ''}`);
+            b.setAttribute('aria-label', extra
+                ? t('slots.useUntil', { label, extra })
+                : t('slots.use', { label }));
             b.addEventListener('click', () => {
                 onPick(start, end);
-                results.replaceChildren(el('p', 'free-slot-note', `Filled in ${label}.`));
+                results.replaceChildren(el('p', 'free-slot-note', t('slots.filled', { label })));
             });
             return b;
         }
@@ -192,9 +208,10 @@
             const withSlots = daysFound.filter(d => d.slots.length > 0);
 
             if (withSlots.length === 0) {
-                const span = days === 1 ? `on ${formatDay(firstDay)}` : `from ${formatDay(firstDay)} for 7 days`;
-                results.append(el('p', 'free-slot-note', `No free slot ${span}.`));
-                const next = el('button', 'link-btn free-slot-next', days === 1 ? 'Try next day' : 'Try the next 7 days');
+                results.append(el('p', 'free-slot-note', days === 1
+                    ? t('slots.noSlotDay', { day: formatDay(firstDay) })
+                    : t('slots.noSlotWeek', { day: formatDay(firstDay) })));
+                const next = tr('button', 'link-btn free-slot-next', days === 1 ? 'slots.tryNextDay' : 'slots.tryNextWeek');
                 next.type = 'button';
                 next.addEventListener('click', () => { shiftDays += days; search(); });
                 results.append(next);

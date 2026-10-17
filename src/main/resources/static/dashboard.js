@@ -1,5 +1,6 @@
 // Aal Sikke — Dashboard
 // Connected to the current Spring Boot backend.
+// Needs i18n.js loaded first (t, lang, LANGS).
 //
 // Schedule endpoints:
 // GET    /api/schedule-items/me
@@ -55,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (response.status === 401) {
       redirectToLogin();
-      const expired = new Error('Your session has expired.');
+      const expired = new Error(t('err.session'));
       expired.sessionExpired = true;
       throw expired;
     }
@@ -231,26 +232,21 @@ document.addEventListener('DOMContentLoaded', () => {
       return '';
     }
 
-    if (mode === 'HYBRID') {
-      return 'Dual';
-    }
-
-    return mode.charAt(0) +
-        mode.slice(1).toLowerCase();
+    return t('role.' + (mode === 'HYBRID' ? 'dual' : mode.toLowerCase()));
   }
 
   function formatDue(dateStr) {
     if (!dateStr) {
-      return 'No deadline';
+      return t('due.none');
     }
 
     const date = new Date(dateStr);
 
     if (Number.isNaN(date.getTime())) {
-      return 'Invalid date';
+      return t('due.invalid');
     }
 
-    return date.toLocaleString(undefined, {
+    return date.toLocaleString(LANGS[lang].locale, {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
@@ -358,10 +354,13 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     if (names.length <= 2) {
-      return names.join(' and ');
+      return names.join(` ${t('conflict.and')} `);
     }
 
-    return `${names.slice(0, 2).join(', ')}, and ${names.length - 2} more`;
+    return t('conflict.more', {
+      names: names.slice(0, 2).join(t('common.listSep')),
+      n: names.length - 2
+    });
   }
 
   // Shows a toast naming the clashing item(s) when the just-saved task has
@@ -371,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const partners = conflictPartnersByTaskId.get(String(taskId)) || [];
 
     if (partners.length > 0) {
-      showToast(`Saved — this clashes with ${describeConflictPartners(partners)}.`);
+      showToast(t('conflict.saved', { names: describeConflictPartners(partners) }));
     }
   }
 
@@ -560,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     currentDate.textContent =
-        new Date().toLocaleDateString('en-US', {
+        new Date().toLocaleDateString(LANGS[lang].locale, {
           year: 'numeric',
           month: 'long',
           day: 'numeric'
@@ -699,7 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? toISOStringFromLocal(document.getElementById('task-start')?.value || '')
         : new Date().toISOString();
     const mid = halfwayPoint(startIso, toISOStringFromLocal(document.getElementById('task-due')?.value || ''));
-    taskHalfwayTime.textContent = mid ? `(${formatDue(mid.toISOString())})` : '(set a due time)';
+    taskHalfwayTime.textContent = mid ? `(${formatDue(mid.toISOString())})` : t('halfway.setDue');
   }
   ['task-due', 'task-start', 'task-has-start'].forEach(id =>
       document.getElementById(id)?.addEventListener('change', updateNewHalfwayHint));
@@ -731,8 +730,8 @@ document.addEventListener('DOMContentLoaded', () => {
       row.className = 'reminder-row';
       row.dataset.id = id;
       row.innerHTML = `
-        <div class="input-wrap"><input type="datetime-local" class="reminder-at" aria-label="Remind me at"></div>
-        <button type="button" class="modal-close reminder-remove-btn" aria-label="Remove this reminder">&#10005;</button>`;
+        <div class="input-wrap"><input type="datetime-local" class="reminder-at" aria-label="${escapeHtml(t('reminder.at'))}"></div>
+        <button type="button" class="modal-close reminder-remove-btn" aria-label="${escapeHtml(t('reminder.remove'))}">&#10005;</button>`;
       row.querySelector('.reminder-at').value = local;
       row.querySelector('.reminder-remove-btn').addEventListener('click', () => row.remove());
       container.appendChild(row);
@@ -783,10 +782,10 @@ document.addEventListener('DOMContentLoaded', () => {
         : editTaskCreatedAt;
     const mid = halfwayPoint(startIso, toISOStringFromLocal(editTaskDeadline?.value));
     if (!mid) {
-      editTaskHalfwayTime.textContent = '(needs a due time after the start)';
+      editTaskHalfwayTime.textContent = t('halfway.needsDue');
     } else if (mid <= new Date()) {
       // The backend won't add or move a halfway reminder into the past
-      editTaskHalfwayTime.textContent = `(${formatDue(mid.toISOString())}, already passed)`;
+      editTaskHalfwayTime.textContent = t('halfway.passed', { time: formatDue(mid.toISOString()) });
     } else {
       editTaskHalfwayTime.textContent = `(${formatDue(mid.toISOString())})`;
     }
@@ -953,12 +952,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // "Dual" is the label users see; the API and database store it as HYBRID.
   const VALID_PROFILE_MODES = ['STUDENT', 'WORK', 'HYBRID'];
 
-  const ROLE_DESCRIPTIONS = {
-    STUDENT: 'Assignments, exams, classes and study sessions.',
-    WORK: 'Shifts and work deadlines.',
-    HYBRID: 'Student and work items together in one dashboard.'
-  };
-
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   // Field name used by the API (ApiError.field) -> wrapper element id.
@@ -1009,13 +1002,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // In-app replacement for the browser's built-in confirm popup. Resolves true when the
   // person presses the confirm button, false for Cancel, Escape or a tap outside.
   // Cancel has focus first, so pressing Enter by accident never deletes anything.
-  // Options: { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false }
+  // Options: { title, message, confirmLabel, cancelLabel, danger = false }
   function confirmDialog(options = {}) {
     const {
-      title = 'Are you sure?',
+      title = t('confirm.title'),
       message = '',
-      confirmLabel = 'Confirm',
-      cancelLabel = 'Cancel',
+      confirmLabel = t('confirm.confirm'),
+      cancelLabel = t('common.cancel'),
       danger = false
     } = options;
 
@@ -1119,7 +1112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullName =
         profile.fullName ||
         profile.username ||
-        'User';
+        t('common.user');
 
     const initials = getInitials(fullName);
 
@@ -1141,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (greetingText) {
-      greetingText.textContent = `Welcome back, ${fullName.split(' ')[0]}`;
+      greetingText.textContent = t('greeting.welcome', { name: fullName.split(' ')[0] });
     }
 
     if (avatarBtn) {
@@ -1201,7 +1194,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateRoleHint() {
     if (profileRoleHint) {
-      profileRoleHint.textContent = ROLE_DESCRIPTIONS[getSelectedRole()] || '';
+      const mode = getSelectedRole();
+      profileRoleHint.textContent = mode ? t('roleDesc.' + mode) : '';
     }
   }
 
@@ -1396,21 +1390,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const errors = {};
 
     if (!values.fullName) {
-      errors.fullName = 'Full name is required.';
+      errors.fullName = t('err.fullNameRequired');
     } else if (values.fullName.length > 255) {
-      errors.fullName = 'Full name must be 255 characters or fewer.';
+      errors.fullName = t('err.fullNameLong');
     }
 
     if (!values.email) {
-      errors.email = 'Email is required.';
+      errors.email = t('err.emailRequired');
     } else if (!EMAIL_PATTERN.test(values.email)) {
-      errors.email = 'Please enter a valid email address.';
+      errors.email = t('err.emailInvalid');
     } else if (values.email.length > 255) {
-      errors.email = 'Email must be 255 characters or fewer.';
+      errors.email = t('err.emailLong');
     }
 
     if (!VALID_PROFILE_MODES.includes(values.profileMode)) {
-      errors.profileMode = 'Please choose Student, Work or Dual.';
+      errors.profileMode = t('err.roleRequired');
     }
 
     // Phone is optional. Registration accepts free-form numbers, so only
@@ -1419,7 +1413,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const phoneChanged = values.phoneNumber !== (currentProfile.phoneNumber || '');
 
     if (values.phoneNumber && phoneChanged && !isPlausiblePhone(values.phoneNumber)) {
-      errors.phoneNumber = 'Please enter a valid phone number (7–15 digits).';
+      errors.phoneNumber = t('err.phoneInvalid');
     }
 
     return errors;
@@ -1476,7 +1470,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showProfileMessage(general, 'error');
     } else if (Object.keys(fieldErrors).length === 0) {
       showProfileMessage(
-          `Could not update your profile (error ${status}). Please try again.`,
+          t('err.profileUpdate', { status }),
           'error'
       );
     }
@@ -1493,7 +1487,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!currentProfile) {
-      showToast('Your profile is still loading. Please try again in a moment.');
+      showToast(t('profile.stillLoading'));
       return;
     }
 
@@ -1549,7 +1543,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sidebarAvatar = document.getElementById('profile-avatar');
   if (sidebarAvatar) {
     sidebarAvatar.style.cursor = 'pointer';
-    sidebarAvatar.title = 'Edit profile';
+    sidebarAvatar.title = t('settings.profile.edit');
     sidebarAvatar.setAttribute('role', 'button');
     sidebarAvatar.tabIndex = 0;
     sidebarAvatar.addEventListener('click', openProfileModal);
@@ -1603,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     saveProfileBtn.disabled = isSaving;
-    saveProfileBtn.textContent = isSaving ? 'Saving…' : 'Save profile';
+    saveProfileBtn.textContent = isSaving ? t('common.saving') : t('modal.profile.save');
   }
 
   if (profileForm) {
@@ -1628,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!hasProfileChanges(values)) {
-        showProfileMessage('No changes to save.', 'info');
+        showProfileMessage(t('profile.noChanges'), 'info');
         return;
       }
 
@@ -1662,8 +1656,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProfile(currentProfile);
         populateProfileForm();
 
-        showProfileMessage('Profile updated successfully.', 'success');
-        showToast('Profile updated successfully.');
+        showProfileMessage(t('profile.updated'), 'success');
+        showToast(t('profile.updated'));
 
         profileCloseTimer = setTimeout(closeProfileModal, 900);
 
@@ -1676,7 +1670,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Failed to update profile:', error);
 
         showProfileMessage(
-            'Could not reach the server. Please check your connection and try again.',
+            t('err.network'),
             'error'
         );
 
@@ -1735,7 +1729,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.dispatchEvent(new CustomEvent('aalsikke:tasks-error')); // KAN-259
       renderSummaryCards();
 
-      const failedText = 'Tasks unavailable';
+      const failedText = t('tasks.unavailable');
       const greetingSummary = document.getElementById('greeting-summary');
       const profileMeta = document.getElementById('profile-meta');
 
@@ -1751,7 +1745,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         taskList.innerHTML = `
           <li class="empty-state">
-            Couldn't load your tasks. Check your connection and refresh the page.
+            ${escapeHtml(t('tasks.loadFailed'))}
           </li>
         `;
       }
@@ -1778,15 +1772,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Tell "you have no tasks" apart from "your filters hide every task".
       emptyState.textContent = allTasks.length === 0
-          ? 'No tasks yet. Use the + button at the top to add your first one.'
-          : 'No tasks match these filters. Change the role, status or view to see more.';
+          ? t('tasks.emptyAll')
+          : t('tasks.emptyFiltered');
     }
 
     if (taskCount) {
       taskCount.textContent = allTasks.length === 0
           ? ''
-          : `Showing ${visibleTasks.length} of ${allTasks.length} ` +
-          `task${allTasks.length === 1 ? '' : 's'}`;
+          : t(allTasks.length === 1 ? 'tasks.showingOne' : 'tasks.showing',
+              { n: visibleTasks.length, total: allTasks.length });
     }
 
     visibleTasks.forEach(task => {
@@ -1810,7 +1804,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <input
           type="checkbox"
           class="task-checkbox"
-          aria-label="Mark ${escapeHtml(task.title)} complete"
+          aria-label="${escapeHtml(t('task.markComplete', { title: task.title }))}"
           ${completed ? 'checked' : ''}
         >
 
@@ -1825,21 +1819,21 @@ document.addEventListener('DOMContentLoaded', () => {
             <span
               class="priority-dot ${priorityClass(task.priority)}"
             ></span>
-            <span class="priority-label ${priorityClass(task.priority)}">${escapeHtml(priorityClass(task.priority))}</span>
+            <span class="priority-label ${priorityClass(task.priority)}">${escapeHtml(t('prio.' + String(task.priority || 'MEDIUM').toUpperCase()))}</span>
 
             ${
           task.itemType
-              ? escapeHtml(task.itemType) + ' &middot; '
+              ? escapeHtml(t('cat.' + String(task.itemType).toUpperCase())) + ' &middot; '
               : ''
       }
 
-            Due ${escapeHtml(
+            ${escapeHtml(t('task.dueLabel'))} ${escapeHtml(
           formatDue(getTaskDate(task))
       )}
 
             ${
           hasConflict
-              ? `<span class="conflict-badge" title="${escapeHtml(describeConflictPartners(conflictPartners))}">&#9888; Conflict</span>`
+              ? `<span class="conflict-badge" title="${escapeHtml(describeConflictPartners(conflictPartners))}">&#9888; ${escapeHtml(t('conflict.badge'))}</span>`
               : ''
       }
 
@@ -1851,15 +1845,15 @@ document.addEventListener('DOMContentLoaded', () => {
           <button
             type="button"
             class="task-menu-btn"
-            aria-label="Task actions"
+            aria-label="${escapeHtml(t('task.actions'))}"
             aria-expanded="false"
-            title="Task actions"
+            title="${escapeHtml(t('task.actions'))}"
           >
             &#8942;
           </button>
           <div class="task-menu" hidden>
-            <button type="button" class="task-action-edit">Edit</button>
-            <button type="button" class="task-action-delete">Delete</button>
+            <button type="button" class="task-action-edit">${escapeHtml(t('common.edit'))}</button>
+            <button type="button" class="task-action-delete">${escapeHtml(t('common.delete'))}</button>
           </div>
         </div>
       `;
@@ -1884,7 +1878,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } catch (error) {
             console.error('Failed to update task status:', error);
             event.target.checked = !event.target.checked;
-            showError(`Could not update the task status. ${error.message}`);
+            showError(t('err.statusUpdateMsg', { msg: error.message }));
           } finally {
             checkbox.disabled = false;
           }
@@ -1943,13 +1937,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const ROLE_CARDS = {
     STUDENT: {
-      title: 'Student',
-      blurb: 'Assignments, exams, classes and study',
+      title: t('group.student'),
+      blurb: t('roleCard.student.blurb'),
       icon: '&#127891;'
     },
     WORK: {
-      title: 'Work',
-      blurb: 'Shifts and work tasks',
+      title: t('group.work'),
+      blurb: t('roleCard.work.blurb'),
       icon: '&#128188;'
     }
   };
@@ -2014,7 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     const percent = completionPercent(summary);
     const titleId = `role-card-${role.toLowerCase()}-title`;
-    const progressText = `${summary.completed} of ${summary.total} completed`;
+    const progressText = t('roleCard.progress', { done: summary.completed, total: summary.total });
 
     return `
       <article class="card role-card role-card--${role.toLowerCase()}"
@@ -2027,25 +2021,25 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <p class="role-card-total">
             <strong data-metric="total">${summary.total}</strong>
-            <span>${summary.total === 1 ? 'task' : 'tasks'}</span>
+            <span>${t(summary.total === 1 ? 'task.one' : 'task.many')}</span>
           </p>
         </header>
 
         <dl class="metric-list">
-          ${metricHtml('pending', 'Pending', summary.pending)}
-          ${metricHtml('overdue', 'Overdue', summary.overdue)}
-          ${metricHtml('completed', 'Completed', summary.completed)}
+          ${metricHtml('pending', t('status.PENDING'), summary.pending)}
+          ${metricHtml('overdue', t('status.OVERDUE'), summary.overdue)}
+          ${metricHtml('completed', t('status.COMPLETED'), summary.completed)}
         </dl>
 
         <div class="progress" role="progressbar"
-             aria-label="${meta.title} tasks completed"
+             aria-label="${t('roleCard.progressLabel', { role: meta.title })}"
              aria-valuemin="0" aria-valuemax="100"
              aria-valuenow="${percent}" aria-valuetext="${progressText}">
           <span style="width: ${percent}%"></span>
         </div>
         <p class="role-card-foot">${
         summary.total === 0
-            ? `No ${meta.title.toLowerCase()} tasks yet`
+            ? t('roleCard.empty', { role: meta.title })
             : `${progressText} (${percent}%)`
     }</p>
       </article>`;
@@ -2093,8 +2087,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tasksState === 'error') {
       cards.innerHTML = `
         <div class="summary-error" role="alert">
-          <p>Couldn't load your task summary.</p>
-          <button type="button" class="link-btn" data-action="retry-summary">Try again</button>
+          <p>${t('summary.error')}</p>
+          <button type="button" class="link-btn" data-action="retry-summary">${t('common.tryAgain')}</button>
         </div>`;
       return;
     }
@@ -2102,10 +2096,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const summary = summarizeTasks(allTasks);
 
     cards.innerHTML = `
-      <div class="dashboard-stat-card"><span>Total tasks</span><strong>${summary.total}</strong></div>
-      <div class="dashboard-stat-card"><span>Pending</span><strong>${summary.pending}</strong></div>
-      <div class="dashboard-stat-card"><span>Completed</span><strong>${summary.completed}</strong></div>
-      <div class="dashboard-stat-card${summary.overdue > 0 ? ' is-alert' : ''}"><span>Overdue</span><strong>${summary.overdue}</strong></div>
+      <div class="dashboard-stat-card"><span>${t('summary.total')}</span><strong>${summary.total}</strong></div>
+      <div class="dashboard-stat-card"><span>${t('status.PENDING')}</span><strong>${summary.pending}</strong></div>
+      <div class="dashboard-stat-card"><span>${t('status.COMPLETED')}</span><strong>${summary.completed}</strong></div>
+      <div class="dashboard-stat-card${summary.overdue > 0 ? ' is-alert' : ''}"><span>${t('status.OVERDUE')}</span><strong>${summary.overdue}</strong></div>
     `;
   }
 
@@ -2182,9 +2176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isOverdue(task)
         ).length;
 
-    const summaryText =
-        `${dueToday} task${dueToday === 1 ? '' : 's'} due today, ` +
-        `${overdue} overdue`;
+    const summaryText = t('summary.line', { due: dueToday, overdue });
 
     if (greetingSummary) {
       greetingSummary.textContent =
@@ -2233,22 +2225,22 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const row of rows) {
       const remindAt = toISOStringFromLocal(row.local);
       if (!remindAt) {
-        showError('Choose a time for each reminder, or remove the empty one.');
+        showError(t('reminder.chooseTime'));
         return null;
       }
       const original = originals.find(o => o.id === row.id);
       const changed = !original || original.local !== row.local;
       // An unchanged reminder may already be in the past; a new or changed one must be in the future
       if (changed && new Date(remindAt) <= new Date()) {
-        showError('A new or changed reminder must be in the future.');
+        showError(t('reminder.future'));
         return null;
       }
       if (deadlineIso && new Date(remindAt) > new Date(deadlineIso)) {
-        showError('A reminder cannot be after the due time.');
+        showError(t('reminder.afterDue'));
         return null;
       }
       if (startIso && new Date(remindAt) < new Date(startIso)) {
-        showError('A reminder cannot be before the start time.');
+        showError(t('reminder.beforeStart'));
         return null;
       }
       times.push(new Date(remindAt).getTime());
@@ -2260,7 +2252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     times.sort((a, b) => a - b);
     for (let i = 1; i < times.length; i++) {
       if (times[i] - times[i - 1] < REMINDER_MIN_GAP_MS) {
-        showError('Reminders on the same task must be at least 10 minutes apart.');
+        showError(t('reminder.gap'));
         return null;
       }
     }
@@ -2306,7 +2298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (firstError) {
-      showToast(`Task saved, but a reminder could not be saved: ${firstError}`);
+      showToast(t('reminder.saveFailed', { error: firstError }));
     }
   }
 
@@ -2322,12 +2314,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!response.ok) {
         const data = await readJsonSafely(response);
-        showToast((data && data.message) || 'Task saved, but the reminder could not be set.');
+        showToast((data && data.message) || t('reminder.setFailed'));
       }
     } catch (error) {
       if (error.sessionExpired) return;
       console.error('Failed to create reminder:', error);
-      showToast('Task saved, but the reminder could not be set.');
+      showToast(t('reminder.setFailed'));
     }
   }
 
@@ -2358,21 +2350,21 @@ document.addEventListener('DOMContentLoaded', () => {
           // Validation
           if (!title) {
 
-            showError('Task title is required.');
+            showError(t('task.titleRequired'));
             return;
           }
 
           if (title.length > 255) {
 
             showError(
-                'Task title cannot be longer than 255 characters.'
+                t('task.titleLong')
             );
             return;
           }
 
           if (!due) {
 
-            showError('Deadline is required.');
+            showError(t('task.deadlineRequired'));
             return;
           }
 
@@ -2381,14 +2373,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (!deadline) {
 
-            showError('Please enter a valid deadline.');
+            showError(t('task.deadlineInvalid'));
             return;
           }
 
           if (new Date(deadline) <= new Date()) {
 
             showError(
-                'Due date must be in the future.'
+                t('task.dueFuture')
             );
             return;
           }
@@ -2415,12 +2407,12 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             if (!startTime) {
-              showError('Please enter a start time, or untick "Has a start time".');
+              showError(t('task.startRequired'));
               return;
             }
 
             if (new Date(startTime) >= new Date(deadline)) {
-              showError('Start must be before the due time.');
+              showError(t('task.startBeforeDue'));
               return;
             }
 
@@ -2437,7 +2429,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           saveTaskBtn.disabled = true;
           saveTaskBtn.textContent =
-              'Adding…';
+              t('tasks.adding');
 
           try {
 
@@ -2506,14 +2498,14 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             showError(
-                `Could not save the task. ${error.message}`
+                t('err.saveTask', { msg: error.message })
             );
 
           } finally {
 
             saveTaskBtn.disabled = false;
             saveTaskBtn.textContent =
-                '+ Add task';
+                t('tasks.add');
           }
         }
     );
@@ -2536,7 +2528,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     if (response.status === 403) {
-      throw new Error('You do not have permission to update this task.');
+      throw new Error(t('err.noPermission'));
     }
 
     if (!response.ok) {
@@ -2560,7 +2552,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       if (error.sessionExpired) return false;
       console.error('Failed to update task status:', error);
-      showError(error.message || 'Could not update the task status. Please try again.');
+      showError(error.message || t('err.statusUpdate'));
       return false;
     }
   }
@@ -2581,14 +2573,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function deleteTask(id) {
 
-    const task = allTasks.find(t => String(t.id) === String(id));
-    const name = task && task.title ? `\u201C${task.title}\u201D` : 'This task';
+    const task = allTasks.find(item => String(item.id) === String(id));
+    const name = task && task.title ? `\u201C${task.title}\u201D` : t('task.thisTask');
 
     const confirmed = await confirmDialog({
-      title: 'Delete this task?',
-      message: `${name} will be removed for good, with its reminders and checklist. This can\u2019t be undone.`,
-      confirmLabel: 'Delete task',
-      cancelLabel: 'Keep task',
+      title: t('delete.title'),
+      message: t('delete.message', { name }),
+      confirmLabel: t('delete.confirm'),
+      cancelLabel: t('delete.keep'),
       danger: true
     });
 
@@ -2611,7 +2603,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // The server answers 403 both for someone else's task and for one that is already gone
         // (deleted on another device or tab), so refresh the list instead of blaming permissions.
         showError(
-            'This task could not be deleted. It may already be gone, so your list was refreshed.'
+            t('delete.gone')
         );
         await loadTasks();
 
@@ -2635,7 +2627,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderTasks();
       updateSummary();
-      showToast('Task deleted.');
+      showToast(t('delete.done'));
 
     } catch (error) {
 
@@ -2649,7 +2641,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       showError(
-          'Could not delete the task. Please try again.'
+          t('delete.failed')
       );
     }
   }
@@ -2707,7 +2699,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * does not accept/update status.
      */
     editTaskStatus.disabled = true;
-    editTaskStatus.title = 'Use the task checkbox to change completion status.';
+    editTaskStatus.title = t('edit.statusHint');
 
     taskModal.hidden = false;
 
@@ -2755,7 +2747,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!title) {
 
       showError(
-          'Task title is required.'
+          t('task.titleRequired')
       );
 
       editTaskTitle.focus();
@@ -2766,7 +2758,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (title.length > 255) {
 
       showError(
-          'Task title cannot be longer than 255 characters.'
+          t('task.titleLong')
       );
 
       editTaskTitle.focus();
@@ -2777,7 +2769,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (description.length > 2000) {
 
       showError(
-          'Description cannot be longer than 2000 characters.'
+          t('task.descLong')
       );
 
       editTaskDescription.focus();
@@ -2788,7 +2780,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!deadline) {
 
       showError(
-          'Deadline is required.'
+          t('task.deadlineRequired')
       );
 
       editTaskDeadline.focus();
@@ -2802,7 +2794,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (Number.isNaN(deadlineDate.getTime())) {
 
       showError(
-          'Please enter a valid deadline.'
+          t('task.deadlineInvalid')
       );
 
       editTaskDeadline.focus();
@@ -2816,14 +2808,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const startDate = new Date(editTaskStart ? editTaskStart.value : '');
 
       if (Number.isNaN(startDate.getTime())) {
-        showError('Please enter a start time, or untick "Has a start time".');
+        showError(t('task.startRequired'));
         editTaskStart?.focus();
         return false;
       }
-      const editing = allTasks.find(t => String(t.id) === String(editTaskId.value));
+      const editing = allTasks.find(item => String(item.id) === String(editTaskId.value));
       const startOnly = Boolean(editing && editing.startTime && !editing.endTime);
       if (!startOnly && startDate >= deadlineDate) {
-        showError('Start must be before the due time.');
+        showError(t('task.startBeforeDue'));
         editTaskStart?.focus();
         return false;
       }
@@ -2859,7 +2851,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!existingTask) {
 
             showError(
-                'The selected task could not be found.'
+                t('task.notFound')
             );
 
             return;
@@ -2873,7 +2865,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!deadline) {
 
             showError(
-                'Invalid deadline.'
+                t('task.invalidDeadline')
             );
 
             return;
@@ -2950,7 +2942,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (window.AalSikkeRepeat && !window.AalSikkeRepeat.check('edit', payload)) return;   // KAN-353
           updateTaskBtn.disabled = true;
           updateTaskBtn.textContent =
-              'Saving…';
+              t('common.saving');
 
           try {
 
@@ -2970,7 +2962,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.status === 403) {
 
               showError(
-                  'You do not have permission to update this task.'
+                  t('err.noPermission')
               );
 
               return;
@@ -3060,14 +3052,14 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             showError(
-                `Could not update the task. ${error.message}`
+                t('err.updateTask', { msg: error.message })
             );
 
           } finally {
 
             updateTaskBtn.disabled = false;
             updateTaskBtn.textContent =
-                'Save changes';
+                t('modal.task.save');
           }
         }
     );
@@ -3208,10 +3200,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (score <= 1) {
       passwordStrengthMeter.classList.add('strength-1');
-      newPasswordStrengthHint.textContent = 'Too weak. Add length, a number, and a symbol.';
+      newPasswordStrengthHint.textContent = t('pw.weak');
     } else if (score <= 3) {
       passwordStrengthMeter.classList.add('strength-2');
-      newPasswordStrengthHint.textContent = 'Good, but add a special symbol to make it bulletproof.';
+      newPasswordStrengthHint.textContent = t('pw.good');
     } else {
       passwordStrengthMeter.classList.add('strength-3');
     }
@@ -3223,21 +3215,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const errors = {};
 
     if (!values.currentPassword) {
-      errors.currentPassword = 'Current password is required.';
+      errors.currentPassword = t('pw.currentRequired');
     }
 
     if (!values.newPassword) {
-      errors.newPassword = 'New password is required.';
+      errors.newPassword = t('pw.newRequired');
     } else if (values.newPassword.length < 8) {
-      errors.newPassword = 'New password must be at least 8 characters.';
+      errors.newPassword = t('pw.min8');
     } else if (values.currentPassword && values.newPassword === values.currentPassword) {
-      errors.newPassword = 'New password must be different from your current password.';
+      errors.newPassword = t('pw.same');
     }
 
     if (!values.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your new password.';
+      errors.confirmPassword = t('pw.confirmRequired');
     } else if (values.confirmPassword !== values.newPassword) {
-      errors.confirmPassword = 'Passwords do not match.';
+      errors.confirmPassword = t('pw.mismatch');
     }
 
     return errors;
@@ -3278,7 +3270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (general) {
       showPasswordMessage(general, 'error');
     } else if (Object.keys(fieldErrors).length === 0) {
-      showPasswordMessage(`Could not update your password (error ${status}). Please try again.`, 'error');
+      showPasswordMessage(t('err.passwordUpdate', { status }), 'error');
     }
   }
 
@@ -3355,7 +3347,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setPasswordSaving(isSaving) {
     if (!savePasswordBtn) return;
     savePasswordBtn.disabled = isSaving;
-    savePasswordBtn.textContent = isSaving ? 'Updating…' : 'Update password';
+    savePasswordBtn.textContent = isSaving ? t('pw.updating') : t('modal.password.save');
   }
 
   if (passwordForm) {
@@ -3399,8 +3391,8 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        showPasswordMessage('Password updated successfully.', 'success');
-        showToast('Password updated successfully.');
+        showPasswordMessage(t('pw.updated'), 'success');
+        showToast(t('pw.updated'));
 
         passwordCloseTimer = setTimeout(closePasswordModal, 900);
 
@@ -3410,7 +3402,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.error('Failed to update password:', error);
         showPasswordMessage(
-            'Could not reach the server. Please check your connection and try again.',
+            t('err.network'),
             'error'
         );
 
@@ -3466,7 +3458,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadNotificationPreferences() {
     setNotifPrefsTogglesDisabled(true);
-    showNotifPrefsMessage('Loading your preferences…', 'info');
+    showNotifPrefsMessage(t('prefs.loading'), 'info');
 
     try {
       const response = await apiFetch(`${API_BASE}/api/notification-preferences/me`);
@@ -3484,7 +3476,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (error.sessionExpired) return;
 
       console.error('Failed to load notification preferences:', error);
-      showNotifPrefsMessage('Could not load your preferences. Please try again.', 'error');
+      showNotifPrefsMessage(t('prefs.loadFailed'), 'error');
 
     } finally {
       setNotifPrefsTogglesDisabled(false);
@@ -3543,7 +3535,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setNotifPrefsSaving(isSaving) {
     if (!saveNotifPrefsBtn) return;
     saveNotifPrefsBtn.disabled = isSaving;
-    saveNotifPrefsBtn.textContent = isSaving ? 'Saving…' : 'Save preferences';
+    saveNotifPrefsBtn.textContent = isSaving ? t('common.saving') : t('modal.prefs.save');
   }
 
   if (notifPrefsForm) {
@@ -3571,15 +3563,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!response.ok) {
           const message = (responseBody && (responseBody.message || responseBody.error))
-              || `Could not save your preferences (error ${response.status}).`;
+              || t('err.prefsSave', { status: response.status });
           showNotifPrefsMessage(message, 'error');
           return;
         }
 
         if (responseBody) applyPreferencesToToggles(responseBody);
 
-        showNotifPrefsMessage('Preferences saved.', 'success');
-        showToast('Notification preferences saved.');
+        showNotifPrefsMessage(t('prefs.saved'), 'success');
+        showToast(t('prefs.savedToast'));
 
       } catch (error) {
 
@@ -3587,7 +3579,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.error('Failed to save notification preferences:', error);
         showNotifPrefsMessage(
-            'Could not reach the server. Please check your connection and try again.',
+            t('err.network'),
             'error'
         );
 
@@ -3603,7 +3595,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // KAN-344: the task's due time, looked up from the loaded tasks.
   function dueTimeForReminder(reminder) {
-    const task = allTasks.find(t => String(t.id) === String(reminder.scheduleItemId));
+    const task = allTasks.find(item => String(item.id) === String(reminder.scheduleItemId));
     return task ? (task.deadline || task.endTime || null) : null;
   }
 
@@ -3625,18 +3617,18 @@ document.addEventListener('DOMContentLoaded', () => {
       li.className = 'notif-item';
       li.dataset.id = reminder.id;
 
-      const title = reminder.scheduleItemTitle || 'Reminder';
+      const title = reminder.scheduleItemTitle || t('bell.reminder');
       const dueIso = dueTimeForReminder(reminder);
 
       li.innerHTML = `
         <div class="notif-item-body">
           <p class="notif-item-title">${escapeHtml(title)}</p>
-          <span class="notif-item-time">Reminder · ${escapeHtml(formatDue(reminder.remindAt))}</span>
-          ${dueIso ? `<span class="notif-item-time">Due ${escapeHtml(formatDue(dueIso))}</span>` : ''}
+          <span class="notif-item-time">${t('bell.reminder')} · ${escapeHtml(formatDue(reminder.remindAt))}</span>
+          ${dueIso ? `<span class="notif-item-time">${t('task.dueLabel')} ${escapeHtml(formatDue(dueIso))}</span>` : ''}
         </div>
         <div class="notif-item-actions">
-          <button type="button" class="notif-snooze-btn" aria-label="Snooze 10 minutes">Snooze 10 min</button>
-          <button type="button" class="notif-dismiss-btn" aria-label="Dismiss reminder">&#10003;</button>
+          <button type="button" class="notif-snooze-btn" aria-label="${t('bell.snoozeLabel')}">${t('bell.snooze')}</button>
+          <button type="button" class="notif-dismiss-btn" aria-label="${t('bell.dismissLabel')}">&#10003;</button>
         </div>
       `;
 
@@ -3659,7 +3651,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!response.ok) {
         const data = await readJsonSafely(response);
-        showToast((data && data.message) || 'Could not snooze the reminder.', { type: 'error' });
+        showToast((data && data.message) || t('bell.snoozeFailed'), { type: 'error' });
         return;
       }
 
@@ -3667,7 +3659,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       if (error.sessionExpired) return;
       console.error('Failed to snooze reminder:', error);
-      showToast('Could not snooze the reminder.', { type: 'error' });
+      showToast(t('bell.snoozeFailed'), { type: 'error' });
     }
   }
 
@@ -3708,7 +3700,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       if (error.sessionExpired) return;
       console.error('Failed to dismiss reminder:', error);
-      showToast('Could not dismiss the reminder.');
+      showToast(t('bell.dismissFailed'));
     }
   }
 
