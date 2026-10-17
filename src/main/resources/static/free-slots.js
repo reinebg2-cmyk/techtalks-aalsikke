@@ -227,10 +227,7 @@
         const dayOf = (hasStartId, startId, dueId) => dayFrom(
                 (document.getElementById(hasStartId)?.checked && document.getElementById(startId)?.value)
                 || document.getElementById(dueId)?.value);
-        // KAN-367: picking a slot only fills Due when it's empty; an existing deadline is never moved
-        const fillIfEmpty = (input, value) => {
-            if (input && !input.value) setValue(input, value);
-        };
+
 
         // New-task form (tasks.html)
         const newStartField = document.getElementById('field-task-start');
@@ -242,7 +239,7 @@
                 onPick: (start, end) => {
                     setChecked(document.getElementById('task-has-start'), true);
                     setValue(document.getElementById('task-start'), toDateTimeInput(start));
-                    fillIfEmpty(document.getElementById('task-due'), toDateTimeInput(end));
+                    setValue(document.getElementById('task-due'), toDateTimeInput(end));   // Due is the block's end (dashboard.js)
                 }
             }));
         }
@@ -257,7 +254,7 @@
                 onPick: (start, end) => {
                     setChecked(document.getElementById('edit-task-has-start'), true);
                     setValue(document.getElementById('edit-task-start'), toDateTimeInput(start));
-                    fillIfEmpty(document.getElementById('edit-task-deadline'), toDateTimeInput(end));
+                    setValue(document.getElementById('edit-task-deadline'), toDateTimeInput(end));   // Due is the block's end (dashboard.js)
                 }
             }));
         }
