@@ -75,6 +75,10 @@ public class User {
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
+    /** KAN-369: when the welcome email was sent (first successful login); null = not yet. */
+    @Column(name = "welcome_email_sent_at")
+    private OffsetDateTime welcomeEmailSentAt;
+
     @PrePersist
     protected void onCreate() {
         if (this.accountStatus == null) {
