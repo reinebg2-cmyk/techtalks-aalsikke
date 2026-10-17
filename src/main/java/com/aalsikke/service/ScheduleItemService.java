@@ -1,5 +1,7 @@
 package com.aalsikke.service;
 
+
+import com.aalsikke.config.AppTime;
 import com.aalsikke.dto.FreeSlotDay;
 import com.aalsikke.dto.ScheduleItemRequest;
 import com.aalsikke.dto.ScheduleItemResponse;
@@ -110,7 +112,7 @@ public class ScheduleItemService {
                         .toList());
 
         // KAN-248: add the weekly repeats of recurring items that fall in the range
-        ZoneId zone = ZoneId.systemDefault();   // same convention as the dashboard
+        ZoneId zone = AppTime.ZONE;   // same convention as the dashboard
         List<RecurrenceRule> rules = recurrenceRuleRepository.findActiveWeeklyForUser(
                 user.getId(), to, from.atZoneSameInstant(zone).toLocalDate());
         Set<String> completed = completedRepeats(rules, from, to, zone);   // KAN-363
@@ -177,7 +179,7 @@ public class ScheduleItemService {
             throw new IllegalArgumentException("The buffer must be between 0 and 60 minutes.");
         }
 
-        ZoneId zone = ZoneId.systemDefault();   // same convention as the calendar range
+        ZoneId zone = AppTime.ZONE;   // same convention as the calendar range
         List<FreeSlots.Busy> busy = getItemsInRange(email,
                 date.atStartOfDay(zone).toOffsetDateTime(),
                 date.plusDays(days).atStartOfDay(zone).toOffsetDateTime())
@@ -306,7 +308,7 @@ public class ScheduleItemService {
 
     /** KAN-363: mark one weekly repeat done or not done. 400 if that date is not a repeat of the item. */
     private ScheduleItemResponse updateRepeatStatus(ScheduleItem base, String status, LocalDate date) {
-        ZoneId zone = ZoneId.systemDefault();   // same convention as the calendar range
+        ZoneId zone = AppTime.ZONE;   // same convention as the calendar range
         RecurrenceRule rule = recurrenceRuleRepository.findByScheduleItemId(base.getId())
                 .filter(r -> "WEEKLY".equals(r.getFrequency()))
                 .orElseThrow(() -> new IllegalArgumentException("This task does not repeat weekly."));

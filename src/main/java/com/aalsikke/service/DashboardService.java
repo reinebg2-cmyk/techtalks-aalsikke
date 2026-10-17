@@ -1,5 +1,6 @@
 package com.aalsikke.service;
 
+import com.aalsikke.config.AppTime;
 import com.aalsikke.dto.DashboardSummaryDTO;
 import com.aalsikke.dto.ScheduleItemResponse;
 import com.aalsikke.model.ScheduleItem;
@@ -28,7 +29,7 @@ public class DashboardService {
     public List<ScheduleItemResponse> getTodaysTasks(String email) {
         User user = findUser(email);
 
-        ZoneId zone = ZoneId.systemDefault();
+        ZoneId zone = AppTime.ZONE;
         LocalDate today = LocalDate.now(zone);
         OffsetDateTime startOfDay = today.atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime endOfDay = today.plusDays(1).atStartOfDay(zone).toOffsetDateTime().minusNanos(1);
