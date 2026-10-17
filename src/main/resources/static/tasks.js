@@ -53,7 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function taskDate(task) {
-        const value = task.deadline || task.startTime;
+        // KAN-371: a repeating task is due at the end of its next repeat, not its first date
+        const repeat = task.nextOccurrence;
+        const value = repeat ? (repeat.end || repeat.start) : (task.deadline || task.startTime);
         if (!value) return null;
         const date = new Date(value);
         return Number.isNaN(date.getTime()) ? null : date;
@@ -67,7 +69,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function isCompleted(task) {
-        return String(task.status || '').toUpperCase() === 'COMPLETED';
+        // KAN-371: a repeating task's done state is its next repeat's (that week)
+        const value = task.nextOccurrence ? task.nextOccurrence.status : task.status;
+        return String(value || '').toUpperCase() === 'COMPLETED';
+    }
+
+    // KAN-371: ticking a repeating task marks its next repeat only (that week), like the calendar (KAN-363)
+    function statusBody(task, status) {
+        const repeat = task.nextOccurrence;
+        return repeat && !repeat.original ? { status, occurrenceDate: repeat.date } : { status };
     }
 
     function roleOf(task) {
@@ -222,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: next })
+                    body: JSON.stringify(statusBody(task, next))
                 }
             );
 

@@ -293,7 +293,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // KAN-265: the due time is the deadline; tasks with only a time window
   // (e.g. recurring classes) are due when the window ends.
   function getTaskDate(task) {
+    // KAN-371: a repeating task is due at the end of its next repeat, not its first date
+    const next = task.nextOccurrence;
+    if (next) return next.end || next.start;
     return task.deadline || task.endTime || task.startTime;
+  }
+
+  // KAN-371: a repeating task's done state is its next repeat's (that week), not the first date's
+  function statusValue(task) {
+    const value = task.nextOccurrence ? task.nextOccurrence.status : task.status;
+    return String(value || '').toUpperCase();
   }
 
   // ============================================================
@@ -407,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function isOverdue(task) {
-    if (!task || String(task.status || '').toUpperCase() === 'COMPLETED') {
+    if (!task || statusValue(task) === 'COMPLETED') {
       return false;
     }
 
@@ -458,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
    * Pending + Completed + Overdue always adds up to the total.
    */
   function taskStatus(task) {
-    if (String(task.status || '').toUpperCase() === 'COMPLETED') {
+    if (statusValue(task) === 'COMPLETED') {
       return 'COMPLETED';
     }
 
@@ -1802,9 +1811,7 @@ document.addEventListener('DOMContentLoaded', () => {
       li.className = `task-card priority-${priorityClass(task.priority)}${hasConflict ? ' is-conflict' : ''}`;
       li.dataset.id = task.id;
 
-      const completed =
-          String(task.status || '').toUpperCase()
-          === 'COMPLETED';
+      const completed = statusValue(task) === 'COMPLETED';
 
       li.innerHTML = `
         <input
@@ -1878,9 +1885,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
           try {
             const updatedTask = await updateTaskStatus(task.id, nextStatus);
-            replaceTaskInState(updatedTask);
-            renderTasks();
-            updateSummary();
+            if (task.nextOccurrence) {
+              await loadTasks();   // KAN-371: reload so the card gets its next repeat again
+            } else {
+              replaceTaskInState(updatedTask);
+              renderTasks();
+              updateSummary();
+            }
           } catch (error) {
             console.error('Failed to update task status:', error);
             event.target.checked = !event.target.checked;
@@ -2519,6 +2530,13 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   }
 
+  // KAN-371: ticking a repeating task marks its next repeat only (that week), like the calendar (KAN-363)
+  function statusBody(id, status) {
+    const task = allTasks.find(t => String(t.id) === String(id));
+    const next = task && task.nextOccurrence;
+    return next && !next.original ? { status, occurrenceDate: next.date } : { status };
+  }
+
   // ============================================================
   // TASK STATUS
   // ============================================================
@@ -2531,7 +2549,7 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ status })
+          body: JSON.stringify(statusBody(id, status))
         }
     );
 
@@ -2674,7 +2692,7 @@ document.addEventListener('DOMContentLoaded', () => {
         task.description || '';
 
     editTaskDeadline.value =
-        toDateTimeLocal(getTaskDate(task));
+        toDateTimeLocal(task.deadline || task.endTime || task.startTime);   // KAN-371: the task's own date, never the next repeat
 
     // KAN-265: show the start time if the task is a time window
     if (editTaskStart) {
