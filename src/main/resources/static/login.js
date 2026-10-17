@@ -27,11 +27,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   async function loginUser(email, password) {
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }), // matches real LoginRequest DTO
-    });
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }), // matches real LoginRequest DTO
+      });
+    } catch (_) {
+      // fetch() throws a TypeError ("Failed to fetch" / "Load failed") when the server can't be reached
+      throw { message: 'Could not reach Aal Sikke. Check your connection and try again in a moment.' };
+    }
 
     let body = null;
     try { body = await res.json(); } catch (_) { /* empty body */ }

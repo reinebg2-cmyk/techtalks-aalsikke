@@ -921,3 +921,11 @@
     height: 0.875rem;
     border-radius: 0.125rem;
 }
+
+/* Touch screens: the week-grid arrows get a finger-sized tap area (loaded after styles.css, so it lives here). */
+@media (pointer: coarse) {
+    .cal-grid-arrow {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+}

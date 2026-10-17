@@ -35,6 +35,7 @@ body.welcome-body {
 }
 
 .wl-link {
+    white-space: nowrap;   /* "Log in" wrapped onto two lines on phones */
     color: var(--slate);
     font-weight: 600;
     font-size: 0.9375rem;
@@ -212,4 +213,63 @@ body.welcome-body {
     .wl-nav .wl-btn { white-space: nowrap; padding: 0.5rem 0.75rem; font-size: 0.875rem; }
     .wl-hero { padding-top: 2.5rem; }
     .wl-hero-actions .wl-btn { width: 100%; }
+}
+
+
+/* FAQ (index.html) — plain <details>, so it works without JavaScript and with the keyboard */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+.wl-faq { scroll-margin-top: 4rem; }  /* the sticky nav would otherwise cover the heading */
+
+.wl-faq-list {
+    max-width: 44rem;
+    margin: 0 auto;
+    display: grid;
+    gap: 0.625rem;
+}
+
+.wl-faq-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.wl-faq-item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.75rem;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--navy);
+    cursor: pointer;
+    list-style: none;
+}
+
+.wl-faq-item summary::-webkit-details-marker { display: none; }
+
+.wl-faq-item summary::after {
+    content: "+";
+    flex-shrink: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--trust-blue);
+}
+
+.wl-faq-item[open] summary::after { content: "\2212"; }
+
+.wl-faq-item summary:focus-visible {
+    outline: 2px solid var(--trust-blue);
+    outline-offset: 2px;
+    border-radius: var(--radius);
+}
+
+.wl-faq-item p {
+    margin: 0;
+    padding: 0 1rem 1rem;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--slate-light);
 }
