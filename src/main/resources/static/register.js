@@ -140,11 +140,17 @@ document.addEventListener('DOMContentLoaded', () => {
   confirmInput.addEventListener('input', validateConfirm);
 
   async function registerUser(payload) {
-    const res = await fetch(`${API_BASE}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (_) {
+      // fetch() throws a TypeError ("Failed to fetch" / "Load failed") when the server can't be reached
+      throw { message: 'Could not reach Aal Sikke. Check your connection and try again in a moment.' };
+    }
 
     let body = null;
     try { body = await res.json(); } catch (_) { /* empty body */ }

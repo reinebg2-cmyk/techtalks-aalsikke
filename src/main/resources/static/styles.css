@@ -2104,3 +2104,211 @@ select:focus-visible {
 .checklist-message:empty { display: none; }
 
 .checklist-message.is-error { color: var(--coral); }
+
+/* =========================================================
+   SPRINT 6: confirm dialog, feedback button, first-use guide,
+   and phone-sized tap targets
+   ========================================================= */
+
+/* ---- In-app confirm dialog (replaces the browser's confirm()) ---- */
+.confirm-card {
+  max-width: 24rem;
+}
+
+.confirm-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+
+.confirm-message {
+  margin: 0 0 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--slate);
+  overflow-wrap: anywhere;   /* a long task title must not push the dialog wider */
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.confirm-actions .btn-secondary,
+.confirm-actions .btn-primary,
+.confirm-actions .btn-danger {
+  width: auto;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 30rem) {
+  /* Phones: stacked full-width buttons, "Keep task" (the safe choice) on top */
+  .confirm-actions {
+    flex-direction: column;
+  }
+
+  .confirm-actions .btn-secondary,
+  .confirm-actions .btn-primary,
+  .confirm-actions .btn-danger {
+    width: 100%;
+  }
+}
+
+/* ---- "Send feedback" button (feedback.js) ---- */
+.feedback-btn {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 900;                       /* above the page, below modals (1000) and the toast (1100) */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 0.0625rem solid var(--border);
+  background: var(--surface);
+  color: var(--trust-blue);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 0.25rem 0.75rem rgba(15, 32, 62, 0.18);
+}
+
+.feedback-btn:hover { border-color: var(--trust-blue); }
+
+@media (max-width: 48rem) {
+  /* sit just above the mobile bottom nav (about 4rem tall, plus the iPhone home bar) */
+  .feedback-btn {
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    right: 0.75rem;
+  }
+}
+
+/* ---- First-use guide (first-use.js) ---- */
+.guide-card {
+  margin-bottom: 1rem;
+}
+
+.guide-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.guide-head h2 { margin: 0; }
+.guide-head .card-subtitle { margin: 0.25rem 0 0; font-size: 0.875rem; font-weight: 400; color: var(--slate-light); }
+
+.guide-close {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: -0.5rem -0.5rem 0 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--slate-light);
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+
+.guide-close:hover { background: var(--card-mist); }
+
+.guide-steps {
+  list-style: none;
+  counter-reset: guide;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.guide-steps li {
+  counter-increment: guide;
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.625rem;
+}
+
+.guide-steps li::before {
+  content: counter(guide);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--trust-blue-bg);
+  color: var(--trust-blue);
+  font-weight: 700;
+}
+
+.guide-steps strong { display: block; color: var(--navy); }
+
+.guide-steps p {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--slate-light);
+}
+
+.guide-link {
+  width: auto;
+  white-space: nowrap;
+  text-decoration: none;
+  text-align: center;
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 30rem) {
+  .guide-steps li {
+    grid-template-columns: 2rem 1fr;
+  }
+
+  .guide-link {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+    min-height: 2.75rem;
+  }
+}
+
+/* ---- Phone fixes ---- */
+
+/* The logo ran into the round "+" button on narrow screens. */
+@media (max-width: 30rem) {
+  .dash-topbar { gap: 0.5rem; }
+  .dash-topbar .brand { min-width: 0; flex: 0 1 auto; }
+  .dash-topbar .brand-logo { height: 1.5rem; }
+  .topbar-actions { gap: 0.25rem; }
+}
+
+/* Safe space under the bottom nav on iPhones with a home bar. */
+@media (max-width: 48rem) {
+  .bottom-nav {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 800;
+  }
+}
+
+/* Finger-sized tap targets (about 44 px) on touch screens only; mouse layouts stay as they were. */
+@media (pointer: coarse) {
+  .icon-btn { min-width: 2.75rem; min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; }
+  .avatar-btn { width: 2.75rem; height: 2.75rem; }
+  .bottom-nav a { min-width: 4rem; min-height: 2.75rem; justify-content: center; }
+  .task-menu-btn { min-width: 2.75rem; min-height: 2.75rem; }
+  .link-btn { min-height: 2.75rem; padding: 0 0.5rem; }
+  .filter-tab, .board-view-tab { min-height: 2.5rem; }
+  .cal-grid-arrow { width: 2.5rem; height: 2.5rem; }
+  .profile-dropdown a { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+
+  /* The visible box stays 1.125rem; the label around it gets the big tap area. */
+  .task-checkbox { width: 1.5rem; height: 1.5rem; }
+}

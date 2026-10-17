@@ -887,9 +887,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const sharedOptions = [
       'PERSONAL',
-       'APPOINTMENT',
-       'ERRAND',
-       'EVENT'
+      'APPOINTMENT',
+      'ERRAND',
+      'EVENT'
     ];
 
     let visibleValues;
@@ -1004,6 +1004,102 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showError(message) {
     showToast(message, { type: 'error' });
+  }
+
+  // In-app replacement for the browser's built-in confirm popup. Resolves true when the
+  // person presses the confirm button, false for Cancel, Escape or a tap outside.
+  // Cancel has focus first, so pressing Enter by accident never deletes anything.
+  // Options: { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false }
+  function confirmDialog(options = {}) {
+    const {
+      title = 'Are you sure?',
+      message = '',
+      confirmLabel = 'Confirm',
+      cancelLabel = 'Cancel',
+      danger = false
+    } = options;
+
+    return new Promise(resolve => {
+      const previouslyFocused = document.activeElement;
+      const titleId = `confirm-title-${Date.now()}`;
+
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop confirm-backdrop';
+
+      const card = document.createElement('div');
+      card.className = 'modal-card confirm-card';
+      card.setAttribute('role', 'alertdialog');
+      card.setAttribute('aria-modal', 'true');
+      card.setAttribute('aria-labelledby', titleId);
+
+      const heading = document.createElement('h2');
+      heading.id = titleId;
+      heading.textContent = title;
+
+      const body = document.createElement('p');
+      body.className = 'confirm-message';
+      body.textContent = message;               // textContent: a task title can't inject HTML
+
+      const actions = document.createElement('div');
+      actions.className = 'confirm-actions';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'btn-secondary';
+      cancelBtn.textContent = cancelLabel;
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.type = 'button';
+      confirmBtn.className = danger ? 'btn-danger' : 'btn-primary';
+      confirmBtn.textContent = confirmLabel;
+
+      actions.append(cancelBtn, confirmBtn);
+      card.append(heading, body, actions);
+      backdrop.append(card);
+      document.body.append(backdrop);
+
+      let finished = false;
+      function finish(result) {
+        if (finished) return;
+        finished = true;
+        document.removeEventListener('keydown', onKeydown, true);
+        backdrop.remove();
+        if (previouslyFocused && typeof previouslyFocused.focus === 'function'
+            && document.contains(previouslyFocused)) {
+          previouslyFocused.focus();
+        }
+        resolve(result);
+      }
+
+      function onKeydown(event) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+          finish(false);
+          return;
+        }
+        if (event.key === 'Tab') {            // keep keyboard focus inside the dialog
+          const first = cancelBtn;
+          const last = confirmBtn;
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+      }
+
+      cancelBtn.addEventListener('click', () => finish(false));
+      confirmBtn.addEventListener('click', () => finish(true));
+      backdrop.addEventListener('click', event => {
+        if (event.target === backdrop) finish(false);
+      });
+      document.addEventListener('keydown', onKeydown, true);
+
+      cancelBtn.focus();
+    });
   }
 
   async function readJsonSafely(response) {
@@ -1655,8 +1751,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         taskList.innerHTML = `
           <li class="empty-state">
-            Couldn't load tasks.
-            Is the backend running on ${escapeHtml(API_BASE)}?
+            Couldn't load your tasks. Check your connection and refresh the page.
           </li>
         `;
       }
@@ -1683,7 +1778,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Tell "you have no tasks" apart from "your filters hide every task".
       emptyState.textContent = allTasks.length === 0
-          ? 'No tasks yet — add your first one above.'
+          ? 'No tasks yet. Use the + button at the top to add your first one.'
           : 'No tasks match these filters. Change the role, status or view to see more.';
     }
 
@@ -2486,10 +2581,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function deleteTask(id) {
 
-    const confirmed =
-        window.confirm(
-            'Delete this task?'
-        );
+    const task = allTasks.find(t => String(t.id) === String(id));
+    const name = task && task.title ? `\u201C${task.title}\u201D` : 'This task';
+
+    const confirmed = await confirmDialog({
+      title: 'Delete this task?',
+      message: `${name} will be removed for good, with its reminders and checklist. This can\u2019t be undone.`,
+      confirmLabel: 'Delete task',
+      cancelLabel: 'Keep task',
+      danger: true
+    });
 
     if (!confirmed) {
       return;
@@ -2507,9 +2608,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (response.status === 403) {
 
+        // The server answers 403 both for someone else's task and for one that is already gone
+        // (deleted on another device or tab), so refresh the list instead of blaming permissions.
         showError(
-            'You do not have permission to delete this task.'
+            'This task could not be deleted. It may already be gone, so your list was refreshed.'
         );
+        await loadTasks();
 
         return;
       }
@@ -2526,11 +2630,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       allTasks =
           allTasks.filter(
-              task => task.id !== id
+              task => String(task.id) !== String(id)
           );
 
       renderTasks();
       updateSummary();
+      showToast('Task deleted.');
 
     } catch (error) {
 
@@ -2539,8 +2644,12 @@ document.addEventListener('DOMContentLoaded', () => {
           error
       );
 
+      if (error.sessionExpired) {
+        return;
+      }
+
       showError(
-          'Could not delete the task. Please check the console.'
+          'Could not delete the task. Please try again.'
       );
     }
   }
@@ -3675,6 +3784,7 @@ document.addEventListener('DOMContentLoaded', () => {
     openEditModal,
     setTaskStatus,
     deleteTask,
+    confirmDialog,
     apiFetch,
     showToast,
     API_BASE

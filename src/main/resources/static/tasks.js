@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (visible.length === 0) {
             groupsEl.innerHTML = '';
             showState(all.length === 0
-                ? 'No tasks yet. Add your first one above.'
+                ? 'No tasks yet. Tap “+ New task” above to add your first one.'
                 : 'No tasks match these filters.');
             return;
         }

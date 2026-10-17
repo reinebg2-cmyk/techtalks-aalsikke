@@ -171,7 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatTime(date) {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        // 12-hour clock ("11:00 PM"), the same as the Tasks page and the dashboard
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     }
 
     function formatShortDate(date) {
@@ -329,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         previewAnchor = null;
     }
 
-    // "Mon, Oct 12, 09:00–11:00" / "Sun, Oct 11 16:00 → Tue, Oct 13 11:00" / "Due Mon, Oct 12, 12:00"
+    // "Mon, Oct 12, 9:00 AM–11:00 AM" / "Sun, Oct 11 4:00 PM → Tue, Oct 13 11:00 AM" / "Due Mon, Oct 12, 12:00 PM"
     function previewWhen(item) {
         const lines = [];
         if (item.startTime) {
@@ -511,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return minutes > 0 ? `${tasks} · busy ${busyText}` : tasks;
     }
 
-    // "Sun 16:00"
+    // "Sun 4:00 PM"
     function formatDayTime(date) {
         return `${date.toLocaleDateString('en-US', { weekday: 'short' })} ${formatTime(date)}`;
     }
@@ -780,7 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const times = el('div', 'cal-times');
         for (let hour = 1; hour < 24; hour++) {
-            const label = el('span', 'cal-time-label', `${String(hour).padStart(2, '0')}:00`);
+            const label = el('span', 'cal-time-label', `${hour % 12 === 0 ? 12 : hour % 12} ${hour < 12 ? 'AM' : 'PM'}`);
             label.style.top = `${hour * HOUR_HEIGHT}px`;
             times.append(label);
         }
@@ -1123,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setStatus(state.flash.message, state.flash.isError);
                 state.flash = null;
             } else if (items.length === 0) {
-                setStatus(state.view === 'day' ? 'Nothing scheduled for this day.' : 'Nothing scheduled this week.');
+                setStatus(state.view === 'day' ? 'Nothing scheduled for this day.' : 'Nothing scheduled this week. Tap “+ Schedule task” to add something.');
             } else {
                 setStatus('');
             }
