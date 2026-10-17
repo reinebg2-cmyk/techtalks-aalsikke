@@ -113,7 +113,8 @@ public class ReminderService {
         if (from != null && remindAt.isBefore(from)) {
             throw new IllegalArgumentException("A reminder cannot be set before the task's start time.");
         }
-        if (to != null && remindAt.isAfter(to)) {
+        // KAN-370: a repeating task's reminders move to later weeks, so only the first date's start limits them
+        if (to != null && remindAt.isAfter(to) && !item.isRecurring()) {
             throw new IllegalArgumentException("A reminder cannot be set after the task's deadline.");
         }
     }

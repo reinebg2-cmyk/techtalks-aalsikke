@@ -50,7 +50,7 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
               AND r.isTriggered = false
               AND r.emailedAt IS NULL
               AND i.reminderEnabled = true
-              AND (i.status IS NULL OR i.status <> 'COMPLETED')
+              AND (i.status IS NULL OR i.status <> 'COMPLETED' OR i.isRecurring = true)
               AND u.emailVerified = true
               AND NOT EXISTS (
                   SELECT p FROM NotificationPreference p
@@ -59,6 +59,18 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
             ORDER BY r.remindAt ASC
             """)
     List<Reminder> findDueForEmail(@Param("now") OffsetDateTime now);
+
+    /**
+     * KAN-370: reminders on repeating items whose time has passed. The reminder job moves the ones whose
+     * repeat is over to the next repeat. Rolled reminders are in the future again, so this list stays small.
+     */
+    @Query("""
+            SELECT r FROM Reminder r
+            JOIN FETCH r.scheduleItem i
+            WHERE i.isRecurring = true
+              AND r.remindAt <= :now
+            """)
+    List<Reminder> findPastOnRecurringItems(@Param("now") OffsetDateTime now);
 
     /** KAN-336: record that the email went out. Own transaction per reminder, so one failure can't undo the others. */
     @Modifying

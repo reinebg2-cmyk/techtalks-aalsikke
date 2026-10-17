@@ -38,7 +38,9 @@ class ReminderEmailJobTest {
     void setUp() {
         reminders = mock(ReminderRepository.class);
         emailSender = mock(EmailSender.class);
-        job = new ReminderEmailJob(reminders, emailSender);
+        job = new ReminderEmailJob(reminders, emailSender,
+                mock(com.aalsikke.repository.RecurrenceRuleRepository.class),
+                mock(com.aalsikke.repository.OccurrenceCompletionRepository.class));
     }
 
     private static Reminder reminderFor(String email, String title, OffsetDateTime deadline, OffsetDateTime endTime) {
