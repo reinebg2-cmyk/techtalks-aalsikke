@@ -1189,6 +1189,26 @@ document.addEventListener('DOMContentLoaded', () => {
      * open({ item })  -> schedule / reschedule that task (from a block, a marker or ?schedule=id)
      * open({ start }) -> empty slot or "+ Schedule": pick one of the unscheduled tasks
      */
+    // KAN-366: "Create a new task here" opens the Tasks page's New task form with the date and
+    // times currently in this window (tasks.html?date=YYYY-MM-DD&start=HH:MM&end=HH:MM#new-task).
+    function newTaskLink(text) {
+        const link = el('a', 'modal-link', text);
+        link.href = 'tasks.html#new-task';
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            const date = document.getElementById('schedule-date')?.value || '';
+            const start = document.getElementById('schedule-start')?.value || '';
+            const startOnly = document.getElementById('schedule-start-only')?.checked;
+            const end = startOnly ? '' : (document.getElementById('schedule-end')?.value || '');
+            const params = new URLSearchParams();
+            if (date) params.set('date', date);
+            if (start) params.set('start', start);
+            if (end && end > start) params.set('end', end);
+            window.location.href = `tasks.html?${params}#new-task`;
+        });
+        return link;
+    }
+
     async function openScheduleForm({ item = null, start = null } = {}) {
         returnFocusTo = document.activeElement;
         fixedItem = item;
@@ -1236,13 +1256,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 taskSelect.replaceChildren();
                 if (tasks.length === 0) {
                     taskSelect.append(new Option('No unscheduled tasks', ''));
-                    const dashboardLink = el('a', 'modal-link', 'add a task on the dashboard');
-                    dashboardLink.href = 'dashboard.html';
                     setModalMessage('', 'info');
                     modalMessage.append(
-                        'Every task already has a time slot. To schedule something new, ',
-                        dashboardLink,
-                        ' (a deadline is enough), or click a task in the calendar to reschedule it.'
+                        'Every task already has a time slot. ',
+                        newTaskLink('Create a new task here'),
+                        ' with this date and time, or click a task in the calendar to reschedule it.'
                     );
                     return;
                 }
@@ -1250,6 +1268,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const due = task.deadline ? ` — due ${formatShortDate(new Date(task.deadline))}` : '';
                     taskSelect.append(new Option(`${task.title}${due}`, task.id));
                 }
+                setModalMessage('', 'info');
+                modalMessage.append('Or ', newTaskLink('create a new task here'), ' with this date and time.');
                 taskSelect.disabled = false;
                 saveButton.disabled = false;
                 taskSelect.focus();
