@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="theme-init.js"></script>
+  <script src="i18n.js"></script>
   <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
-  <title>Aal Sikke — Dashboard</title>
+  <title data-i18n="page.dashboard">Aal Sikke — Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="dashboard-board.css">
 </head>
@@ -17,25 +18,25 @@
   <header class="topbar dash-topbar">
     <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
     <div class="topbar-actions">
-      <a href="tasks.html#new-task" class="add-task-btn" id="add-task-link" aria-label="Add task" title="Add task"></a>
+      <a href="tasks.html#new-task" class="add-task-btn" id="add-task-link" aria-label="Add task" data-i18n-aria-label="aria.addTask" title="Add task"></a>
       <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
       <div class="profile-menu" id="notif-menu">
-        <button class="icon-btn" id="notif-btn" aria-label="Notifications">
+        <button class="icon-btn" id="notif-btn" aria-label="Notifications" data-i18n-aria-label="aria.notifications">
           &#128276;
           <span class="badge-dot" id="notif-badge" hidden></span>
         </button>
         <div class="profile-dropdown notif-dropdown" id="notif-dropdown" hidden>
-          <div class="notif-dropdown-header">Reminders</div>
+          <div class="notif-dropdown-header" data-i18n="notif.header">Reminders</div>
           <ul class="notif-list" id="notif-list"></ul>
-          <p class="notif-empty" id="notif-empty" hidden>Nothing due right now.</p>
+          <p class="notif-empty" id="notif-empty" data-i18n="notif.empty" hidden>Nothing due right now.</p>
         </div>
       </div>
       <div class="profile-menu">
-        <button class="avatar-btn" id="avatar-btn" aria-label="Open profile menu">AC</button>
+        <button class="avatar-btn" id="avatar-btn" aria-label="Open profile menu" data-i18n-aria-label="aria.profileMenu">AC</button>
         <div class="profile-dropdown" id="profile-dropdown" hidden>
-          <a href="#" id="edit-profile-link">Edit Profile</a>
-          <a href="#" id="change-password-link">Change password</a>
-          <a href="index.html" id="logout-link">Log out</a>
+          <a href="#" id="edit-profile-link" data-i18n="menu.editProfile">Edit Profile</a>
+          <a href="#" id="change-password-link" data-i18n="menu.changePassword">Change password</a>
+          <a href="index.html" id="logout-link" data-i18n="menu.logout">Log out</a>
         </div>
       </div>
     </div>
@@ -48,24 +49,24 @@
       <div class="profile-card">
         <div class="avatar-lg" id="profile-avatar">AC</div>
         <div class="profile-info">
-          <p class="profile-name" id="profile-name">Loading...</p>
+          <p class="profile-name" id="profile-name" data-i18n="common.loading">Loading...</p>
           <span class="role-tag" id="profile-role"> profile</span>
         </div>
-        <p class="profile-meta" id="profile-meta"> Loading your tasks...</p>
+        <p class="profile-meta" id="profile-meta" data-i18n="tasks.loading">Loading your tasks...</p>
       </div>
 
       <nav class="side-nav">
         <a href="dashboard.html" class="nav-link active">
-          <span class="nav-icon">&#9635;</span> Dashboard
+          <span class="nav-icon">&#9635;</span> <span data-i18n="nav.dashboard">Dashboard</span>
         </a>
         <a href="calendar.html" class="nav-link">
-          <span class="nav-icon">&#128197;</span> Calendar
+          <span class="nav-icon">&#128197;</span> <span data-i18n="nav.calendar">Calendar</span>
         </a>
         <a href="tasks.html" class="nav-link">
-          <span class="nav-icon">&#9745;</span> Tasks
+          <span class="nav-icon">&#9745;</span> <span data-i18n="nav.tasks">Tasks</span>
         </a>
         <a href="settings.html" class="nav-link" id="settings-nav-link">
-          <span class="nav-icon">&#9881;</span> Settings
+          <span class="nav-icon">&#9881;</span> <span data-i18n="nav.settings">Settings</span>
         </a>
       </nav>
 
@@ -80,14 +81,14 @@
           <h1 id="greeting-text">Welcome back</h1>
           <span class="greeting-sub" id="current-date">Today</span>
         </div>
-        <p class="greeting-summary" id="greeting-summary">Loading...</p>
-        <button type="button" class="btn-secondary profile-open-btn" id="sidebar-profile-btn">Edit profile</button>
+        <p class="greeting-summary" id="greeting-summary" data-i18n="common.loading">Loading...</p>
+        <button type="button" class="btn-secondary profile-open-btn" id="sidebar-profile-btn" data-i18n="settings.profile.edit">Edit profile</button>
       </section>
 
       <!-- KAN-340: "Next up" card (dashboard-next-up.js) -->
       <section class="card next-up-card is-empty" id="next-up-card" aria-labelledby="next-up-label">
-        <span class="next-up-label" id="next-up-label">Next up</span>
-        <p class="next-up-title" id="next-up-title">Loading…</p>
+        <span class="next-up-label" id="next-up-label" data-i18n="dash.nextUp">Next up</span>
+        <p class="next-up-title" id="next-up-title" data-i18n="common.loading">Loading…</p>
         <p class="next-up-meta" id="next-up-meta"></p>
       </section>
 
@@ -96,15 +97,15 @@
       <!-- Task board: task cards grouped into columns -->
       <section class="card board-panel" aria-labelledby="board-heading">
         <div class="board-head">
-          <h2 id="board-heading">Your tasks</h2>
-          <div class="board-view-tabs" role="group" aria-label="Group tasks by">
-            <button type="button" class="board-view-tab active" data-board-view="TIME" aria-pressed="true">By time</button>
-            <button type="button" class="board-view-tab" data-board-view="STATUS" aria-pressed="false">By status</button>
-            <button type="button" class="board-view-tab" data-board-view="ROLE" aria-pressed="false">By role</button>
+          <h2 id="board-heading" data-i18n="board.heading">Your tasks</h2>
+          <div class="board-view-tabs" role="group" aria-label="Group tasks by" data-i18n-aria-label="aria.groupBy">
+            <button type="button" class="board-view-tab active" data-board-view="TIME" aria-pressed="true" data-i18n="board.byTime">By time</button>
+            <button type="button" class="board-view-tab" data-board-view="STATUS" aria-pressed="false" data-i18n="board.byStatus">By status</button>
+            <button type="button" class="board-view-tab" data-board-view="ROLE" aria-pressed="false" data-i18n="board.byRole">By role</button>
           </div>
         </div>
 
-        <p class="board-state" id="board-state" role="status" aria-live="polite">Loading your tasks…</p>
+        <p class="board-state" id="board-state" role="status" aria-live="polite" data-i18n="tasks.loading">Loading your tasks…</p>
         <div class="task-board" id="task-board"></div>
       </section>
 
@@ -113,10 +114,10 @@
 
   <!-- Mobile bottom nav -->
   <nav class="bottom-nav">
-    <a href="dashboard.html" class="active"><span>&#9635;</span>Dashboard</a>
-    <a href="calendar.html"><span>&#128197;</span>Calendar</a>
-    <a href="tasks.html"><span>&#9745;</span>Tasks</a>
-    <a href="settings.html" id="settings-bottom-link"><span>&#9881;</span>Settings</a>
+    <a href="dashboard.html" class="active"><span>&#9635;</span><span data-i18n="nav.dashboard">Dashboard</span></a>
+    <a href="calendar.html"><span>&#128197;</span><span data-i18n="nav.calendar">Calendar</span></a>
+    <a href="tasks.html"><span>&#9745;</span><span data-i18n="nav.tasks">Tasks</span></a>
+    <a href="settings.html" id="settings-bottom-link"><span>&#9881;</span><span data-i18n="nav.settings">Settings</span></a>
   </nav>
 
 </div>
@@ -125,10 +126,10 @@
   <div class="modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
     <div class="modal-header">
       <div>
-        <h2 id="profile-modal-title">Edit profile</h2>
-        <p id="profile-modal-subtitle">Update your details and how you use Aal Sikke.</p>
+        <h2 id="profile-modal-title" data-i18n="settings.profile.edit">Edit profile</h2>
+        <p id="profile-modal-subtitle" data-i18n="modal.profile.subtitle">Update your details and how you use Aal Sikke.</p>
       </div>
-      <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close">&#10005;</button>
+      <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close" data-i18n-aria-label="common.close">&#10005;</button>
     </div>
 
     <form id="profile-form" novalidate>
@@ -136,14 +137,14 @@
 
       <!-- Role selection: Student / Work / Dual (Dual is stored as HYBRID by the API) -->
       <fieldset class="role-field" id="field-profile-mode">
-        <legend class="field-label">I use Aal Sikke primarily for</legend>
-        <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role">
+        <legend class="field-label" data-i18n="modal.profile.roleLegend">I use Aal Sikke primarily for</legend>
+        <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role" data-i18n-aria-label="aria.workspaceRole">
           <input type="radio" name="profile-role" id="profile-role-student" value="STUDENT">
-          <label for="profile-role-student">Student</label>
+          <label for="profile-role-student" data-i18n="role.student">Student</label>
           <input type="radio" name="profile-role" id="profile-role-work" value="WORK">
-          <label for="profile-role-work">Work</label>
+          <label for="profile-role-work" data-i18n="role.work">Work</label>
           <input type="radio" name="profile-role" id="profile-role-dual" value="HYBRID">
-          <label for="profile-role-dual">Dual</label>
+          <label for="profile-role-dual" data-i18n="role.dual">Dual</label>
         </div>
         <p class="role-hint" id="profile-role-hint"></p>
         <p class="hint error-text" role="alert"></p>
@@ -151,36 +152,36 @@
 
       <div class="form-grid">
         <div class="field" id="field-profile-fullname">
-          <label for="profile-fullname">Full name</label>
+          <label for="profile-fullname" data-i18n="form.fullName">Full name</label>
           <div class="input-wrap"><input id="profile-fullname" type="text" autocomplete="name" maxlength="255"></div>
           <p class="hint error-text" role="alert"></p>
         </div>
         <div class="field">
-          <label for="profile-username">Username</label>
+          <label for="profile-username" data-i18n="form.username">Username</label>
           <div class="input-wrap"><input id="profile-username" type="text" readonly aria-readonly="true"></div>
         </div>
       </div>
 
       <div class="field" id="field-profile-email">
-        <label for="profile-email">Email</label>
+        <label for="profile-email" data-i18n="form.email">Email</label>
         <div class="input-wrap"><input id="profile-email" type="email" autocomplete="email" maxlength="255"></div>
         <p class="hint error-text" role="alert"></p>
       </div>
 
       <div class="form-grid">
         <div class="field">
-          <label for="profile-dob">Date of birth</label>
+          <label for="profile-dob" data-i18n="form.dob">Date of birth</label>
           <div class="input-wrap"><input id="profile-dob" type="date" readonly aria-readonly="true"></div>
         </div>
         <div class="field" id="field-profile-phone">
-          <label for="profile-phone">Phone number</label>
+          <label for="profile-phone" data-i18n="form.phone">Phone number</label>
           <div class="input-wrap"><input id="profile-phone" type="tel" autocomplete="tel" maxlength="50"></div>
           <p class="hint error-text" role="alert"></p>
         </div>
       </div>
 
       <div class="field" id="field-profile-current-password">
-        <label for="profile-current-password">Current password <span class="role-hint">(only needed to change your name, email or phone)</span></label>
+        <label for="profile-current-password"><span data-i18n="form.currentPassword">Current password</span> <span class="role-hint" data-i18n="form.currentPasswordNote">(only needed to change your name, email or phone)</span></label>
         <div class="input-wrap"><input id="profile-current-password" type="password" autocomplete="current-password"></div>
         <p class="hint error-text" role="alert"></p>
       </div>
@@ -188,8 +189,8 @@
       <p class="modal-message" id="profile-message" role="status" aria-live="polite"></p>
 
       <div class="form-actions">
-        <button type="button" class="btn-secondary" id="cancel-profile-btn">Cancel</button>
-        <button type="submit" class="btn-primary" id="save-profile-btn">Save profile</button>
+        <button type="button" class="btn-secondary" id="cancel-profile-btn" data-i18n="common.cancel">Cancel</button>
+        <button type="submit" class="btn-primary" id="save-profile-btn" data-i18n="modal.profile.save">Save profile</button>
       </div>
     </form>
   </div>
@@ -200,15 +201,15 @@
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
     <div class="modal-header">
       <div>
-        <h2 id="password-modal-title">Change password</h2>
-        <p>Choose a new password for your account.</p>
+        <h2 id="password-modal-title" data-i18n="menu.changePassword">Change password</h2>
+        <p data-i18n="modal.password.subtitle">Choose a new password for your account.</p>
       </div>
-      <button type="button" class="modal-close" id="close-password-modal" aria-label="Close">&#10005;</button>
+      <button type="button" class="modal-close" id="close-password-modal" aria-label="Close" data-i18n-aria-label="common.close">&#10005;</button>
     </div>
 
     <form id="password-form" novalidate>
       <div class="field" id="field-current-password">
-        <label for="current-password">Current password</label>
+        <label for="current-password" data-i18n="form.currentPassword">Current password</label>
         <div class="input-wrap">
           <input id="current-password" type="password" autocomplete="current-password">
         </div>
@@ -216,7 +217,7 @@
       </div>
 
       <div class="field" id="field-new-password">
-        <label for="new-password">New password</label>
+        <label for="new-password" data-i18n="form.newPassword">New password</label>
         <div class="input-wrap">
           <input id="new-password" type="password" autocomplete="new-password">
         </div>
@@ -226,7 +227,7 @@
       </div>
 
       <div class="field" id="field-confirm-new-password">
-        <label for="confirm-new-password">Confirm new password</label>
+        <label for="confirm-new-password" data-i18n="form.confirmNewPassword">Confirm new password</label>
         <div class="input-wrap">
           <input id="confirm-new-password" type="password" autocomplete="new-password">
         </div>
@@ -236,8 +237,8 @@
       <p class="modal-message" id="password-message" role="status" aria-live="polite"></p>
 
       <div class="form-actions">
-        <button type="button" class="btn-secondary" id="cancel-password-btn">Cancel</button>
-        <button type="submit" class="btn-primary" id="save-password-btn">Update password</button>
+        <button type="button" class="btn-secondary" id="cancel-password-btn" data-i18n="common.cancel">Cancel</button>
+        <button type="submit" class="btn-primary" id="save-password-btn" data-i18n="modal.password.save">Update password</button>
       </div>
     </form>
   </div>
@@ -248,17 +249,17 @@
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="notif-prefs-modal-title">
     <div class="modal-header">
       <div>
-        <h2 id="notif-prefs-modal-title">Notification preferences</h2>
-        <p>Choose which alerts Aal Sikke sends you.</p>
+        <h2 id="notif-prefs-modal-title" data-i18n="menu.notificationPrefs">Notification preferences</h2>
+        <p data-i18n="modal.prefs.subtitle">Choose which alerts Aal Sikke sends you.</p>
       </div>
-      <button type="button" class="modal-close" id="close-notif-prefs-modal" aria-label="Close">&#10005;</button>
+      <button type="button" class="modal-close" id="close-notif-prefs-modal" aria-label="Close" data-i18n-aria-label="common.close">&#10005;</button>
     </div>
 
     <form id="notif-prefs-form">
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-title">Deadline reminders</span>
-          <span class="toggle-subtitle">Get notified as a task's deadline approaches.</span>
+          <span class="toggle-title" data-i18n="prefs.deadline.title">Deadline reminders</span>
+          <span class="toggle-subtitle" data-i18n="prefs.deadline.subtitle">Get notified as a task's deadline approaches.</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="pref-deadline-reminders">
@@ -268,8 +269,8 @@
 
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-title">Overdue alerts</span>
-          <span class="toggle-subtitle">Get notified when a task passes its deadline.</span>
+          <span class="toggle-title" data-i18n="prefs.overdue.title">Overdue alerts</span>
+          <span class="toggle-subtitle" data-i18n="prefs.overdue.subtitle">Get notified when a task passes its deadline.</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="pref-overdue-alerts">
@@ -279,8 +280,8 @@
 
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-title">Schedule conflicts</span>
-          <span class="toggle-subtitle">Get notified when two items overlap on your calendar.</span>
+          <span class="toggle-title" data-i18n="prefs.conflicts.title">Schedule conflicts</span>
+          <span class="toggle-subtitle" data-i18n="prefs.conflicts.subtitle">Get notified when two items overlap on your calendar.</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="pref-schedule-conflicts">
@@ -290,8 +291,8 @@
 
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-title">Weekly review readiness</span>
-          <span class="toggle-subtitle">Get notified when your weekly summary is ready.</span>
+          <span class="toggle-title" data-i18n="prefs.weekly.title">Weekly review readiness</span>
+          <span class="toggle-subtitle" data-i18n="prefs.weekly.subtitle">Get notified when your weekly summary is ready.</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="pref-weekly-review-ready">
@@ -301,8 +302,8 @@
 
       <div class="toggle-row">
         <div class="toggle-text">
-          <span class="toggle-title">Email notifications</span>
-          <span class="toggle-subtitle">Get your reminders by email, even when the app is closed.</span>
+          <span class="toggle-title" data-i18n="prefs.email.title">Email notifications</span>
+          <span class="toggle-subtitle" data-i18n="prefs.email.subtitle">Get your reminders by email, even when the app is closed.</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="pref-email-enabled">
@@ -313,8 +314,8 @@
       <p class="modal-message" id="notif-prefs-message" role="status" aria-live="polite"></p>
 
       <div class="form-actions">
-        <button type="button" class="btn-secondary" id="cancel-notif-prefs-btn">Close</button>
-        <button type="submit" class="btn-primary" id="save-notif-prefs-btn">Save preferences</button>
+        <button type="button" class="btn-secondary" id="cancel-notif-prefs-btn" data-i18n="common.close">Close</button>
+        <button type="submit" class="btn-primary" id="save-notif-prefs-btn" data-i18n="modal.prefs.save">Save preferences</button>
       </div>
     </form>
   </div>
@@ -327,62 +328,62 @@
 <div class="modal-backdrop" id="task-modal" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
     <div class="modal-header">
-      <div><h2 id="task-modal-title">Edit task</h2><p>Update the task and save it to the backend.</p></div>
-      <button type="button" class="modal-close" id="close-task-modal" aria-label="Close">&#10005;</button>
+      <div><h2 id="task-modal-title" data-i18n="modal.task.title">Edit task</h2><p data-i18n="modal.task.subtitle">Change the details and save them.</p></div>
+      <button type="button" class="modal-close" id="close-task-modal" aria-label="Close" data-i18n-aria-label="common.close">&#10005;</button>
     </div>
     <form id="edit-task-form" novalidate>
       <input type="hidden" id="edit-task-id">
-      <div class="field"><label for="edit-task-title">Task title</label><div class="input-wrap"><input id="edit-task-title" required></div></div>
-      <div class="field"><label for="edit-task-description">Description</label><div class="input-wrap"><textarea id="edit-task-description"></textarea></div></div>
+      <div class="field"><label for="edit-task-title" data-i18n="task.title">Task title</label><div class="input-wrap"><input id="edit-task-title" required></div></div>
+      <div class="field"><label for="edit-task-description" data-i18n="task.description">Description</label><div class="input-wrap"><textarea id="edit-task-description"></textarea></div></div>
       <div class="form-grid">
-        <div class="field"><label for="edit-task-deadline">Deadline</label><div class="input-wrap"><input type="datetime-local" id="edit-task-deadline" required></div></div>
-        <div class="field"><label for="edit-task-priority">Priority</label><div class="input-wrap"><select id="edit-task-priority"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="URGENT">Urgent</option></select></div></div>
+        <div class="field"><label for="edit-task-deadline" data-i18n="task.deadline">Deadline</label><div class="input-wrap"><input type="datetime-local" id="edit-task-deadline" required></div></div>
+        <div class="field"><label for="edit-task-priority" data-i18n="task.priority">Priority</label><div class="input-wrap"><select id="edit-task-priority"><option value="LOW" data-i18n="prio.LOW">Low</option><option value="MEDIUM" data-i18n="prio.MEDIUM">Medium</option><option value="HIGH" data-i18n="prio.HIGH">High</option><option value="URGENT" data-i18n="prio.URGENT">Urgent</option></select></div></div>
       </div>
       <div class="form-grid">
-        <div class="field"><label for="edit-task-category">Category / role</label><div class="input-wrap"><select id="edit-task-category">
-          <optgroup label="Student">
-            <option value="ASSIGNMENT">Assignment</option>
-            <option value="EXAM">Exam</option>
-            <option value="CLASS">Class</option>
-            <option value="STUDY">Study</option>
-            <option value="PROJECT">Project</option>
-            <option value="QUIZ">Quiz</option>
-            <option value="LAB">Lab</option>
-            <option value="PRESENTATION">Presentation</option>
+        <div class="field"><label for="edit-task-category" data-i18n="task.categoryRole">Category / role</label><div class="input-wrap"><select id="edit-task-category">
+          <optgroup label="Student" data-i18n-label="group.student">
+            <option value="ASSIGNMENT" data-i18n="cat.ASSIGNMENT">Assignment</option>
+            <option value="EXAM" data-i18n="cat.EXAM">Exam</option>
+            <option value="CLASS" data-i18n="cat.CLASS">Class</option>
+            <option value="STUDY" data-i18n="cat.STUDY">Study</option>
+            <option value="PROJECT" data-i18n="cat.PROJECT">Project</option>
+            <option value="QUIZ" data-i18n="cat.QUIZ">Quiz</option>
+            <option value="LAB" data-i18n="cat.LAB">Lab</option>
+            <option value="PRESENTATION" data-i18n="cat.PRESENTATION">Presentation</option>
           </optgroup>
-          <optgroup label="Work">
-            <option value="SHIFT">Shift</option>
-            <option value="MEETING">Meeting</option>
-            <option value="WORK_TASK">Work task</option>
-            <option value="PAYMENT_DUE">Payment due</option>
+          <optgroup label="Work" data-i18n-label="group.work">
+            <option value="SHIFT" data-i18n="cat.SHIFT">Shift</option>
+            <option value="MEETING" data-i18n="cat.MEETING">Meeting</option>
+            <option value="WORK_TASK" data-i18n="cat.WORK_TASK">Work task</option>
+            <option value="PAYMENT_DUE" data-i18n="cat.PAYMENT_DUE">Payment due</option>
           </optgroup>
-          <optgroup label="Personal">
-            <option value="PERSONAL">Personal</option>
-            <option value="APPOINTMENT">Appointment</option>
-            <option value="ERRAND">Errand</option>
-            <option value="EVENT">Event</option>
+          <optgroup label="Personal" data-i18n-label="group.personal">
+            <option value="PERSONAL" data-i18n="cat.PERSONAL">Personal</option>
+            <option value="APPOINTMENT" data-i18n="cat.APPOINTMENT">Appointment</option>
+            <option value="ERRAND" data-i18n="cat.ERRAND">Errand</option>
+            <option value="EVENT" data-i18n="cat.EVENT">Event</option>
           </optgroup>
         </select></div>
         </div>
-        <div class="field"><label for="edit-task-status">Status</label><div class="input-wrap"><select id="edit-task-status"><option value="PENDING">Pending</option><option value="COMPLETED">Completed</option></select></div></div>
+        <div class="field"><label for="edit-task-status" data-i18n="task.status">Status</label><div class="input-wrap"><select id="edit-task-status"><option value="PENDING" data-i18n="status.PENDING">Pending</option><option value="COMPLETED" data-i18n="status.COMPLETED">Completed</option></select></div></div>
       </div>
 
       <!-- Optional start time (time window) -->
-      <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-has-start"> Has a start time</label></div>
-      <div class="field" id="field-edit-task-start" hidden><label for="edit-task-start">Start</label><div class="input-wrap"><input type="datetime-local" id="edit-task-start"></div></div>
+      <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-has-start"> <span data-i18n="task.hasStart">Has a start time</span></label></div>
+      <div class="field" id="field-edit-task-start" hidden><label for="edit-task-start" data-i18n="task.start">Start</label><div class="input-wrap"><input type="datetime-local" id="edit-task-start"></div></div>
 
       <!-- Reminder -->
-      <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-wants-reminder"> Remind me about this task</label></div>
+      <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-wants-reminder"> <span data-i18n="task.remindMe">Remind me about this task</span></label></div>
       <div id="field-edit-task-reminder" hidden>
-        <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-halfway"> Halfway reminder <span class="reminder-hint" id="edit-task-halfway-time"></span></label></div>
+        <div class="field"><label class="check-row"><input type="checkbox" id="edit-task-halfway"> <span data-i18n="task.halfway">Halfway reminder</span> <span class="reminder-hint" id="edit-task-halfway-time"></span></label></div>
         <div class="field">
-          <label>Custom reminders</label>
+          <label data-i18n="task.customReminders">Custom reminders</label>
           <div class="reminder-list" id="edit-task-reminder-list"></div>
-          <button type="button" class="reminder-add-btn" id="edit-task-add-reminder">+ Add a reminder</button>
+          <button type="button" class="reminder-add-btn" id="edit-task-add-reminder" data-i18n="task.addReminder">+ Add a reminder</button>
         </div>
       </div>
 
-      <div class="form-actions"><button type="button" class="btn-secondary" id="cancel-edit-btn">Cancel</button><button type="submit" class="btn-primary" id="update-task-btn">Save changes</button></div>
+      <div class="form-actions"><button type="button" class="btn-secondary" id="cancel-edit-btn" data-i18n="common.cancel">Cancel</button><button type="submit" class="btn-primary" id="update-task-btn" data-i18n="modal.task.save">Save changes</button></div>
     </form>
   </div>
 </div>
