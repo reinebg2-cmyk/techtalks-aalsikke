@@ -1,5 +1,6 @@
 package com.aalsikke.controller;
 
+import com.aalsikke.config.AppTime;
 import com.aalsikke.dto.ColorPaletteRequest;
 import com.aalsikke.dto.ColorPaletteResponse;
 import com.aalsikke.dto.DeleteAccountRequest;
@@ -69,7 +70,7 @@ public class UserController {
     @GetMapping("/me/export")
     public ResponseEntity<Map<String, Object>> exportMyData(Authentication authentication) {
         Map<String, Object> data = accountService.exportData(authentication.getName());
-        String fileName = AccountService.exportFileName(LocalDate.now());
+        String fileName = AccountService.exportFileName(AppTime.today());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .body(data);

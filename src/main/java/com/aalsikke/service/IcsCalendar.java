@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  */
 public final class IcsCalendar {
 
-    public static final ZoneId ZONE = ZoneId.of("Asia/Beirut");
+    public static final ZoneId ZONE = com.aalsikke.config.AppTime.ZONE;   // the VTIMEZONE block below describes this zone
     static final Duration SHORT_EVENT = Duration.ofMinutes(15);
 
     private static final DateTimeFormatter LOCAL = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss");
