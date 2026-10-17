@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import com.aalsikke.model.Priority;
 import com.aalsikke.model.RecurrenceRule;
 import com.aalsikke.repository.RecurrenceRuleRepository;
+import com.aalsikke.model.OccurrenceCompletion;
+import com.aalsikke.repository.OccurrenceCompletionRepository;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -26,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -41,19 +45,22 @@ public class ScheduleItemService {
     private final WorkplaceRepository workplaceRepository;
     private final RecurrenceRuleRepository recurrenceRuleRepository;
     private final ChecklistItemRepository checklistItemRepository;
+    private final OccurrenceCompletionRepository occurrenceCompletionRepository;
 
     public ScheduleItemService(ScheduleItemRepository scheduleItemRepository,
                                UserRepository userRepository,
                                CourseRepository courseRepository,
                                WorkplaceRepository workplaceRepository,
                                RecurrenceRuleRepository recurrenceRuleRepository,
-                               ChecklistItemRepository checklistItemRepository) {
+                               ChecklistItemRepository checklistItemRepository,
+                               OccurrenceCompletionRepository occurrenceCompletionRepository) {
         this.scheduleItemRepository = scheduleItemRepository;
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
         this.workplaceRepository = workplaceRepository;
         this.recurrenceRuleRepository = recurrenceRuleRepository;
         this.checklistItemRepository = checklistItemRepository;
+        this.occurrenceCompletionRepository = occurrenceCompletionRepository;
     }
 
     /** The caller's tasks, each with its checklist progress (KAN-342), counted in one query. */
@@ -104,15 +111,15 @@ public class ScheduleItemService {
 
         // KAN-248: add the weekly repeats of recurring items that fall in the range
         ZoneId zone = ZoneId.systemDefault();   // same convention as the dashboard
-        for (RecurrenceRule rule : recurrenceRuleRepository.findActiveWeeklyForUser(
-                user.getId(), to, from.atZoneSameInstant(zone).toLocalDate())) {
+        List<RecurrenceRule> rules = recurrenceRuleRepository.findActiveWeeklyForUser(
+                user.getId(), to, from.atZoneSameInstant(zone).toLocalDate());
+        Set<String> completed = completedRepeats(rules, from, to, zone);   // KAN-363
+        for (RecurrenceRule rule : rules) {
             ScheduleItem base = rule.getScheduleItem();
-            int interval = rule.getIntervalValue() != null ? rule.getIntervalValue() : 1;
-            for (RecurrenceExpander.Occurrence occurrence : RecurrenceExpander.weekly(
-                    base.getStartTime(), base.getEndTime(), interval,
-                    RecurrenceExpander.parseDays(rule.getDaysOfWeek()), rule.getUntilDate(),
-                    zone, from, to)) {
-                result.add(ScheduleItemResponse.occurrenceOf(base, occurrence.start(), occurrence.end()));
+            for (RecurrenceExpander.Occurrence occurrence : expand(base, rule, zone, from, to)) {
+                LocalDate date = occurrence.start().atZoneSameInstant(zone).toLocalDate();
+                result.add(ScheduleItemResponse.occurrenceOf(base, occurrence.start(), occurrence.end(),
+                        date, completed.contains(repeatKey(base.getId(), date))));
             }
         }
 
@@ -121,6 +128,31 @@ public class ScheduleItemService {
         return result;
     }
 
+
+    /** Weekly repeats of one rule overlapping [from, to). */
+    private static List<RecurrenceExpander.Occurrence> expand(ScheduleItem base, RecurrenceRule rule, ZoneId zone,
+                                                              OffsetDateTime from, OffsetDateTime to) {
+        int interval = rule.getIntervalValue() != null ? rule.getIntervalValue() : 1;
+        return RecurrenceExpander.weekly(base.getStartTime(), base.getEndTime(), interval,
+                RecurrenceExpander.parseDays(rule.getDaysOfWeek()), rule.getUntilDate(), zone, from, to);
+    }
+
+    /** KAN-363: "itemId|date" keys of the repeats marked done in the range, loaded in one query. */
+    private Set<String> completedRepeats(List<RecurrenceRule> rules, OffsetDateTime from, OffsetDateTime to,
+                                         ZoneId zone) {
+        if (rules.isEmpty()) return Set.of();
+        List<UUID> itemIds = rules.stream().map(r -> r.getScheduleItem().getId()).toList();
+        Set<String> keys = new HashSet<>();
+        for (Object[] row : occurrenceCompletionRepository.findCompletedDates(itemIds,
+                from.atZoneSameInstant(zone).toLocalDate(), to.atZoneSameInstant(zone).toLocalDate())) {
+            keys.add(repeatKey((UUID) row[0], (LocalDate) row[1]));
+        }
+        return keys;
+    }
+
+    private static String repeatKey(UUID itemId, LocalDate date) {
+        return itemId + "|" + date;
+    }
 
     /**
      * KAN-343: free slots of the given length for each day from {@code date}, using the same busy rules
@@ -255,15 +287,49 @@ public class ScheduleItemService {
                 item.getUser().getId(), item.getId(), item.getStartTime(), windowEnd);
         return ConflictRules.findConflicts(item, candidates);
     }
-    /** Mark one of the caller's items PENDING or COMPLETED (dashboard checkbox, weekly review). */
-    public Optional<ScheduleItemResponse> updateStatus(UUID id, String status, String email) {
+    /**
+     * Mark one of the caller's items PENDING or COMPLETED (dashboard checkbox, weekly review).
+     * KAN-363: with an occurrenceDate only that weekly repeat is marked; the item and its other repeats are untouched.
+     */
+    public Optional<ScheduleItemResponse> updateStatus(UUID id, String status, LocalDate occurrenceDate, String email) {
         return scheduleItemRepository.findById(id)
                 .filter(existing -> existing.getUser().getEmail().equals(email))
                 .map(existing -> {
+                    if (occurrenceDate != null) {
+                        return updateRepeatStatus(existing, status, occurrenceDate);
+                    }
                     existing.setStatus(status);
                     ScheduleItem saved = scheduleItemRepository.save(existing);
                     return ScheduleItemResponse.from(saved, findConflictsFor(saved));
                 });
+    }
+
+    /** KAN-363: mark one weekly repeat done or not done. 400 if that date is not a repeat of the item. */
+    private ScheduleItemResponse updateRepeatStatus(ScheduleItem base, String status, LocalDate date) {
+        ZoneId zone = ZoneId.systemDefault();   // same convention as the calendar range
+        RecurrenceRule rule = recurrenceRuleRepository.findByScheduleItemId(base.getId())
+                .filter(r -> "WEEKLY".equals(r.getFrequency()))
+                .orElseThrow(() -> new IllegalArgumentException("This task does not repeat weekly."));
+        if (base.getStartTime() == null || base.getEndTime() == null) {
+            throw new IllegalArgumentException("This task does not repeat weekly.");
+        }
+        RecurrenceExpander.Occurrence repeat = expand(base, rule, zone,
+                        date.atStartOfDay(zone).toOffsetDateTime(),
+                        date.plusDays(1).atStartOfDay(zone).toOffsetDateTime())
+                .stream()
+                .filter(o -> o.start().atZoneSameInstant(zone).toLocalDate().equals(date))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("That date is not a repeat of this task."));
+
+        boolean completed = "COMPLETED".equals(status);
+        if (completed) {
+            if (!occurrenceCompletionRepository.existsByScheduleItemIdAndOccurrenceDate(base.getId(), date)) {
+                occurrenceCompletionRepository.save(new OccurrenceCompletion(base, date));
+            }
+        } else {
+            occurrenceCompletionRepository.deleteByScheduleItemIdAndOccurrenceDate(base.getId(), date);
+        }
+        return ScheduleItemResponse.occurrenceOf(base, repeat.start(), repeat.end(), date, completed);
     }
 
     public boolean deleteItem(UUID id, String email) {

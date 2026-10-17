@@ -2,6 +2,7 @@ package com.aalsikke.service;
 
 import com.aalsikke.dto.DailyReviewEntry;
 import com.aalsikke.dto.WeeklyReviewResponse;
+import com.aalsikke.dto.ScheduleItemResponse;
 import com.aalsikke.model.DailyReview;
 import com.aalsikke.model.ScheduleItem;
 import com.aalsikke.model.User;
@@ -103,19 +104,33 @@ public class DailyReviewService {
         OffsetDateTime to = end.plusDays(1).atStartOfDay(zone).toOffsetDateTime().minusNanos(1);
         List<ScheduleItem> due = scheduleItemRepository.findDueBetween(user.getId(), from, to);
 
+        // Same items as the calendar (weekly repeats included), loaded once. KAN-363: repeats due in
+        // the range count too, each with its own done state; the real items come from findDueBetween.
+        OffsetDateTime toExclusive = end.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
+        List<ScheduleItemResponse> inRange = scheduleItemService.getItemsInRange(email, from, toExclusive);
+        List<ScheduleItemResponse> repeatsDue = inRange.stream()
+                .filter(ScheduleItemResponse::isOccurrence)
+                .filter(r -> r.getEndTime() != null
+                        && !r.getEndTime().isBefore(from) && r.getEndTime().isBefore(toExclusive))
+                .toList();
+
         OffsetDateTime now = OffsetDateTime.now();
-        long completed = due.stream().filter(item -> "COMPLETED".equals(item.getStatus())).count();
+        long completed = due.stream().filter(item -> "COMPLETED".equals(item.getStatus())).count()
+                + repeatsDue.stream().filter(r -> "COMPLETED".equals(r.getStatus())).count();
         long missed = due.stream()
                 .filter(item -> !"COMPLETED".equals(item.getStatus()))
                 .filter(item -> dueTime(item).isBefore(now))
+                .count()
+                + repeatsDue.stream()
+                .filter(r -> !"COMPLETED".equals(r.getStatus()))
+                .filter(r -> r.getEndTime().isBefore(now))
                 .count();
-        long upcoming = due.size() - completed - missed;
+        long upcoming = due.size() + repeatsDue.size() - completed - missed;
 
         // KAN-341: busiest day, from what happens each day (same items as the calendar, weekly
         // class repeats included). KAN-356: a block counts on every day from its start to its end
         // (like the calendar's day load line), a deadline-only task on its deadline.
-        List<BusiestDay.Span> happenings = scheduleItemService
-                .getItemsInRange(email, from, end.plusDays(1).atStartOfDay(zone).toOffsetDateTime())
+        List<BusiestDay.Span> happenings = inRange
                 .stream()
                 .map(item -> item.getStartTime() != null
                         ? new BusiestDay.Span(item.getStartTime(), item.getEndTime())
