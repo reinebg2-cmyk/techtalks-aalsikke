@@ -223,17 +223,23 @@
         if (!localStorage.getItem(TOKEN_KEY)) return;
         if (document.querySelector('.free-slot-panel')) return;   // already set up
 
+        // KAN-367: search the day of Start when "Has a start time" is ticked, otherwise Due, otherwise today
+        const dayOf = (hasStartId, startId, dueId) => dayFrom(
+                (document.getElementById(hasStartId)?.checked && document.getElementById(startId)?.value)
+                || document.getElementById(dueId)?.value);
+
+
         // New-task form (tasks.html)
         const newStartField = document.getElementById('field-task-start');
         if (newStartField) {
             newStartField.after(createPanel({
                 idPrefix: 'new-slot',
-                getDay: () => dayFrom(document.getElementById('task-due')?.value),
+                getDay: () => dayOf('task-has-start', 'task-start', 'task-due'),
                 getExcludeId: () => '',
                 onPick: (start, end) => {
                     setChecked(document.getElementById('task-has-start'), true);
                     setValue(document.getElementById('task-start'), toDateTimeInput(start));
-                    setValue(document.getElementById('task-due'), toDateTimeInput(end));
+                    setValue(document.getElementById('task-due'), toDateTimeInput(end));   // Due is the block's end (dashboard.js)
                 }
             }));
         }
@@ -243,12 +249,12 @@
         if (editStartField) {
             editStartField.after(createPanel({
                 idPrefix: 'edit-slot',
-                getDay: () => dayFrom(document.getElementById('edit-task-deadline')?.value),
+                getDay: () => dayOf('edit-task-has-start', 'edit-task-start', 'edit-task-deadline'),
                 getExcludeId: () => document.getElementById('edit-task-id')?.value || '',
                 onPick: (start, end) => {
                     setChecked(document.getElementById('edit-task-has-start'), true);
                     setValue(document.getElementById('edit-task-start'), toDateTimeInput(start));
-                    setValue(document.getElementById('edit-task-deadline'), toDateTimeInput(end));
+                    setValue(document.getElementById('edit-task-deadline'), toDateTimeInput(end));   // Due is the block's end (dashboard.js)
                 }
             }));
         }
