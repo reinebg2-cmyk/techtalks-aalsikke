@@ -341,6 +341,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // the cursor in the title field. Also works when already on this page.
     // ============================================================
 
+    // KAN-366: the calendar opens tasks.html?date=YYYY-MM-DD&start=HH:MM[&end=HH:MM]#new-task
+    // for a free slot. Fill Start, and Due = end of the slot (in this form Due is the time block's end).
+    function prefillFromCalendar() {
+        const params = new URLSearchParams(window.location.search);
+        const date = params.get('date');
+        const start = params.get('start');
+        const end = params.get('end');
+        const isDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+        const isTime = value => /^\d{2}:\d{2}$/.test(value || '');
+        if (!isDate(date) || !isTime(start)) return;   // nothing valid to fill in: plain empty form
+
+        const set = (id, value) => {
+            const input = document.getElementById(id);
+            if (!input) return;
+            if (input.type === 'checkbox') input.checked = value; else input.value = value;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));   // e.g. shows the Start field
+        };
+        set('task-has-start', true);
+        set('task-start', `${date}T${start}`);
+        if (isTime(end) && end > start) set('task-due', `${date}T${end}`);
+    }
+
     function openNewTaskFromHash() {
         if (window.location.hash !== '#new-task') return;
 
@@ -350,10 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         form.hidden = false;
         form.closest('.card')?.scrollIntoView({ block: 'start' });
+        prefillFromCalendar();
         titleInput?.focus();
 
-        // Drop the hash so a refresh or a second "+" click opens it again.
-        history.replaceState(null, '', window.location.pathname + window.location.search);
+        // Drop the hash (and the calendar's ?date&start&end) so a refresh or a second "+" click starts clean.
+        history.replaceState(null, '', window.location.pathname);
     }
 
     window.addEventListener('hashchange', openNewTaskFromHash);
