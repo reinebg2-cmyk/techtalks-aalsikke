@@ -165,6 +165,50 @@ public class SmtpEmailSender implements EmailSender {
     }
 
     @Override
+    public void sendWelcomeEmail(String to, String name) {
+        try {
+            transport.send(to, "Welcome to Aal Sikke, your account is ready", welcomeText(name), welcomeHtml(name));
+            log.info("[EMAIL] Welcome email sent to {}", to);
+        } catch (MailException e) {
+            // KAN-369: the login already succeeded; a failed welcome email must not block it.
+            log.error("[EMAIL] Could not send welcome email to {}: {}", to, e.getMessage());
+        }
+    }
+
+    private String welcomeText(String name) {
+        return """
+                Hi %s,
+
+                Welcome to Aal Sikke! Your account is ready.
+
+                A few ways to get on track:
+                - Add your classes, shifts and deadlines, and set weekly repeats.
+                - Use "Suggest a time" to find free time around everything else.
+                - Check your weekly review to see what you finished.
+
+                Open Aal Sikke: %s/dashboard.html
+                """.formatted(name, baseUrl);
+    }
+
+    private String welcomeHtml(String name) {
+        return """
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1f2937">
+                  <h2 style="color:#2C6E9E">Welcome to Aal Sikke!</h2>
+                  <p>Hi %s, your account is ready.</p>
+                  <p>A few ways to get on track:</p>
+                  <ul style="padding-left:20px;color:#374151">
+                    <li>Add your classes, shifts and deadlines, and set weekly repeats.</li>
+                    <li>Use <strong>Suggest a time</strong> to find free time around everything else.</li>
+                    <li>Check your <strong>weekly review</strong> to see what you finished.</li>
+                  </ul>
+                  <p style="margin:24px 0">
+                    <a href="%s/dashboard.html" style="background:#2C6E9E;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">Open Aal Sikke</a>
+                  </p>
+                </div>
+                """.formatted(HtmlUtils.htmlEscape(name), HtmlUtils.htmlEscape(baseUrl));
+    }
+
+    @Override
     public void sendPasswordResetEmail(String to, String resetLink) {
         try {
             transport.send(to, "Reset your Aal Sikke password", resetText(resetLink), resetHtml(resetLink));

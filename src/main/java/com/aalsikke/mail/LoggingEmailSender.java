@@ -32,4 +32,9 @@ public class LoggingEmailSender implements EmailSender {
     public void sendPasswordResetEmail(String to, String resetLink) {
         log.info("[EMAIL] Password reset link for {}: {}", to, resetLink);
     }
+
+    @Override
+    public void sendWelcomeEmail(String to, String name) {
+        log.info("[EMAIL] Welcome email to {} ({})", to, name);
+    }
 }

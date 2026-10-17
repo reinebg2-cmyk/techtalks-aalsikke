@@ -23,4 +23,7 @@ public interface EmailSender {
     void sendSecurityAlert(String to, String name, String title, String detail);
 
     void sendPasswordResetEmail(String to, String resetLink);
+
+    /** KAN-369: "your account is ready", sent once after the first successful login. Never throws. */
+    void sendWelcomeEmail(String to, String name);
 }

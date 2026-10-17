@@ -101,6 +101,14 @@ public class AuthService {
             throw new EmailNotVerifiedException(user.getEmail());
         }
 
+        // KAN-369: the first successful login (verified email) gets a welcome email, once.
+        // Remembered before sending; the sender never throws, so login can't fail because of it.
+        if (user.getWelcomeEmailSentAt() == null) {
+            user.setWelcomeEmailSentAt(java.time.OffsetDateTime.now());
+            userRepository.save(user);
+            emailSender.sendWelcomeEmail(user.getEmail(), user.getFullName());
+        }
+
         String jwtToken = jwtService.generateToken(user.getEmail());
         return new AuthResponse(jwtToken, "User authenticated successfully");
     }
