@@ -28,7 +28,7 @@ public class SmtpEmailSender implements EmailSender {
     private static final Logger log = LoggerFactory.getLogger(SmtpEmailSender.class);
 
     /** KAN-336: reminder times are shown in Lebanon time (the DB stores UTC). */
-    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Beirut");
+    private static final ZoneId APP_ZONE = com.aalsikke.config.AppTime.ZONE;
     private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("EEE d MMM, HH:mm", Locale.ENGLISH);
 
     private final MailTransport transport;

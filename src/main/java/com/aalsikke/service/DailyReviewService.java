@@ -1,5 +1,6 @@
 package com.aalsikke.service;
 
+import com.aalsikke.config.AppTime;
 import com.aalsikke.dto.DailyReviewEntry;
 import com.aalsikke.dto.WeeklyReviewResponse;
 import com.aalsikke.dto.ScheduleItemResponse;
@@ -99,7 +100,7 @@ public class DailyReviewService {
                 : null;
 
         // --- Tasks due in the same dates (due time = endTime, or deadline if no slot) ---
-        ZoneId zone = ZoneId.systemDefault();   // same convention as DashboardService
+        ZoneId zone = AppTime.ZONE;   // same convention as DashboardService
         OffsetDateTime from = start.atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime to = end.plusDays(1).atStartOfDay(zone).toOffsetDateTime().minusNanos(1);
         List<ScheduleItem> due = scheduleItemRepository.findDueBetween(user.getId(), from, to);

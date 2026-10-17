@@ -235,7 +235,7 @@ Returns the caller's items for a date range, so the calendar does not download e
 - `GET /api/recurrence-rules` lists the caller's rules.
 - `GET /api/schedule-items/range` includes the generated repeats in the range with `"occurrence": true`
   (same `id` as the original item, own `startTime`/`endTime`, no deadline). The original keeps
-  `"occurrence": false`. Repeats keep the original's local start time (server time zone), so 09:00
+  `"occurrence": false`. Repeats keep the original's local start time (always Asia/Beirut, see `AppTime`, whatever zone the server runs in), so 09:00
   stays 09:00 across daylight-saving changes.
 - KAN-363: each repeat has its own `status` (from `occurrence_completions`, never the original's),
   its `occurrenceDate` (local date, sent back when marking it done) and `seriesStart` (the original's

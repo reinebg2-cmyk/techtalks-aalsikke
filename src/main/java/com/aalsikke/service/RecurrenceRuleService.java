@@ -1,5 +1,6 @@
 package com.aalsikke.service;
 
+import com.aalsikke.config.AppTime;
 import com.aalsikke.dto.RecurrenceRuleRequest;
 import com.aalsikke.dto.RecurrenceRuleResponse;
 import com.aalsikke.model.RecurrenceRule;
@@ -53,7 +54,7 @@ public class RecurrenceRuleService {
             throw new IllegalArgumentException("Only items with a start and end time can repeat.");
         }
         if (request.untilDate() != null) {
-            var firstDay = item.getStartTime().atZoneSameInstant(ZoneId.systemDefault()).toLocalDate();
+            var firstDay = item.getStartTime().atZoneSameInstant(AppTime.ZONE).toLocalDate();
             if (request.untilDate().isBefore(firstDay)) {
                 throw new IllegalArgumentException("untilDate cannot be before the item's own date.");
             }
