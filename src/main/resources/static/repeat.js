@@ -107,6 +107,7 @@
         const untilLabel = el('label');
         const until = el('input', 'repeat-until');
         until.type = 'date';
+        until.max = '9999-12-31';   // KAN-368: 4-digit year only
         until.id = `${prefix}-repeat-until`;
         untilLabel.append('Until ', until, el('span', 'repeat-optional', '(optional)'));
         row.append(everyLabel, untilLabel);

@@ -34,3 +34,25 @@
         document.documentElement.setAttribute('data-palette', 'brand');
     }
 })();
+
+
+// KAN-368: every date / date-time field accepts a 4-digit year only (Chrome let you type 202666).
+// Chrome sizes the year part from "max", so a max in year 9999 limits it to 4 digits. Fields that
+// already have their own min/max (e.g. Until >= start date) keep them.
+(function limitDateYears() {
+    const LIMITS = {
+        'date': { min: '1900-01-01', max: '9999-12-31' },
+        'datetime-local': { min: '1900-01-01T00:00', max: '9999-12-31T23:59' }
+    };
+    function limit(input) {
+        const range = input && LIMITS[input.type];
+        if (!range) return;
+        if (!input.max) input.max = range.max;
+        if (!input.min) input.min = range.min;
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('input[type="date"], input[type="datetime-local"]').forEach(limit);
+    });
+    // Fields added later (forms built by scripts) get it the first time they're focused
+    document.addEventListener('focusin', event => limit(event.target));
+})();
