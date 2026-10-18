@@ -3,41 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="i18n.js"></script>
   <script src="theme-init.js"></script>
   <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
-  <title>Aal Sikke — Registration</title>
+  <title data-i18n="page.register">Aal Sikke — Registration</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="screen">
 
   <div class="topbar">
-    <button class="back-btn" aria-label="Go back">&#8592;</button>
-    <a class="brand" href="index.html" aria-label="Aal Sikke home"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
+    <button class="back-btn" aria-label="Go back" data-i18n-aria-label="auth.back">&#8592;</button>
+    <a class="brand" href="index.html" aria-label="Aal Sikke home" data-i18n-aria-label="auth.homeAria"><svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></a>
     <div class="topbar-end">
       <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
-      <a href="#" class="help-link">Help</a>
+      <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-aria-label="settings.language.title"></select>
+      <a href="#" class="help-link" data-i18n="auth.help">Help</a>
     </div>
   </div>
 
   <div class="intro">
-    <h1>Create your workspace</h1>
-    <p>Organize coursework, schedules, and deadlines in one application</p>
+    <h1 data-i18n="reg.title">Create your workspace</h1>
+    <p data-i18n="reg.subtitle">Organize coursework, schedules, and deadlines in one application</p>
   </div>
 
   <form class="card" id="register-form" novalidate>
-    <h2 class="field-label" style="margin-bottom:0;">I am using Aal Sikke primarily for:</h2>
-    <div class="segmented" role="radiogroup" aria-label="Primary use">
+    <h2 class="field-label" style="margin-bottom:0;" data-i18n="reg.roleLegend">I am using Aal Sikke primarily for:</h2>
+    <div class="segmented" role="radiogroup" aria-label="Primary use" data-i18n-aria-label="reg.primaryUse">
       <input type="radio" name="role" id="role-student" value="student" checked>
-      <label for="role-student">Student</label>
+      <label for="role-student" data-i18n="role.student">Student</label>
       <input type="radio" name="role" id="role-work" value="work">
-      <label for="role-work">Work</label>
+      <label for="role-work" data-i18n="role.work">Work</label>
       <input type="radio" name="role" id="role-hybrid" value="hybrid">
-      <label for="role-hybrid">Hybrid</label>
+      <label for="role-hybrid" data-i18n="reg.role.hybrid">Hybrid</label>
     </div>
 
     <div class="field" id="field-fullname">
-      <label for="fullname">Full name</label>
+      <label for="fullname" data-i18n="form.fullName">Full name</label>
       <div class="input-wrap">
         <input type="text" id="fullname" name="fullname" placeholder="Alex Chen" autocomplete="name" required>
         <span class="icon-status success">&#10003;</span>
@@ -45,77 +47,77 @@
     </div>
 
     <div class="field" id="field-username">
-      <label for="username">Username</label>
+      <label for="username" data-i18n="form.username">Username</label>
       <div class="input-wrap">
-        <input type="text" id="username" name="username" placeholder="alexchen" autocomplete="username" required>
+        <input type="text" dir="ltr" id="username" name="username" placeholder="alexchen" autocomplete="username" required>
         <span class="icon-status success">&#10003;</span>
         <span class="icon-status error">!</span>
       </div>
-      <p class="hint error-text">This username is already taken.</p>
+      <p class="hint error-text" data-i18n="reg.usernameTaken">This username is already taken.</p>
     </div>
 
     <div class="field" id="field-dob">
-      <label for="dob">Date of birth</label>
+      <label for="dob" data-i18n="form.dob">Date of birth</label>
       <div class="input-wrap">
         <input type="date" id="dob" name="dob" required>
         <span class="icon-status success">&#10003;</span>
         <span class="icon-status error">!</span>
       </div>
-      <p class="hint error-text">You must be at least 13 years old to register.</p>
+      <p class="hint error-text" data-i18n="reg.dobError">You must be at least 13 years old to register.</p>
     </div>
 
     <div class="field" id="field-email">
-      <label for="email">Email address</label>
+      <label for="email" data-i18n="reg.email">Email address</label>
       <div class="input-wrap">
-        <input type="email" id="email" name="email" placeholder="alex.chen@university.edu" autocomplete="email" required>
+        <input type="email" dir="ltr" id="email" name="email" placeholder="alex.chen@university.edu" autocomplete="email" required>
         <span class="icon-status success">&#10003;</span>
         <span class="icon-status error">!</span>
       </div>
-      <p class="hint error-text">This email is already registered. Try logging in.</p>
+      <p class="hint error-text" data-i18n="reg.emailTaken">This email is already registered. Try logging in.</p>
     </div>
 
     <div class="field" id="field-phone">
-      <label for="phone">Phone number</label>
+      <label for="phone" data-i18n="form.phone">Phone number</label>
       <div class="phone-row">
         <div class="input-wrap">
-          <select id="phone-code" name="phone-code">
+          <select id="phone-code" name="phone-code" dir="ltr">
             <option>US +1</option>
             <option>UK +44</option>
             <option>LB +961</option>
           </select>
         </div>
         <div class="input-wrap">
-          <input type="tel" id="phone" name="phone" placeholder="(555) 749-0194" autocomplete="tel">
+          <input type="tel" dir="ltr" id="phone" name="phone" placeholder="(555) 749-0194" autocomplete="tel">
         </div>
       </div>
     </div>
 
     <div class="field" id="field-password">
-      <label for="password">Password</label>
+      <label for="password" data-i18n="auth.password">Password</label>
       <div class="input-wrap">
-        <input type="password" id="password" name="password" placeholder="Create a password" autocomplete="new-password" required>
-        <button type="button" class="icon-toggle" id="toggle-password" aria-label="Show password">&#128065;</button>
+        <input type="password" dir="ltr" id="password" name="password" placeholder="Create a password" data-i18n-placeholder="reg.passwordPlaceholder" autocomplete="new-password" required>
+        <button type="button" class="icon-toggle" id="toggle-password" aria-label="Show password" data-i18n-aria-label="auth.showPassword">&#128065;</button>
       </div>
       <div class="strength-meter" id="strength-meter">
         <span></span><span></span><span></span><span></span>
       </div>
-      <p class="hint warning-text" id="password-hint">Good, but add a special symbol to make it bulletproof.</p>
+      <p class="hint warning-text" id="password-hint" data-i18n="pw.good">Good, but add a special symbol to make it bulletproof.</p>
     </div>
 
     <div class="field" id="field-confirm">
-      <label for="confirm-password">Confirm password</label>
+      <label for="confirm-password" data-i18n="auth.confirmPassword">Confirm password</label>
       <div class="input-wrap">
-        <input type="password" id="confirm-password" name="confirm-password" placeholder="Re-enter your password" autocomplete="new-password" required>
+        <input type="password" dir="ltr" id="confirm-password" name="confirm-password" placeholder="Re-enter your password" data-i18n-placeholder="reg.confirmPlaceholder" autocomplete="new-password" required>
         <span class="icon-status success">&#10003;</span>
       </div>
     </div>
 
-    <button type="submit" class="btn-primary" id="submit-btn">Create account &#8594;</button>
+    <button type="submit" class="btn-primary" id="submit-btn" data-i18n="reg.submit">Create account &#8594;</button>
 
-    <div class="link-row">Already have an account? <a href="login.html">Log in</a></div>
+    <div class="link-row"><span data-i18n="reg.haveAccount">Already have an account?</span> <a href="login.html" data-i18n="reg.loginLink">Log in</a></div>
   </form>
 
-  <p class="legal">By continuing, you agree to Aal Sikke's <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+  <p class="legal"><span data-i18n="reg.legalStart">By continuing, you agree to Aal Sikke's</span> <a href="#" data-i18n="reg.terms">Terms of Service</a><span data-i18n="reg.legalMid"> and </span><a href="#" data-i18n="reg.privacy">Privacy Policy</a><span data-i18n="reg.legalEnd">.</span></p>
 
 </div>
 

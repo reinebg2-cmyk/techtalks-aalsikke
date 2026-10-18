@@ -3,73 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="i18n.js"></script>
   <script src="theme-init.js"></script>
   <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
 
-  <title>Aal Sikke — Login</title>
+  <title data-i18n="page.login">Aal Sikke — Login</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="screen">
 
   <div class="topbar">
-    <button class="back-btn" aria-label="Go back">&#8592;</button>
+    <button class="back-btn" aria-label="Go back" data-i18n-aria-label="auth.back">&#8592;</button>
     <div class="brand"></div>
     <div class="topbar-end">
       <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
-      <a href="#" class="help-link">Help</a>
+      <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-aria-label="settings.language.title"></select>
+      <a href="#" class="help-link" data-i18n="auth.help">Help</a>
     </div>
   </div>
 
   <div class="center-brand">
     <h1><svg class="brand-logo brand-logo--lg" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></h1>
-    <p>Adaptive Life Management</p>
+    <p data-i18n="login.tagline">Adaptive Life Management</p>
   </div>
 
   <form class="card" id="login-form" novalidate>
-    <h2>Welcome back</h2>
-    <p class="subtitle">Access your unified calendar, assignments, and daily flow.</p>
-
+    <h2 data-i18n="login.title">Welcome back</h2>
+    <p class="subtitle" data-i18n="login.subtitle">Access your unified calendar, assignments, and daily flow.</p>
 
     <!-- KAN-262: "check your email" after register, and the unverified-login message -->
     <div class="login-notice" id="login-notice" role="status" aria-live="polite" hidden>
       <p id="login-notice-text"></p>
-      <button type="button" class="link-btn" id="resend-verification-btn" hidden>Resend verification email</button>
+      <button type="button" class="link-btn" id="resend-verification-btn" hidden data-i18n="login.resend">Resend verification email</button>
     </div>
 
     <div class="field" id="field-identifier">
-      <label for="identifier">Email, phone number or username</label>
+      <label for="identifier" data-i18n="login.identifier">Email, phone number or username</label>
       <div class="input-wrap">
-        <input type="text" id="identifier" name="identifier" placeholder="alex.chen@university.edu" autocomplete="username" required>
+        <input type="text" dir="ltr" id="identifier" name="identifier" placeholder="alex.chen@university.edu" autocomplete="username" required>
         <span class="icon-status success">&#10003;</span>
       </div>
     </div>
 
     <div class="field" id="field-login-password">
       <div class="row-between">
-        <label for="login-password">Password</label>
-        <a href="forgot-password.html" style="font-size:13px; color:var(--trust-blue); text-decoration:none; font-weight:600;">Forgot password?</a>
+        <label for="login-password" data-i18n="auth.password">Password</label>
+        <a href="forgot-password.html" style="font-size:13px; color:var(--trust-blue); text-decoration:none; font-weight:600;" data-i18n="login.forgot">Forgot password?</a>
       </div>
       <div class="input-wrap">
-        <input type="password" id="login-password" name="login-password" placeholder="Enter your password" autocomplete="current-password" required>
-        <button type="button" class="icon-toggle" id="toggle-login-password" aria-label="Show password">&#128065;</button>
+        <input type="password" dir="ltr" id="login-password" name="login-password" placeholder="Enter your password" data-i18n-placeholder="login.passwordPlaceholder" autocomplete="current-password" required>
+        <button type="button" class="icon-toggle" id="toggle-login-password" aria-label="Show password" data-i18n-aria-label="auth.showPassword">&#128065;</button>
       </div>
-      <p class="hint error-text" id="login-error">Incorrect password. Try again.</p>
+      <p class="hint error-text" id="login-error"></p>
     </div>
 
     <label class="checkbox-row">
       <input type="checkbox" id="remember-device" checked>
-      Keep me signed in on this device
+      <span data-i18n="login.remember">Keep me signed in on this device</span>
     </label>
 
-    <button type="submit" class="btn-primary" id="login-btn">Log in &#8594;</button>
+    <button type="submit" class="btn-primary" id="login-btn" data-i18n="login.submit">Log in &#8594;</button>
 
-
-    <div class="link-row">Don't have an account? <a href="register.html">Register</a></div>
+    <div class="link-row"><span data-i18n="login.noAccount">Don't have an account?</span> <a href="register.html" data-i18n="login.registerLink">Register</a></div>
   </form>
 
-  <div class="tag-row"><span class="tag">&#128274; Secured for academic and work workspaces</span></div>
-  <p class="footnote">Aal Sikke v2.4 &middot; Structured daily focus</p>
+  <div class="tag-row"><span class="tag" data-i18n="login.secured">&#128274; Secured for academic and work workspaces</span></div>
+  <p class="footnote" data-i18n="login.footnote">Aal Sikke v2.4 &middot; Structured daily focus</p>
 
 </div>
 
