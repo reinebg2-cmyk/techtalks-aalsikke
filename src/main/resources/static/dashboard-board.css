@@ -213,14 +213,14 @@
     padding: 0.75rem 0.5rem 0.625rem 0.875rem;
     background: var(--surface);
     border: 0.0625rem solid var(--border);
-    border-left: 0.3125rem solid var(--prio-medium);
+    border-inline-start: 0.3125rem solid var(--prio-medium);
     border-radius: 0.5rem;
 }
 
-.board-card.priority-low { border-left-color: var(--prio-low); }
-.board-card.priority-medium { border-left-color: var(--prio-medium); }
-.board-card.priority-high { border-left-color: var(--prio-high); }
-.board-card.priority-urgent { border-left-color: var(--prio-urgent); }
+.board-card.priority-low { border-inline-start-color: var(--prio-low); }
+.board-card.priority-medium { border-inline-start-color: var(--prio-medium); }
+.board-card.priority-high { border-inline-start-color: var(--prio-high); }
+.board-card.priority-urgent { border-inline-start-color: var(--prio-urgent); }
 
 /* The priority word on the card takes the same color as the stripe. */
 .board-card.priority-low .board-priority { color: var(--prio-low); }
@@ -233,7 +233,7 @@
 .board-card.is-conflict {
     background: var(--conflict-bg);
     border-top-color: var(--conflict);
-    border-right-color: var(--conflict);
+    border-inline-end-color: var(--conflict);
     border-bottom-color: var(--conflict);
     box-shadow: 0 0 0 0.0625rem var(--conflict);
 }
@@ -273,7 +273,7 @@
 .board-card .task-menu {
     position: absolute;
     top: 100%;
-    right: 0;
+    inset-inline-end: 0;
     z-index: 5;
     display: flex;
     flex-direction: column;
@@ -294,7 +294,7 @@
     background: none;
     border: none;
     border-radius: 0.375rem;
-    text-align: left;
+    text-align: start;
     font-size: 0.8125rem;
     color: var(--slate);
     cursor: pointer;
@@ -372,7 +372,7 @@
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0.25rem 0.75rem;
-    border-left: 0.25rem solid var(--trust-blue);
+    border-inline-start: 0.25rem solid var(--trust-blue);
 }
 
 .next-up-label {
@@ -400,7 +400,7 @@
 }
 
 .next-up-card.is-empty {
-    border-left-color: var(--border);
+    border-inline-start-color: var(--border);
 }
 
 .next-up-card.is-empty .next-up-title {
