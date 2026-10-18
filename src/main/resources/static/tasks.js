@@ -464,6 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const quickFromUrl = new URLSearchParams(window.location.search).get('quick');
     if (quickFromUrl && quickInput) {
         quickInput.value = quickFromUrl;
+        history.replaceState(null, '', window.location.pathname);   // a refresh must not ask the AI again
         runQuickAdd(quickFromUrl);
     }
 

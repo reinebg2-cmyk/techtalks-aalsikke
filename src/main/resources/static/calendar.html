@@ -61,6 +61,23 @@
         </aside>
 
         <main class="main-content">
+            <!-- KAN-372: AI quick-add. Plain form: sends the text to the Tasks page, which fills the New task form. -->
+            <section class="card quick-add-card">
+                <form class="quick-add" action="tasks.html" method="get">
+                    <div class="field">
+                        <label for="quick-add-go" data-i18n="quick.label">✨ Quick add with AI</label>
+                        <div style="display:flex; gap:8px; align-items:stretch;">
+                            <div class="input-wrap" style="flex:1 1 auto; min-width:0;">
+                                <input type="text" id="quick-add-go" name="quick" maxlength="300" autocomplete="off" required
+                                       placeholder="e.g. 3andi exam math bukra se3a 10"
+                                       data-i18n-placeholder="quick.placeholder" style="width:100%;">
+                            </div>
+                            <button type="submit" class="btn-primary" data-i18n="quick.button"
+                                    style="width:auto; flex:0 0 auto; white-space:nowrap;">Fill the form</button>
+                        </div>
+                    </div>
+                </form>
+            </section>
             <section class="card cal-card">
 
                 <div class="cal-toolbar">
