@@ -134,7 +134,7 @@
 /* Same width as the body's scrollbar, so header and body columns line up */
 .cal-head,
 .cal-deadlines {
-    padding-right: var(--cal-scrollbar, 0px);
+    padding-inline-end: var(--cal-scrollbar, 0px);
 }
 
 .cal-day-head {
@@ -143,7 +143,7 @@
     align-items: center;
     gap: 0.125rem;
     padding: 0.375rem 0.25rem;
-    border-left: 1px solid var(--border);
+    border-inline-start: 1px solid var(--border);
     font-size: 0.75rem;
     color: var(--slate-light);
 }
@@ -166,11 +166,11 @@
 
 /* ---- KAN-354: Multi-day row (tasks of 24 hours or more) ---- */
 .cal-multiday {
-    padding-right: var(--cal-scrollbar, 0px);
+    padding-inline-end: var(--cal-scrollbar, 0px);
     border-bottom: 1px solid var(--border);
 }
 
-.cal-multiday-cell { border-left: 1px solid var(--border); }
+.cal-multiday-cell { border-inline-start: 1px solid var(--border); }
 
 .cal-multiday-bar {
     position: relative;
@@ -182,7 +182,7 @@
     margin: 0.1875rem 0.25rem;
     padding: 0.125rem 0.5rem;
     overflow: hidden;
-    border-left: 3px solid var(--cal-color);
+    border-inline-start: 3px solid var(--cal-color);
     border-radius: 0.375rem;
     background: var(--cal-bg);
     font-size: 0.75rem;
@@ -211,7 +211,7 @@
 
 .cal-multiday-bar.is-completed { opacity: 0.55; }
 .cal-multiday-bar.is-completed .cal-multiday-title { text-decoration: line-through; }
-.cal-multiday-bar.is-repeat { border-left-style: dashed; }
+.cal-multiday-bar.is-repeat { border-inline-start-style: dashed; }
 
 
 /* The title matters more than the time: on a narrow bar the time is cut first */
@@ -249,7 +249,7 @@
 .cal-more-list {
     position: absolute;
     z-index: 5;
-    left: 2px;
+    inset-inline-start: 2px;
     min-width: 11rem;
     max-width: 16rem;
     padding: 0.375rem;
@@ -259,7 +259,7 @@
     box-shadow: 0 6px 18px rgba(15, 32, 62, 0.18);
 }
 
-.cal-more-list.is-right { left: auto; right: 2px; }
+.cal-more-list.is-right { inset-inline-start: auto; inset-inline-end: 2px; }
 
 .cal-more-item {
     display: flex;
@@ -272,7 +272,7 @@
     background: transparent;
     font: inherit;
     font-size: 0.75rem;
-    text-align: left;
+    text-align: start;
     color: var(--slate);
     cursor: pointer;
 }
@@ -316,7 +316,7 @@
     font: inherit;
     font-size: 0.75rem;
     font-weight: 600;
-    text-align: left;
+    text-align: start;
     color: var(--trust-blue);
     cursor: pointer;
 }
@@ -339,7 +339,7 @@
     max-width: calc(100vw - 1rem);
     padding: 0.75rem 0.875rem;
     border: 1px solid var(--border);
-    border-left: 4px solid var(--cal-color);
+    border-inline-start: 4px solid var(--cal-color);
     border-radius: 0.625rem;
     background: var(--surface);
     box-shadow: 0 8px 24px rgba(15, 32, 62, 0.2);
@@ -438,7 +438,7 @@
 .cal-grid-arrow.is-next {
     position: absolute;
     top: 50%;
-    right: calc(var(--cal-scrollbar, 0px) + 0.375rem);
+    inset-inline-end: calc(var(--cal-scrollbar, 0px) + 0.375rem);
     transform: translateY(-50%);
 }
 
@@ -452,7 +452,7 @@
     align-self: center;
     padding: 0.25rem 0.375rem;
     font-size: 0.6875rem;
-    text-align: right;
+    text-align: end;
     color: var(--slate-light);
 }
 
@@ -462,7 +462,7 @@
     gap: 0.1875rem;
     min-width: 0;
     padding: 0.25rem;
-    border-left: 1px solid var(--border);
+    border-inline-start: 1px solid var(--border);
 }
 
 .cal-deadline-marker {
@@ -502,7 +502,7 @@
 
 .cal-deadline-time {
     flex: none;
-    margin-left: auto;
+    margin-inline-start: auto;
     color: var(--slate-light);
 }
 
@@ -540,14 +540,14 @@
 
 .cal-time-label {
     position: absolute;
-    right: 0.375rem;
+    inset-inline-end: 0.375rem;
     transform: translateY(-50%);
     font-size: 0.6875rem;
     color: var(--slate-light);
 }
 
 .cal-day-col {
-    border-left: 1px solid var(--border);
+    border-inline-start: 1px solid var(--border);
     background-image: repeating-linear-gradient(
             to bottom,
             transparent 0,
@@ -565,7 +565,7 @@
     box-sizing: border-box;
     overflow: hidden;
     padding: 0.1875rem 0.375rem;
-    border-left: 3px solid var(--cal-color);
+    border-inline-start: 3px solid var(--cal-color);
     border-radius: 0.375rem;
     background: var(--cal-bg);
     box-shadow: 0 1px 2px rgba(15, 32, 62, 0.12);
@@ -583,7 +583,7 @@
 
 .cal-event-title {
     display: block;
-    padding-right: 1.125rem;
+    padding-inline-end: 1.125rem;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -612,7 +612,7 @@
 .cal-overlap-label {
     position: absolute;
     bottom: -0.5rem;
-    left: 0.375rem;
+    inset-inline-start: 0.375rem;
     z-index: 3;
     padding: 0 0.25rem;
     border-radius: 0.25rem;
@@ -629,7 +629,7 @@
 .cal-event .cal-conflict-badge {
     position: absolute;
     top: 0.1875rem;
-    right: 0.1875rem;
+    inset-inline-end: 0.1875rem;
 }
 
 .cal-event.is-completed { opacity: 0.55; }
@@ -649,7 +649,7 @@
 .cal-now::before {
     content: "";
     position: absolute;
-    left: -4px;
+    inset-inline-start: -4px;
     top: -3px;
     width: 8px;
     height: 8px;
@@ -662,7 +662,7 @@
     .cal-title {
         order: -1;
         flex-basis: 100%;
-        text-align: left;
+        text-align: start;
     }
 
     .cal-scroll { max-height: 28rem; }
@@ -781,7 +781,7 @@
     flex-direction: column;
     gap: 0.125rem;
     padding: 0.5rem 0.75rem;
-    border-left: 3px solid var(--stat-color);
+    border-inline-start: 3px solid var(--stat-color);
     border-radius: 0.5rem;
     background: var(--surface);
 }
@@ -811,7 +811,7 @@
 
 /* Generated repeats: same colours, dashed edge and light stripes, read-only */
 .cal-event.is-repeat {
-    border-left-style: dashed;
+    border-inline-start-style: dashed;
     box-shadow: none;
     background-image: repeating-linear-gradient(
             135deg,
@@ -838,8 +838,11 @@
     height: 24px;
     padding: 0 0.5rem;
     overflow: hidden;
-    border-left: 3px solid var(--cal-color);
-    border-radius: 0 0.375rem 0.375rem 0;
+    border-inline-start: 3px solid var(--cal-color);
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    border-start-end-radius: 0.375rem;
+    border-end-end-radius: 0.375rem;
     background: var(--cal-bg);
     box-shadow: 0 1px 2px rgba(15, 32, 62, 0.12);
     font-size: 0.75rem;
@@ -884,7 +887,7 @@
 
 /* Generated weekly repeats: dashed edge, read-only (same idea as .cal-event.is-repeat) */
 .calendar-event-marker.is-repeat {
-    border-left-style: dashed;
+    border-inline-start-style: dashed;
     box-shadow: none;
 }
 .calendar-event-marker.is-repeat.is-conflict { box-shadow: none; }
@@ -906,8 +909,8 @@
 .prio-urgent { --prio-color: var(--prio-urgent); }
 
 .cal-event[class*="prio-"],
-.calendar-event-marker[class*="prio-"] { border-left: 4px solid var(--prio-color); }
-.cal-deadline-marker[class*="prio-"] { border-left: 4px solid var(--prio-color); }
+.calendar-event-marker[class*="prio-"] { border-inline-start: 4px solid var(--prio-color); }
+.cal-deadline-marker[class*="prio-"] { border-inline-start: 4px solid var(--prio-color); }
 .calendar-event-marker[class*="prio-"] .marker-dot { background: var(--prio-color); }
 
 /* legend swatches */
