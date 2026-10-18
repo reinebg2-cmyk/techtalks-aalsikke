@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 
 @Service
 public class RecurrenceRuleService {
@@ -53,6 +55,10 @@ public class RecurrenceRuleService {
         if (!ConflictRules.hasTimeSlot(item)) {
             throw new IllegalArgumentException("Only items with a start and end time can repeat.");
         }
+        // KAN-373: longer than a day and the weekly copies overlap (mark done, calendar and clock change break)
+        if (!shortEnoughToRepeat(item.getStartTime(), item.getEndTime())) {
+            throw new IllegalArgumentException("A repeating task can last at most 24 hours.");
+        }
         if (request.untilDate() != null) {
             var firstDay = item.getStartTime().atZoneSameInstant(AppTime.ZONE).toLocalDate();
             if (request.untilDate().isBefore(firstDay)) {
@@ -71,6 +77,14 @@ public class RecurrenceRuleService {
         item.setRecurring(true);
         scheduleItemRepository.save(item);
         return RecurrenceRuleResponse.from(recurrenceRuleRepository.save(rule));
+    }
+
+    /** KAN-373: the longest a repeating task may last. A repeat happens at most once a day, so copies never overlap. */
+    static final Duration MAX_REPEAT_LENGTH = Duration.ofHours(24);
+
+    static boolean shortEnoughToRepeat(OffsetDateTime start, OffsetDateTime end) {
+        return start != null && end != null
+                && Duration.between(start, end).compareTo(MAX_REPEAT_LENGTH) <= 0;
     }
 
     /**
