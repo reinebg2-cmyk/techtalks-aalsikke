@@ -376,6 +376,108 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isTime(end) && end > start) set('task-due', `${date}T${end}`);
     }
 
+    // ============================================================
+    // KAN-372: AI QUICK-ADD
+    // Sends the sentence to /quick-parse and fills the New task form with the answer.
+    // Nothing is saved here: the user reviews the form and presses "+ Add task".
+    // Also runs for tasks.html?quick=...#new-task (the dashboard's quick-add box).
+    // ============================================================
+
+    const quickForm = document.getElementById('quick-add-form');
+    const quickInput = document.getElementById('quick-add-input');
+    const quickButton = document.getElementById('quick-add-btn');
+    const quickStatus = document.getElementById('quick-add-status');
+
+    function setField(id, value) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        if (input.type === 'checkbox') input.checked = value; else input.value = value;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));   // e.g. shows the Start field
+    }
+
+    // "2026-10-19T10:00:00" -> "2026-10-19T10:00" (what datetime-local inputs take)
+    const toInputValue = value => (value ? String(value).slice(0, 16) : '');
+
+    function openTaskForm() {
+        const form = document.getElementById('task-form');
+        if (form) form.hidden = false;
+        return form;
+    }
+
+    function fillFromQuickAdd(result) {
+        const form = openTaskForm();
+        if (!form) return;
+        form.reset();   // start clean; repeat.js clears the old repeat on reset in a setTimeout(0)
+        setTimeout(() => {   // ...so fill after that has run
+            setField('task-title', result.title || '');
+            if (result.priority) setField('task-priority', result.priority);
+            if (result.category) setField('task-category', result.category);
+            setField('task-has-start', Boolean(result.start));
+            if (result.start) setField('task-start', toInputValue(result.start));
+            if (result.due) setField('task-due', toInputValue(result.due));
+            // Repeat needs a start time; repeat.js uses MON..SUN, the API sends MONDAY..SUNDAY
+            if (result.start && result.repeatDays && result.repeatDays.length && window.AalSikkeRepeat) {
+                window.AalSikkeRepeat.fill('new', result.repeatDays.map(day => day.slice(0, 3)));
+            }
+            form.closest('.card')?.scrollIntoView({ block: 'start' });
+            document.getElementById('task-title')?.focus();
+        }, 0);
+    }
+
+    async function runQuickAdd(text) {
+        text = (text || '').trim();
+        if (!text || !quickButton) return;
+
+        quickButton.disabled = true;
+        quickInput.disabled = true;
+        quickStatus.textContent = t('quick.thinking');
+        try {
+            const response = await app.apiFetch(`${app.API_BASE}/api/schedule-items/quick-parse`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            if (!response.ok) {
+                // 422 = not understood / AI down, 429 = hourly limit: open the empty form either way
+                quickStatus.textContent = t(response.status === 429 ? 'quick.limit' : 'quick.failed');
+                openTaskForm();
+                return;
+            }
+            fillFromQuickAdd(await response.json());
+            quickStatus.textContent = t('quick.done');
+            quickInput.value = '';
+        } catch (error) {
+            if (error.sessionExpired) return;
+            console.error('Quick add failed:', error);
+            quickStatus.textContent = t('quick.failed');
+            openTaskForm();
+        } finally {
+            quickButton.disabled = false;
+            quickInput.disabled = false;
+        }
+    }
+
+    // After "+ Add task" (or Cancel) the form is reset: clear the quick-add message.
+    // Our own form.reset() in fillFromQuickAdd runs before the message is set, so it isn't affected.
+    document.getElementById('task-form')?.addEventListener('reset', () => {
+        if (quickStatus) quickStatus.textContent = '';
+    });
+
+    quickForm?.addEventListener('submit', event => {
+        event.preventDefault();
+        runQuickAdd(quickInput.value);
+    });
+
+    // From the dashboard's box: tasks.html?quick=...#new-task
+    // (read before openNewTaskFromHash() below clears the URL)
+    const quickFromUrl = new URLSearchParams(window.location.search).get('quick');
+    if (quickFromUrl && quickInput) {
+        quickInput.value = quickFromUrl;
+        history.replaceState(null, '', window.location.pathname);   // a refresh must not ask the AI again
+        runQuickAdd(quickFromUrl);
+    }
+
     function openNewTaskFromHash() {
         if (window.location.hash !== '#new-task') return;
 
