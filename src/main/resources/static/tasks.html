@@ -91,6 +91,23 @@
                     </div>
                     <button type="button" class="link-btn" id="toggle-form-btn" data-i18n="tasks.new.toggle">+ New task</button>
                 </div>
+                <!-- KAN-372: AI quick-add. Fills the form below; the user still reviews and saves. -->
+                <form id="quick-add-form" class="quick-add" novalidate>
+                    <div class="field">
+                        <label for="quick-add-input" data-i18n="quick.label">✨ Quick add with AI</label>
+                        <div style="display:flex; gap:8px; align-items:stretch;">
+                            <div class="input-wrap" style="flex:1 1 auto; min-width:0;">
+                                <input type="text" id="quick-add-input" maxlength="300" autocomplete="off"
+                                       placeholder="e.g. 3andi exam math bukra se3a 10"
+                                       data-i18n-placeholder="quick.placeholder"
+                                       style="width:100%;">
+                            </div>
+                            <button type="submit" class="btn-primary" id="quick-add-btn" data-i18n="quick.button"
+                                    style="width:auto; flex:0 0 auto; white-space:nowrap;">Fill the form</button>
+                        </div>
+                        <p class="card-subtitle" id="quick-add-status" role="status" aria-live="polite"></p>
+                    </div>
+                </form>
                 <form id="task-form" class="task-form" novalidate hidden>
                     <div class="field">
                         <label for="task-title" data-i18n="task.title">Task title</label>

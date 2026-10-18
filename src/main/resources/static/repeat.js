@@ -268,7 +268,15 @@
         }
     }
 
-    window.AalSikkeRepeat = { check, afterSave, labelHtml, weekdayOf, localDateOf, problemWith };
+    /** KAN-372: turn the repeat on for these days (e.g. ['MON', 'THU']), every 1 week, no end date.
+     *  Call it after "Has a start time" and Start are filled, or sync() switches it back off. */
+    function fill(kind, days) {
+        const section = sections[kind];
+        if (!section || !days || !days.length) return;
+        section.fill({ daysOfWeek: days.join(','), intervalValue: 1, untilDate: null });
+    }
+
+    window.AalSikkeRepeat = { check, afterSave, labelHtml, weekdayOf, localDateOf, problemWith, fill };
 
     // ---------------- set up ----------------
 
