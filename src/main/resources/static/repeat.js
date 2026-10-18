@@ -36,6 +36,10 @@
         if (!startTime || !endTime) {
             return t('repeat.needStart');
         }
+        // KAN-373: longer than a day and the weekly copies overlap (the server refuses it too)
+        if (new Date(endTime) - new Date(startTime) > 24 * 60 * 60 * 1000) {
+            return t('repeat.tooLong');
+        }
         if (!settings.days.length) return t('repeat.pickDay');
         const every = Number(settings.every);
         if (!Number.isInteger(every) || every < 1 || every > 52) {
