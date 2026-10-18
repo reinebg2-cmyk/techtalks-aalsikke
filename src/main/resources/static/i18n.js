@@ -2,7 +2,7 @@
 
 const LANGS = {
   en: { dir: "ltr", locale: "en-GB", label: "English" },
-  ar: { dir: "rtl", locale: "ar-LB", label: "العربية" }
+  ar: { dir: "rtl", locale: "ar-LB-u-nu-latn", label: "العربية" },
   // fr: { dir: "ltr", locale: "fr-FR", label: "Français" }  <- add later
 };
 
@@ -46,6 +46,8 @@ const I18N = {
     "settings.theme.subtitle": "Switch between light and dark mode.",
     "settings.palette.title": "Color palette",
     "settings.palette.subtitle": "Pick the accent colors Aal Sikke uses everywhere. Works with both light and dark mode.",
+    "settings.palette.saveFailed": "Could not save your palette.",
+    "settings.palette.saveFailedRetry": "Could not save your palette. Please try again.",
 
     "common.cancel": "Cancel",
     "common.close": "Close",
@@ -507,6 +509,11 @@ const I18N = {
                 "cal.sched.scheduled": "Scheduled “{title}” on {slot}.",
                 "cal.sched.scheduledOverlap": "Scheduled “{title}” on {slot}, but it overlaps with {names}.",
                 "cal.sched.notFound": "That task could not be found.",
+                "cal.newTaskHere": "Create a new task here",
+                "cal.newTaskInline": "create a new task here",
+                "cal.newTaskOr": "Or ",
+                "cal.newTaskWithDateTime": " with this date and time.",
+                "cal.newTaskEmptyTail": " with this date and time, or click a task in the calendar to reschedule it.",
         // add one key per hardcoded string as you convert each page
 
   },
@@ -549,6 +556,8 @@ const I18N = {
     "settings.theme.subtitle": "بدّل بين الوضع الفاتح والوضع الداكن.",
     "settings.palette.title": "لوحة الألوان",
     "settings.palette.subtitle": "اختر ألوان التمييز التي يستخدمها عالسكة في كل مكان. تعمل مع الوضعين الفاتح والداكن.",
+    "settings.palette.saveFailed": "تعذّر حفظ لوحة الألوان.",
+    "settings.palette.saveFailedRetry": "تعذّر حفظ لوحة الألوان. حاول مرة أخرى.",
 
     "common.cancel": "إلغاء",
     "common.close": "إغلاق",
@@ -1011,6 +1020,11 @@ const I18N = {
                 "cal.sched.scheduled": "تمت جدولة «{title}» في {slot}.",
                 "cal.sched.scheduledOverlap": "تمت جدولة «{title}» في {slot}، لكنها تتداخل مع {names}.",
                 "cal.sched.notFound": "تعذّر العثور على تلك المهمة.",
+                "cal.newTaskHere": "أنشئ مهمة جديدة هنا",
+                "cal.newTaskInline": "أنشئ مهمة جديدة هنا",
+                "cal.newTaskOr": "أو ",
+                "cal.newTaskWithDateTime": " بهذا التاريخ والوقت.",
+                "cal.newTaskEmptyTail": " بهذا التاريخ والوقت، أو اضغط على مهمة في التقويم لإعادة جدولتها.",
 
   }
 };
