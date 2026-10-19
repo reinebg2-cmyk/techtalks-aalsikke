@@ -101,6 +101,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return score;
   }
 
+  // KAN-374: the hint names what is actually missing (it used to always say "add a special symbol")
+  function nextTip(value) {
+    if (value.length < 8) return 'pw.addLength';
+    if (!/[A-Z]/.test(value)) return 'pw.addUpper';
+    if (!/[0-9]/.test(value)) return 'pw.addNumber';
+    if (!/[^A-Za-z0-9]/.test(value)) return 'pw.addSymbol';
+    return 'pw.good';
+  }
+
   function validatePassword() {
     const value = passwordInput.value;
     const score = scorePassword(value);
@@ -117,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setState(passwordField, 'is-error');
     } else if (score <= 3) {
       strengthMeter.classList.add('strength-2');
-      passwordHint.textContent = t('pw.good');
+      passwordHint.textContent = t(nextTip(value));
       setState(passwordField, 'is-warning');
     } else {
       strengthMeter.classList.add('strength-3');

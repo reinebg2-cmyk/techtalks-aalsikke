@@ -300,6 +300,10 @@ const I18N = {
 
              "pw.weak": "Too weak. Add length, a number, and a symbol.",
              "pw.good": "Good, but add a special symbol to make it bulletproof.",
+             "pw.addLength": "Use at least 8 characters.",
+             "pw.addUpper": "Good, add an uppercase letter (A–Z) to make it stronger.",
+             "pw.addNumber": "Good, add a number to make it stronger.",
+             "pw.addSymbol": "Good, add a special symbol (like ! @ # +) to make it stronger.",
              "pw.currentRequired": "Current password is required.",
              "pw.newRequired": "New password is required.",
              "pw.min8": "New password must be at least 8 characters.",
@@ -923,6 +927,10 @@ const I18N = {
 
     "pw.weak": "ضعيفة جدًا. زِد الطول وأضف رقمًا ورمزًا.",
     "pw.good": "جيدة، لكن أضف رمزًا خاصًا لتصبح قوية جدًا.",
+    "pw.addLength": "استخدم 8 أحرف على الأقل.",
+    "pw.addUpper": "جيدة، أضف حرفًا كبيرًا (A–Z) لتصبح أقوى.",
+    "pw.addNumber": "جيدة، أضف رقمًا لتصبح أقوى.",
+    "pw.addSymbol": "جيدة، أضف رمزًا خاصًا (مثل ! @ # +) لتصبح أقوى.",
     "pw.currentRequired": "كلمة المرور الحالية مطلوبة.",
     "pw.newRequired": "كلمة المرور الجديدة مطلوبة.",
     "pw.min8": "يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل.",
