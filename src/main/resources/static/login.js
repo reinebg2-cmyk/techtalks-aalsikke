@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (_) {
       // fetch() throws a TypeError ("Failed to fetch" / "Load failed") when the server can't be reached
-      throw { message: 'Could not reach Aal Sikke. Check your connection and try again in a moment.' };
+      throw { message: t('auth.network') };
     }
 
     let body = null;
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!res.ok) {
       throw {
-        message: (body && body.message) || (body && body.error) || 'Login failed. Please try again.',
+        message: (body && body.message) || (body && body.error) || t('login.failed'),
         code: body && body.code,     // KAN-274: 'EMAIL_NOT_VERIFIED'
         email: body && body.email
       };
@@ -70,11 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // KAN-338: account-data.js sends people here after deleting their account
   if (new URLSearchParams(window.location.search).has('account-deleted')) {
-    showNotice('Your account and all of its data were deleted. Thanks for using Aal Sikke.');
+    showNotice(t('login.accountDeleted'));
   }
   // register.js sends new users here with ?check-email=1
   if (new URLSearchParams(window.location.search).has('check-email')) {
-    showNotice('Account created. We sent you a verification link. Open it, then log in here.');
+    showNotice(t('login.checkEmail'));
   }
 
   if (resendBtn) {
@@ -89,9 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         let body = null;
         try { body = await res.json(); } catch (_) { /* empty body */ }
-        showNotice((body && body.message) || 'If this account still needs verifying, a new link is on its way.');
+        showNotice((body && body.message) || t('login.resendDone'));
       } catch (_) {
-        showNotice('Could not reach the server. Please try again.', { withResend: true });
+        showNotice(t('login.serverUnreachable'), { withResend: true });
       } finally {
         // The server allows one new link per minute.
         setTimeout(() => { resendBtn.disabled = false; }, 60000);
@@ -108,23 +108,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = passwordInput.value;
 
     if (!email || !password) {
-      loginError.textContent = 'Please enter your email, phone or username and your password.';
+      loginError.textContent =t('login.enterBoth');
       passwordField.classList.add('is-error');
       return;
     }
 
     loginBtn.disabled = true;
-    loginBtn.textContent = 'Logging in…';
+    loginBtn.textContent =t('login.loggingIn');
 
     loginUser(email, password)
         .then((auth) => {
-          loginBtn.textContent = 'Welcome back ✓';
+          loginBtn.textContent = t('login.welcomeBack');
           localStorage.setItem(TOKEN_KEY, auth.token); // store the REAL JWT
           window.location.href = 'dashboard.html';
         })
         .catch((err) => {
           loginBtn.disabled = false;
-          loginBtn.textContent = 'Log in →';
+          loginBtn.textContent = t('login.submit');
 
           // KAN-274: right password, email not verified yet
           if (err.code === 'EMAIL_NOT_VERIFIED') {

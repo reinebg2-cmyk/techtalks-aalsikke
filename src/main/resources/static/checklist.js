@@ -6,6 +6,7 @@
 //    Every change is saved straight away through /api/schedule-items/{id}/checklist.
 //    When every step is ticked, it offers to mark the task as completed.
 // Uses dashboard.js (window.AalSikke) for the token, API base and task reload.
+// Needs i18n.js loaded first (t).
 
 (function () {
 
@@ -16,8 +17,9 @@
         if (total === 0) return '';
         const done = Math.min(Number(task.checklistDone) || 0, total);
         const percent = Math.round(done / total * 100);
+        const label = t('checklist.progress', { done, total });
         return `<span class="checklist-progress${done === total ? ' is-complete' : ''}"`
-            + ` title="Checklist: ${done} of ${total} done" aria-label="Checklist: ${done} of ${total} done">`
+            + ` title="${label}" aria-label="${label}">`
             + `<span class="checklist-bar" aria-hidden="true"><span style="width:${percent}%"></span></span>`
             + `${done}/${total}</span>`;
     }
@@ -44,7 +46,7 @@
 
         // ----- markup -----
         const field = el('div', 'field checklist-field');
-        const heading = el('p', 'checklist-heading', 'Checklist');
+        const heading = el('p', 'checklist-heading', t('checklist.title'));
         heading.id = 'checklist-heading';
         const summary = el('span', 'checklist-summary');
         heading.append(' ', summary);
@@ -57,16 +59,16 @@
         newInput.type = 'text';
         newInput.id = 'checklist-new';
         newInput.maxLength = 200;
-        newInput.placeholder = 'Add a step and press Enter';
-        newInput.setAttribute('aria-label', 'New checklist step');
-        const addButton = el('button', 'btn-secondary checklist-add-btn', 'Add');
+        newInput.placeholder = t('checklist.addPlaceholder');
+        newInput.setAttribute('aria-label', t('checklist.newStep'));
+        const addButton = el('button', 'btn-secondary checklist-add-btn', t('checklist.add'));
         addButton.type = 'button';
         addRow.append(newInput, addButton);
 
         const allDone = el('div', 'checklist-all-done');
         allDone.hidden = true;
-        const allDoneText = el('span', '', 'All steps are done. ');
-        const completeButton = el('button', 'link-btn checklist-complete-btn', 'Mark the task as completed');
+        const allDoneText = el('span', '', t('checklist.allDone') + ' ');
+        const completeButton = el('button', 'link-btn checklist-complete-btn', t('checklist.markComplete'));
         completeButton.type = 'button';
         allDone.append(allDoneText, completeButton);
 
@@ -92,8 +94,8 @@
             if (response.status === 204) return null;
             let data = null;
             try { data = await response.json(); } catch (_) { /* no body */ }
-            if (response.status === 403) throw new Error('You can only change the checklist of your own tasks.');
-            if (!response.ok) throw new Error((data && data.message) || `Server responded ${response.status}`);
+            if (response.status === 403) throw new Error(t('checklist.notYours'));
+            if (!response.ok) throw new Error((data && data.message) || t('err.server', { status: response.status }));
             return data;
         }
 
@@ -105,7 +107,7 @@
         function fail(error) {
             if (error && error.sessionExpired) return;
             console.error('Checklist error:', error);
-            say(error.message || 'Something went wrong. Please try again.', true);
+            say(error.message || t('err.generic'), true);
         }
 
         // ----- rendering -----
@@ -138,14 +140,14 @@
             const box = el('input', 'checklist-done');
             box.type = 'checkbox';
             box.checked = item.done;
-            box.setAttribute('aria-label', `Done: ${item.text}`);
+            box.setAttribute('aria-label', t('checklist.doneAria', { text: item.text }));
             box.addEventListener('change', () => toggle(item, box.checked));
 
             const text = el('input', 'checklist-text');
             text.type = 'text';
             text.maxLength = 200;
             text.value = item.text;
-            text.setAttribute('aria-label', `Step ${index + 1}`);
+            text.setAttribute('aria-label', t('checklist.stepN', { n: index + 1 }));
             text.addEventListener('keydown', event => {
                 if (event.key === 'Enter') { event.preventDefault(); text.blur(); }
                 if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); text.value = item.text; text.blur(); }
@@ -155,18 +157,18 @@
             const up = el('button', 'checklist-icon checklist-up', '↑');
             up.type = 'button';
             up.disabled = index === 0;
-            up.setAttribute('aria-label', `Move "${item.text}" up`);
+            up.setAttribute('aria-label', t('checklist.moveUp', { text: item.text }));
             up.addEventListener('click', () => move(index, -1, 'checklist-up'));
 
             const down = el('button', 'checklist-icon checklist-down', '↓');
             down.type = 'button';
             down.disabled = index === items.length - 1;
-            down.setAttribute('aria-label', `Move "${item.text}" down`);
+            down.setAttribute('aria-label', t('checklist.moveDown', { text: item.text }));
             down.addEventListener('click', () => move(index, 1, 'checklist-down'));
 
             const remove = el('button', 'checklist-icon checklist-remove', '✕');
             remove.type = 'button';
-            remove.setAttribute('aria-label', `Delete "${item.text}"`);
+            remove.setAttribute('aria-label', t('checklist.delete', { text: item.text }));
             remove.addEventListener('click', () => removeItem(item));
 
             li.append(box, text, up, down, remove);
@@ -179,7 +181,7 @@
             render();
             say('');
             if (!taskId) return;
-            say('Loading checklist…');
+            say(t('checklist.loading'));
             try {
                 items = await call(base());
                 say('');
@@ -189,14 +191,14 @@
 
         async function add() {
             const text = newInput.value.trim();
-            if (!text) { say('Type a step first.', true); return; }
+            if (!text) { say(t('checklist.typeFirst'), true); return; }
             addButton.disabled = true;
             try {
                 const item = await call(base(), { method: 'POST', body: JSON.stringify({ text }) });
                 items.push(item);
                 changed = true;
                 newInput.value = '';
-                say(`Added "${item.text}".`);
+                say(t('checklist.added', { text: item.text }));
                 render();
                 newInput.focus();
             } catch (error) { fail(error); } finally { addButton.disabled = false; }
@@ -215,12 +217,12 @@
         async function rename(item, input) {
             const text = input.value.trim();
             if (text === item.text) { input.value = item.text; return; }
-            if (!text) { input.value = item.text; say('A step needs some text, so it was not changed.', true); return; }
+            if (!text) { input.value = item.text; say(t('checklist.needsText'), true); return; }
             try {
                 const updated = await call(`${base()}/${item.id}`, { method: 'PATCH', body: JSON.stringify({ text }) });
                 Object.assign(item, updated);
                 changed = true;
-                say('Step renamed.');
+                say(t('checklist.renamed'));
                 render();
             } catch (error) { fail(error); input.value = item.text; }
         }
@@ -244,7 +246,7 @@
                 await call(`${base()}/${item.id}`, { method: 'DELETE' });
                 items = items.filter(i => i.id !== item.id);
                 changed = true;
-                say(`Deleted "${item.text}".`);
+                say(t('checklist.deleted', { text: item.text }));
                 render();
                 newInput.focus();
             } catch (error) { fail(error); }
@@ -257,7 +259,7 @@
                 if (ok) {
                     const status = document.getElementById('edit-task-status');
                     if (status) status.value = 'COMPLETED';
-                    say('Task marked as completed.');
+                    say(t('checklist.taskCompleted'));
                     render();
                 }
             } finally { completeButton.disabled = false; }

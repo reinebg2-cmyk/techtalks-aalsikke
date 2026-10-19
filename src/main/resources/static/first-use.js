@@ -4,35 +4,17 @@
 // the four things the app is for. It appears only while the user has no tasks and has
 // not closed it, and it goes away by itself after the first task is added.
 // Needs dashboard.js (window.AalSikke) and the 'aalsikke:tasks-loaded' event.
+// Needs i18n.js loaded first (t).
 (function () {
 
     const DISMISS_KEY = 'aalsikke_guide_dismissed';
 
+    // Text comes from t('guide.<id>.title' / '.text' / '.action'); only the links live here.
     const STEPS = [
-        {
-            title: 'Add your weekly classes or shifts',
-            text: 'Tap New task, choose Class or Shift, tick “Has a start time” and “Repeat weekly”.',
-            href: 'tasks.html#new-task',
-            action: 'Add one'
-        },
-        {
-            title: 'Add a task with a reminder',
-            text: 'Give it a due date and tick “Remind me about this task”. Open its ⋮ menu and choose Edit to add checklist steps.',
-            href: 'tasks.html#new-task',
-            action: 'Add a task'
-        },
-        {
-            title: 'See your week',
-            text: 'The calendar shows everything in one place, plus your weekly review.',
-            href: 'calendar.html',
-            action: 'Open calendar'
-        },
-        {
-            title: 'Choose how you get reminded',
-            text: 'Pick your colours and notification channels in Settings.',
-            href: 'settings.html',
-            action: 'Open settings'
-        }
+        { id: 's1', href: 'tasks.html#new-task' },
+        { id: 's2', href: 'tasks.html#new-task' },
+        { id: 's3', href: 'calendar.html' },
+        { id: 's4', href: 'settings.html' }
     ];
 
     function dismissed() {
@@ -55,16 +37,16 @@
         const titles = document.createElement('div');
         const h2 = document.createElement('h2');
         h2.id = 'guide-heading';
-        h2.textContent = 'Get started in four steps';
+        h2.textContent = t('guide.title');
         const sub = document.createElement('p');
         sub.className = 'card-subtitle';
-        sub.textContent = 'Your dashboard fills up as you add things.';
+        sub.textContent = t('guide.subtitle');
         titles.append(h2, sub);
 
         const close = document.createElement('button');
         close.type = 'button';
         close.className = 'guide-close';
-        close.setAttribute('aria-label', 'Hide this guide');
+        close.setAttribute('aria-label', t('guide.hide'));
         close.textContent = '\u2715';
         close.addEventListener('click', () => {
             remember();
@@ -80,15 +62,15 @@
 
             const text = document.createElement('div');
             const strong = document.createElement('strong');
-            strong.textContent = step.title;
+            strong.textContent = t(`guide.${step.id}.title`);
             const p = document.createElement('p');
-            p.textContent = step.text;
+            p.textContent = t(`guide.${step.id}.text`);
             text.append(strong, p);
 
             const a = document.createElement('a');
             a.className = 'btn-secondary guide-link';
             a.href = step.href;
-            a.textContent = step.action;
+            a.textContent = t(`guide.${step.id}.action`);
 
             li.append(text, a);
             list.append(li);

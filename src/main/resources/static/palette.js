@@ -67,7 +67,7 @@
             headers: authHeaders(),
             body: JSON.stringify({ palette: id })
         }).then(function (res) {
-            if (!res.ok) throw new Error('Could not save your palette.');
+            if (!res.ok) throw new Error(t('settings.palette.saveFailed'));
             return res.json();
         });
     }
@@ -135,7 +135,7 @@
                         apply(previous);
                         cache(previous);
                         mark();
-                        if (message) message.textContent = 'Could not save your palette. Please try again.';
+                        if (message) message.textContent = t('settings.palette.saveFailedRetry');
                     });
             });
 

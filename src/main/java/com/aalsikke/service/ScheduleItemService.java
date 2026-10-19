@@ -67,7 +67,13 @@ public class ScheduleItemService {
 
     /** The caller's tasks, each with its checklist progress (KAN-342), counted in one query. */
     public List<ScheduleItemResponse> getItemsForCurrentUser(String email) {
+        return getItemsForCurrentUser(email, OffsetDateTime.now());
+    }
+
+    /** Package-private with a fixed "now", so tests don't depend on the clock (KAN-371). */
+    List<ScheduleItemResponse> getItemsForCurrentUser(String email, OffsetDateTime now) {
         List<ScheduleItemResponse> items = getItemsWithoutChecklist(email);
+        addNextOccurrences(email, items, now);   // KAN-371
         java.util.Map<UUID, Object[]> counts = new java.util.HashMap<>();
         for (Object[] row : checklistItemRepository.countsForUser(email)) {
             counts.put((UUID) row[0], row);
@@ -79,6 +85,54 @@ public class ScheduleItemService {
             }
         }
         return items;
+    }
+
+    /**
+     * KAN-371: gives each repeating task its next repeat that isn't over yet: the task's own first date while
+     * that isn't over, otherwise the first weekly repeat that ends after now. Its status is that repeat's own
+     * (the item's status for the first date, occurrence_completions for later ones). None when the series has
+     * ended ("Until" passed): then the dashboard treats the task like any other.
+     */
+    void addNextOccurrences(String email, List<ScheduleItemResponse> items, OffsetDateTime now) {
+        if (items.stream().noneMatch(ScheduleItemResponse::isRecurring)) {
+            return;   // nothing repeats: skip the extra queries
+        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        ZoneId zone = AppTime.ZONE;
+
+        Map<UUID, ScheduleItemResponse.NextOccurrence> next = new java.util.HashMap<>();
+        for (RecurrenceRule rule : recurrenceRuleRepository.findAllForUser(user.getId())) {
+            ScheduleItem base = rule.getScheduleItem();
+            if (!"WEEKLY".equals(rule.getFrequency()) || base.getStartTime() == null || base.getEndTime() == null) {
+                continue;
+            }
+            int interval = rule.getIntervalValue() != null ? rule.getIntervalValue() : 1;
+            boolean original = base.getEndTime().isAfter(now);
+            RecurrenceExpander.Occurrence occurrence = original
+                    ? new RecurrenceExpander.Occurrence(base.getStartTime(), base.getEndTime())
+                    : expand(base, rule, zone, now, now.plusDays(7L * interval + 7)).stream().findFirst().orElse(null);
+            if (occurrence == null) {
+                continue;   // the series has ended
+            }
+
+            LocalDate date = occurrence.start().atZoneSameInstant(zone).toLocalDate();
+            String status = original
+                    ? (base.getStatus() != null ? base.getStatus() : "PENDING")
+                    : (occurrenceCompletionRepository.existsByScheduleItemIdAndOccurrenceDate(base.getId(), date)
+                        ? "COMPLETED" : "PENDING");
+            next.put(base.getId(), new ScheduleItemResponse.NextOccurrence(
+                    occurrence.start().withOffsetSameInstant(java.time.ZoneOffset.UTC),
+                    occurrence.end().withOffsetSameInstant(java.time.ZoneOffset.UTC),
+                    date, status, original));
+        }
+
+        for (ScheduleItemResponse item : items) {
+            ScheduleItemResponse.NextOccurrence repeat = next.get(item.getId());
+            if (repeat != null) {
+                item.setNextOccurrence(repeat);
+            }
+        }
     }
 
     private List<ScheduleItemResponse> getItemsWithoutChecklist(String email) {

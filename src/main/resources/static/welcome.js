@@ -28,11 +28,11 @@
     document.addEventListener('DOMContentLoaded', function () {
         if (!hasSession()) return;
 
-        setLink('wl-nav-cta', 'Open dashboard', 'dashboard.html');
+        setLink('wl-nav-cta', t('welcome.openDashboard'), 'dashboard.html');
         hide('wl-nav-login');
-        setLink('wl-hero-primary', 'Open your dashboard \u2192', 'dashboard.html');
+        setLink('wl-hero-primary', t('welcome.openDashboardArrow'), 'dashboard.html');
         hide('wl-hero-secondary');
-        setLink('wl-cta-primary', 'Open dashboard', 'dashboard.html');
+        setLink('wl-cta-primary', t('welcome.openDashboard') , 'dashboard.html');
         hide('wl-footer-login');
         hide('wl-footer-register');
     });

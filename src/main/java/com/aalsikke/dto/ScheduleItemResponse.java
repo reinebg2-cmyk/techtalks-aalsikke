@@ -37,6 +37,12 @@ public class ScheduleItemResponse {
     private OffsetDateTime seriesStart;
     private int checklistTotal;   // KAN-342: "2/5" on the task cards
     private int checklistDone;
+    /** KAN-371: for a repeating task, its next repeat that isn't over yet (null otherwise). */
+    private NextOccurrence nextOccurrence;
+
+    /** KAN-371: the repeat the dashboard shows for a repeating task. original = it's the task's own first date. */
+    public record NextOccurrence(OffsetDateTime start, OffsetDateTime end, java.time.LocalDate date,
+                                 String status, boolean original) {}
 
     public static ScheduleItemResponse from(ScheduleItem item) {
         ScheduleItemResponse dto = new ScheduleItemResponse();
@@ -152,6 +158,8 @@ public class ScheduleItemResponse {
     public OffsetDateTime getSeriesStart() { return seriesStart; }
     public int getChecklistTotal() { return checklistTotal; }
     public int getChecklistDone() { return checklistDone; }
+    public NextOccurrence getNextOccurrence() { return nextOccurrence; }
+    public void setNextOccurrence(NextOccurrence nextOccurrence) { this.nextOccurrence = nextOccurrence; }
 
     /** KAN-342: checklist progress, filled in for the task list. */
     public void setChecklist(int total, int done) {

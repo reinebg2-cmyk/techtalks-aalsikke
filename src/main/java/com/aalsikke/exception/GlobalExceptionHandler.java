@@ -80,6 +80,23 @@ public class GlobalExceptionHandler {
                 .body(ApiError.of("Invalid login details or password."));
     }
 
+    // KAN-372: AI quick-add could not understand the text, or the AI is unavailable.
+    // The cause (AI error, bad reply) is logged; the user only sees our message.
+    @ExceptionHandler(QuickParseException.class)
+    public ResponseEntity<ApiError> handleQuickParse(QuickParseException ex) {
+        if (ex.getCause() != null) {
+            log.warn("Quick-add failed: {}", ex.getMessage(), ex.getCause());
+        }
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .body(ApiError.of("text", ex.getMessage()));
+    }
+
+    @ExceptionHandler(QuickParseLimitException.class)
+    public ResponseEntity<ApiError> handleQuickParseLimit(QuickParseLimitException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiError.of("text", ex.getMessage()));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
