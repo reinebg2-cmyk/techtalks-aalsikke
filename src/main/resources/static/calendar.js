@@ -125,6 +125,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // The locale of the selected language ("en-GB" or "ar-LB")
     const loc = () => LANGS[lang].locale;
+    // "Earlier" and "later" arrows must point the other way in right-to-left text
+    const arrowLater = () => (LANGS[lang].dir === 'rtl' ? '←' : '→');
+    const arrowEarlier = () => (LANGS[lang].dir === 'rtl' ? '→' : '←');
+    // ‹ › are mirrored by the browser itself in RTL text, so no swap here (← → above are not mirrored)
+    const arrowPrev = () => '‹';
+    const arrowNext = () => '›';
 
     function startOfDay(date) {
         return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -337,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const end = new Date(item.endTime);
                 lines.push(sameDay(start, end)
                     ? `${formatShortDate(start)}, ${formatTime(start)}–${formatTime(end)}`
-                    : `${formatShortDate(start)} ${formatTime(start)} → ${formatShortDate(end)} ${formatTime(end)}`);
+                    : `${formatShortDate(start)} ${formatTime(start)} ${arrowLater()} ${formatShortDate(end)} ${formatTime(end)}`);
             } else {
                 lines.push(t('cal.at', { date: formatShortDate(start), time: formatTime(start) }));
             }
@@ -565,9 +571,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const node = el('div', `cal-multiday-bar cal-${role} prio-${priorityOf(item)}`);
             node.style.gridColumn = `${bar.from + 2} / ${bar.to + 3}`;
             node.style.gridRow = String(bar.lane + 1);
-            const before = bar.start < firstDay ? '← ' : '';
-            const after = bar.end > afterLastDay ? ' →' : '';
-            const when = `${formatDayTime(bar.start)} → ${formatDayTime(bar.end)}`;
+            const before = bar.start < firstDay ? `${arrowEarlier()} ` : '';
+            const after = bar.end > afterLastDay ? ` ${arrowLater()}` : '';
+            const when = `${formatDayTime(bar.start)} ${arrowLater()} ${formatDayTime(bar.end)}`;
             node.append(
                 el('span', 'cal-multiday-title', `${before}${item.title}${after}`),
                 el('span', 'cal-multiday-time', when)
@@ -706,8 +712,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // KAN-354: previous / next arrows on the grid itself, so moving doesn't need a scroll back up to the toolbar
         const isDay = state.view === 'day';
         const corner = el('div', 'cal-corner');
-        corner.append(gridArrow('‹', t(isDay ? 'cal.prevDay' : 'cal.prevWeek'), 'cal-prev'));
-        head.append(corner, gridArrow('›', t(isDay ? 'cal.nextDay' : 'cal.nextWeek'), 'cal-next', 'is-next'));
+        corner.append(gridArrow(arrowPrev(), t(isDay ? 'cal.prevDay' : 'cal.prevWeek'), 'cal-prev'));
+        head.append(corner, gridArrow(arrowNext(), t(isDay ? 'cal.nextDay' : 'cal.nextWeek'), 'cal-next', 'is-next'));
         for (const day of days) {
             const cell = el('div', 'cal-day-head');
             if (sameDay(day, today)) cell.classList.add('is-today');
@@ -1189,6 +1195,24 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(item => !item.startTime && item.status !== 'COMPLETED')
             .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     }
+    // KAN-366: "Create a new task here" opens the Tasks page's New task form with the date and
+    // times currently in this window (tasks.html?date=YYYY-MM-DD&start=HH:MM&end=HH:MM#new-task).
+    function newTaskLink(text) {
+        const link = el('a', 'modal-link', text);
+        link.href = 'tasks.html#new-task';
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            const date = dateInput.value || '';
+            const start = startInput.value || '';
+            const end = startOnlyInput.checked ? '' : (endInput.value || '');
+            const params = new URLSearchParams();
+            if (date) params.set('date', date);
+            if (start) params.set('start', start);
+            if (end && end > start) params.set('end', end);
+            window.location.href = `tasks.html?${params}#new-task`;
+        });
+        return link;
+    }
 
     /*
      * open({ item })  -> schedule / reschedule that task (from a block, a marker or ?schedule=id)
@@ -1245,13 +1269,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 taskSelect.replaceChildren();
                 if (tasks.length === 0) {
                     taskSelect.append(new Option(t('cal.sched.noneUnscheduled'), ''));
-                    const dashboardLink = el('a', 'modal-link', t('cal.sched.noneLink'));
-                    dashboardLink.href = 'dashboard.html';
                     setModalMessage('', 'info');
                     modalMessage.append(
                         t('cal.sched.noneMsg1'),
-                        dashboardLink,
-                        t('cal.sched.noneMsg2')
+                        newTaskLink(t('cal.newTaskHere')),
+                        t('cal.newTaskEmptyTail')
                     );
                     return;
                 }
@@ -1259,6 +1281,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const due = task.deadline ? t('cal.sched.optionDue', { date: formatShortDate(new Date(task.deadline)) }) : '';
                     taskSelect.append(new Option(`${task.title}${due}`, task.id));
                 }
+                setModalMessage('', 'info');
+                modalMessage.append(t('cal.newTaskOr'), newTaskLink(t('cal.newTaskInline')), t('cal.newTaskWithDateTime'));
                 taskSelect.disabled = false;
                 saveButton.disabled = false;
                 taskSelect.focus();
