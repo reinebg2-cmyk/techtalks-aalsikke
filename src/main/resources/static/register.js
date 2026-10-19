@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // KAN-260: same rule as the backend (RegisterRequest @Pattern)
   const USERNAME_RULE = /^[A-Za-z0-9._]{3,30}$/;
-  const USERNAME_RULE_MSG = 'Username must be 3–30 characters: letters, numbers, dots or underscores only (no spaces).';
 
   function validateUsername() {
     const usernameField = document.getElementById('field-username');
@@ -66,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const value = document.getElementById('username').value.trim();
     if (!value) return setState(usernameField, null);
     if (!USERNAME_RULE.test(value)) {
-      if (usernameHint) usernameHint.textContent = USERNAME_RULE_MSG;
+      if (usernameHint) usernameHint.textContent = t('reg.usernameRule');
       return setState(usernameField, 'is-error');
     }
     setState(usernameField, 'is-success');
@@ -114,11 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (score <= 1) {
       strengthMeter.classList.add('strength-1');
-      passwordHint.textContent = 'Too weak. Add length, a number, and a symbol.';
+      passwordHint.textContent = t('pw.weak');
       setState(passwordField, 'is-error');
     } else if (score <= 3) {
       strengthMeter.classList.add('strength-2');
-      passwordHint.textContent = 'Good, but add a special symbol to make it bulletproof.';
+      passwordHint.textContent = t('pw.good');
       setState(passwordField, 'is-warning');
     } else {
       strengthMeter.classList.add('strength-3');
@@ -149,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (_) {
       // fetch() throws a TypeError ("Failed to fetch" / "Load failed") when the server can't be reached
-      throw { message: 'Could not reach Aal Sikke. Check your connection and try again in a moment.' };
+      throw { message: t('auth.network')};
     }
 
     let body = null;
@@ -157,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!res.ok) {
       throw {
-        message: (body && body.message) || (body && body.error) || 'Registration failed. Please try again.',
+        message: (body && body.message) || (body && body.error) || t('reg.failed') ,
         field: body && !Array.isArray(body) ? body.field : null // KAN-258: server says which field
       };
     }
@@ -177,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hasError) return;
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Creating account…';
+    submitBtn.textContent = t('reg.creating');
 
     const selectedRole = document.querySelector('input[name="role"]:checked').value; // 'student' | 'work' | 'hybrid'
 
@@ -191,12 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
       phoneNumber: phoneInput.value.trim() || null,
 
     }).then(() => {
-      submitBtn.textContent = 'Account created ✓';
+      submitBtn.textContent = t('reg.created');
       // KAN-272: the account must be verified before the first login
       window.location.href = 'login.html?check-email=1';
     }).catch((err) => {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Create account →';
+      submitBtn.textContent = t('reg.submit');
       if (err.field === 'username') {
         // KAN-258: taken username → inline error, same as email
         const usernameField = document.getElementById('field-username');
@@ -207,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (emailHint) emailHint.textContent = err.message;
         setState(emailField, 'is-error');
       } else {
-        showToast(err.message || 'Could not create your account. Please try again.', { type: 'error' });
+        showToast(err.message || t('reg.couldNot') , { type: 'error' });
       }
     });
   });

@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="i18n.js"></script>
     <script src="theme-init.js"></script>
     <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
-    <title>Aal Sikke — Adaptive Life Management</title>
+    <title data-i18n="page.welcome">Aal Sikke — Adaptive Life Management</title>
     <meta name="description" content="One calendar, one task list and one daily flow for studying, working, or both.">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="welcome.css">
@@ -13,142 +14,143 @@
 <body class="welcome-body">
 
 <header class="wl-nav">
-    <a class="wl-brand" href="index.html" aria-label="Aal Sikke home">
+    <a class="wl-brand" href="index.html" aria-label="Aal Sikke home" data-i18n-aria-label="auth.homeAria">
         <svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg>
     </a>
-    <nav class="wl-nav-actions" aria-label="Primary">
+    <nav class="wl-nav-actions" aria-label="Primary" data-i18n-aria-label="wl.nav.aria">
         <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
-        <a class="wl-link" id="wl-nav-login" href="login.html">Log in</a>
-        <a class="wl-btn wl-btn-primary" id="wl-nav-cta" href="register.html">Get started</a>
+        <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-aria-label="settings.language.title"></select>
+        <a class="wl-link" id="wl-nav-login" href="login.html" data-i18n="wl.nav.login">Log in</a>
+        <a class="wl-btn wl-btn-primary" id="wl-nav-cta" href="register.html" data-i18n="wl.nav.cta">Get started</a>
     </nav>
 </header>
 
 <main>
 
     <section class="wl-hero">
-        <p class="wl-eyebrow">Adaptive Life Management</p>
-        <h1>Classes, shifts and deadlines in <span class="wl-accent">one calm place</span>.</h1>
-        <p class="wl-lead">
+        <p class="wl-eyebrow" data-i18n="wl.hero.eyebrow">Adaptive Life Management</p>
+        <h1><span data-i18n="wl.hero.titleA">Classes, shifts and deadlines in</span> <span class="wl-accent" data-i18n="wl.hero.titleB">one calm place.</span></h1>
+        <p class="wl-lead" data-i18n="wl.hero.lead">
             Aal Sikke brings your calendar, tasks and daily review together, whether you are a student,
             working, or doing both at once.
         </p>
         <div class="wl-hero-actions">
-            <a class="wl-btn wl-btn-primary wl-btn-lg" id="wl-hero-primary" href="register.html">Create your account &#8594;</a>
-            <a class="wl-btn wl-btn-secondary wl-btn-lg" id="wl-hero-secondary" href="login.html">I already have an account</a>
+            <a class="wl-btn wl-btn-primary wl-btn-lg" id="wl-hero-primary" href="register.html" data-i18n="wl.hero.primary">Create your account &#8594;</a>
+            <a class="wl-btn wl-btn-secondary wl-btn-lg" id="wl-hero-secondary" href="login.html" data-i18n="wl.hero.secondary">I already have an account</a>
         </div>
-        <p class="wl-note">&#128274; Secured for academic and work workspaces</p>
+        <p class="wl-note" data-i18n="login.secured">&#128274; Secured for academic and work workspaces</p>
     </section>
 
     <section class="wl-section" aria-labelledby="wl-features-title">
-        <h2 id="wl-features-title">Everything you need to stay on top of the week</h2>
+        <h2 id="wl-features-title" data-i18n="wl.features.title">Everything you need to stay on top of the week</h2>
         <div class="wl-grid">
             <article class="wl-card">
                 <span class="wl-icon" aria-hidden="true">&#128197;</span>
-                <h3>Unified calendar</h3>
-                <p>Classes, exams, assignments and shifts on a single calendar, including recurring items.</p>
+                <h3 data-i18n="wl.f1.title">Unified calendar</h3>
+                <p data-i18n="wl.f1.body">Classes, exams, assignments and shifts on a single calendar, including recurring items.</p>
             </article>
             <article class="wl-card">
                 <span class="wl-icon" aria-hidden="true">&#9745;</span>
-                <h3>Focused task list</h3>
-                <p>See what is overdue, due today and coming up, with filters and sorting to cut the noise.</p>
+                <h3 data-i18n="wl.f2.title">Focused task list</h3>
+                <p data-i18n="wl.f2.body">See what is overdue, due today and coming up, with filters and sorting to cut the noise.</p>
             </article>
             <article class="wl-card">
                 <span class="wl-icon" aria-hidden="true">&#9888;&#65039;</span>
-                <h3>Conflict detection</h3>
-                <p>Get warned when two items overlap, before the clash catches you by surprise.</p>
+                <h3 data-i18n="wl.f3.title">Conflict detection</h3>
+                <p data-i18n="wl.f3.body">Get warned when two items overlap, before the clash catches you by surprise.</p>
             </article>
             <article class="wl-card">
                 <span class="wl-icon" aria-hidden="true">&#128276;</span>
-                <h3>Smart reminders</h3>
-                <p>Deadline reminders and overdue alerts, with notification preferences you control.</p>
+                <h3 data-i18n="wl.f4.title">Smart reminders</h3>
+                <p data-i18n="wl.f4.body">Deadline reminders and overdue alerts, with notification preferences you control.</p>
             </article>
             <article class="wl-card">
                 <span class="wl-icon" aria-hidden="true">&#128221;</span>
-                <h3>Daily &amp; weekly review</h3>
-                <p>Look back on what you finished and plan the next week with a short guided review.</p>
+                <h3 data-i18n="wl.f5.title">Daily &amp; weekly review</h3>
+                <p data-i18n="wl.f5.body">Look back on what you finished and plan the next week with a short guided review.</p>
             </article>
             <article class="wl-card">
                 <span class="wl-icon" aria-hidden="true">&#127912;</span>
-                <h3>Made to feel yours</h3>
-                <p>Light or dark mode plus your own color palette, saved to your account.</p>
+                <h3 data-i18n="wl.f6.title">Made to feel yours</h3>
+                <p data-i18n="wl.f6.body">Light or dark mode plus your own color palette, saved to your account.</p>
             </article>
         </div>
     </section>
 
     <section class="wl-section wl-roles" aria-labelledby="wl-roles-title">
-        <h2 id="wl-roles-title">Built for how you actually live</h2>
+        <h2 id="wl-roles-title" data-i18n="wl.roles.title">Built for how you actually live</h2>
         <div class="wl-grid wl-grid-3">
             <article class="wl-card">
-                <h3>Student</h3>
-                <p>Courses, assignments, exams and study blocks.</p>
+                <h3 data-i18n="role.student">Student</h3>
+                <p data-i18n="wl.r1.body">Courses, assignments, exams and study blocks.</p>
             </article>
             <article class="wl-card">
-                <h3>Work</h3>
-                <p>Shifts, workplaces and everything on your plate.</p>
+                <h3 data-i18n="role.work">Work</h3>
+                <p data-i18n="wl.r2.body">Shifts, workplaces and everything on your plate.</p>
             </article>
             <article class="wl-card">
-                <h3>Dual</h3>
-                <p>Both worlds in one view, with conflicts surfaced for you.</p>
+                <h3 data-i18n="role.dual">Dual</h3>
+                <p data-i18n="wl.r3.body">Both worlds in one view, with conflicts surfaced for you.</p>
             </article>
         </div>
     </section>
 
     <section class="wl-section wl-faq" id="faq" aria-labelledby="wl-faq-title">
-        <h2 id="wl-faq-title">Questions people ask</h2>
+        <h2 id="wl-faq-title" data-i18n="wl.faq.title">Questions people ask</h2>
         <div class="wl-faq-list">
             <details class="wl-faq-item">
-                <summary>Who is Aal Sikke for?</summary>
-                <p>Students, people who work, and people who do both. You choose Student, Work or Dual when you register, and you can change it later in your profile.</p>
+                <summary data-i18n="wl.q1">Who is Aal Sikke for?</summary>
+                <p data-i18n="wl.a1">Students, people who work, and people who do both. You choose Student, Work or Dual when you register, and you can change it later in your profile.</p>
             </details>
             <details class="wl-faq-item">
-                <summary>Do I have to verify my email?</summary>
-                <p>Yes. After you register we send a verification link. Open it, then log in. If the email does not arrive within a few minutes, check your spam folder, or use the resend button on the login page.</p>
+                <summary data-i18n="wl.q2">Do I have to verify my email?</summary>
+                <p data-i18n="wl.a2">Yes. After you register we send a verification link. Open it, then log in. If the email does not arrive within a few minutes, check your spam folder, or use the resend button on the login page.</p>
             </details>
             <details class="wl-faq-item">
-                <summary>How do I add a weekly class or shift?</summary>
-                <p>Open Tasks and tap New task. Pick the category Class or Shift, tick &ldquo;Has a start time&rdquo; and &ldquo;Repeat weekly&rdquo;, then choose the days. It shows up on your calendar every week.</p>
+                <summary data-i18n="wl.q3">How do I add a weekly class or shift?</summary>
+                <p data-i18n="wl.a3">Open Tasks and tap New task. Pick the category Class or Shift, tick “Has a start time” and “Repeat weekly”, then choose the days. It shows up on your calendar every week.</p>
             </details>
             <details class="wl-faq-item">
-                <summary>How do reminders work?</summary>
-                <p>Tick &ldquo;Remind me about this task&rdquo; when you add it. You get a halfway reminder, and you can add your own. Reminders appear under the bell in the top bar, and you can switch on email reminders in Settings.</p>
+                <summary data-i18n="wl.q4">How do reminders work?</summary>
+                <p data-i18n="wl.a4">Tick “Remind me about this task” when you add it. You get a halfway reminder, and you can add your own. Reminders appear under the bell in the top bar, and you can switch on email reminders in Settings.</p>
             </details>
             <details class="wl-faq-item">
-                <summary>What does Conflict mean?</summary>
-                <p>Two items overlap in time, for example a class and a shift. Both get an orange Conflict badge so you can move one before the clash happens.</p>
+                <summary data-i18n="wl.q5">What does Conflict mean?</summary>
+                <p data-i18n="wl.a5">Two items overlap in time, for example a class and a shift. Both get an orange Conflict badge so you can move one before the clash happens.</p>
             </details>
             <details class="wl-faq-item">
-                <summary>Can I use it on my phone?</summary>
-                <p>Yes. Open the site in your phone&rsquo;s browser, nothing to install. The menu moves to the bottom of the screen on small devices.</p>
+                <summary data-i18n="wl.q6">Can I use it on my phone?</summary>
+                <p data-i18n="wl.a6">Yes. Open the site in your phone’s browser, nothing to install. The menu moves to the bottom of the screen on small devices.</p>
             </details>
             <details class="wl-faq-item">
-                <summary>Can I see my tasks in Google Calendar or my phone&rsquo;s calendar?</summary>
-                <p>Yes. On the Tasks page, choose Export to calendar. It downloads a file that Google Calendar, Apple Calendar and Outlook can import.</p>
+                <summary data-i18n="wl.q7">Can I see my tasks in Google Calendar or my phone’s calendar?</summary>
+                <p data-i18n="wl.a7">Yes. On the Tasks page, choose Export to calendar. It downloads a file that Google Calendar, Apple Calendar and Outlook can import.</p>
             </details>
             <details class="wl-faq-item">
-                <summary>I forgot my password. What now?</summary>
-                <p>On the login page choose &ldquo;Forgot password?&rdquo; and enter your email. We send you a link to set a new one.</p>
+                <summary data-i18n="wl.q8">I forgot my password. What now?</summary>
+                <p data-i18n="wl.a8">On the login page choose “Forgot password?” and enter your email. We send you a link to set a new one.</p>
             </details>
             <details class="wl-faq-item">
-                <summary>Is my data safe, and can I delete it?</summary>
-                <p>The site uses HTTPS only. In Settings you can download a copy of your data or delete your account, which removes everything. Aal Sikke is still being tested with real users, so data may be reset if something goes badly wrong.</p>
+                <summary data-i18n="wl.q9">Is my data safe, and can I delete it?</summary>
+                <p data-i18n="wl.a9">The site uses HTTPS only. In Settings you can download a copy of your data or delete your account, which removes everything. Aal Sikke is still being tested with real users, so data may be reset if something goes badly wrong.</p>
             </details>
         </div>
     </section>
 
     <section class="wl-cta">
-        <h2>Ready for a calmer week?</h2>
-        <p>It takes about a minute to set up.</p>
-        <a class="wl-btn wl-btn-light wl-btn-lg" id="wl-cta-primary" href="register.html">Get started</a>
+        <h2 data-i18n="wl.cta.title">Ready for a calmer week?</h2>
+        <p data-i18n="wl.cta.text">It takes about a minute to set up.</p>
+        <a class="wl-btn wl-btn-light wl-btn-lg" id="wl-cta-primary" href="register.html" data-i18n="wl.cta.button">Get started</a>
     </section>
 
 </main>
 
 <footer class="wl-footer">
-    <span>Aal Sikke v2.4 &middot; Structured daily focus</span>
+    <span data-i18n="login.footnote">Aal Sikke v2.4 &middot; Structured daily focus</span>
     <span class="wl-footer-links">
-    <a id="wl-footer-faq" href="#faq">FAQ</a>
-    <a id="wl-footer-login" href="login.html">Log in</a>
-    <a id="wl-footer-register" href="register.html">Register</a>
+    <a id="wl-footer-faq" href="#faq" data-i18n="wl.footer.faq">FAQ</a>
+    <a id="wl-footer-login" href="login.html" data-i18n="wl.nav.login">Log in</a>
+    <a id="wl-footer-register" href="register.html" data-i18n="login.registerLink">Register</a>
   </span>
 </footer>
 
