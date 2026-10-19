@@ -128,8 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // "Earlier" and "later" arrows must point the other way in right-to-left text
     const arrowLater = () => (LANGS[lang].dir === 'rtl' ? '←' : '→');
     const arrowEarlier = () => (LANGS[lang].dir === 'rtl' ? '→' : '←');
-    const arrowPrev = () => (LANGS[lang].dir === 'rtl' ? '›' : '‹');
-    const arrowNext = () => (LANGS[lang].dir === 'rtl' ? '‹' : '›');
+    // ‹ › are mirrored by the browser itself in RTL text, so no swap here (← → above are not mirrored)
+    const arrowPrev = () => '‹';
+    const arrowNext = () => '›';
 
     function startOfDay(date) {
         return new Date(date.getFullYear(), date.getMonth(), date.getDate());
