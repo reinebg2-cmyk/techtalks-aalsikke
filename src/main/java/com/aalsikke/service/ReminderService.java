@@ -98,21 +98,15 @@ public class ReminderService {
                 .orElse(false);
     }
     /**
-     * KAN-299: a reminder must fall inside the task's window.
-     * Window start = startTime, or createdAt for deadline-only tasks (no startTime).
-     * Window end = deadline, or endTime when there is no deadline.
-     * If the task has neither (start-only, no deadline) there is no upper limit.
+     * KAN-299 / KAN-379: a reminder can be any time up to the task's end.
+     * Before the start is allowed (the evening before, the same morning): that's what reminders are for.
+     * End = deadline, or endTime when there is no deadline. Start-only tasks have no upper limit.
      */
-    private static void validateWithinTimeline(ScheduleItem item, OffsetDateTime remindAt) {
+    static void validateWithinTimeline(ScheduleItem item, OffsetDateTime remindAt) {
         if (remindAt == null) {
             throw new IllegalArgumentException("remindAt is required.");
         }
-        OffsetDateTime from = item.getStartTime() != null ? item.getStartTime() : item.getCreatedAt();
         OffsetDateTime to = item.getDeadline() != null ? item.getDeadline() : item.getEndTime();
-
-        if (from != null && remindAt.isBefore(from)) {
-            throw new IllegalArgumentException("A reminder cannot be set before the task's start time.");
-        }
         // KAN-370: a repeating task's reminders move to later weeks, so only the first date's start limits them
         if (to != null && remindAt.isAfter(to) && !item.isRecurring()) {
             throw new IllegalArgumentException("A reminder cannot be set after the task's deadline.");
