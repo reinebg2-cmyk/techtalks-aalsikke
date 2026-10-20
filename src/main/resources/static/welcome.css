@@ -273,3 +273,11 @@ html { scroll-behavior: smooth; }
     line-height: 1.55;
     color: var(--slate-light);
 }
+
+/* Help page (help.html) */
+.help-steps { max-width: 44rem; margin: 0 auto; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 0.625rem; }
+.help-steps li { counter-increment: step; display: grid; grid-template-columns: auto 1fr; column-gap: 0.875rem; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.875rem 1rem; }
+.help-steps li::before { content: counter(step); grid-row: span 2; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--trust-blue); color: #fff; font-weight: 700; font-size: 0.875rem; }
+.help-steps li strong { color: var(--navy); }
+.help-steps li span { color: var(--slate-light); font-size: 0.9375rem; }
+.help-back { text-align: center; }

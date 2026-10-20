@@ -22,13 +22,13 @@
         link.href = FEEDBACK_URL;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        link.setAttribute('aria-label', 'Send feedback (opens in a new tab)');
+        link.setAttribute('aria-label', t('feedback.aria'));
 
         const icon = document.createElement('span');
         icon.setAttribute('aria-hidden', 'true');
         icon.textContent = '\u{1F4AC}';
 
-        link.append(icon, document.createTextNode(' Send feedback'));
+        link.append(icon, document.createTextNode(' ' + t('feedback.label')));
         document.body.append(link);
     }
 

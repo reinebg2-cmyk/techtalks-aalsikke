@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="i18n.js"></script>
+    <script src="theme-init.js"></script>
+    <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+    <title data-i18n="page.help">Help — Aal Sikke</title>
+    <meta name="description" content="Help and frequently asked questions for Aal Sikke, the adaptive life management platform for students and workers: accounts, tasks, calendar, reminders and your data.">
+    <meta name="robots" content="index, follow">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Aal Sikke">
+    <meta property="og:title" content="Help — Aal Sikke">
+    <meta property="og:description" content="Answers to common questions about accounts, tasks, calendar, reminders and your data.">
+    <meta property="og:image" content="logo-mark.svg">
+    <meta name="twitter:card" content="summary">
+    <script src="seo.js"></script>
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "Who is Aal Sikke for?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Students, people who work, and people who do both. You choose Student, Work or Dual when you register, and you can change it later in your profile."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Do I have to verify my email?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes. After you register we send a verification link. Open it, then log in. If the email does not arrive within a few minutes, check your spam folder, or use the resend button on the login page."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How do I add a weekly class or shift?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Open Tasks and tap New task. Pick the category Class or Shift, tick “Has a start time” and “Repeat weekly”, then choose the days. It shows up on your calendar every week."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How do reminders work?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Tick “Remind me about this task” when you add it. You get a halfway reminder, and you can add your own. Reminders appear under the bell in the top bar, and you can switch on email reminders in Settings."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What does Conflict mean?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Two items overlap in time, for example a class and a shift. Both get an orange Conflict badge so you can move one before the clash happens."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Can I use it on my phone?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes. Open the site in your phone’s browser, nothing to install. The menu moves to the bottom of the screen on small devices."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Can I see my tasks in Google Calendar or my phone’s calendar?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes. On the Tasks page, choose Export to calendar. It downloads a file that Google Calendar, Apple Calendar and Outlook can import."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "I forgot my password. What now?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "On the login page choose “Forgot password?” and enter your email. We send you a link to set a new one."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Is my data safe, and can I delete it?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The site uses HTTPS only. In Settings you can download a copy of your data or delete your account, which removes everything. Aal Sikke is still being tested with real users, so data may be reset if something goes badly wrong."
+                    }
+                }
+            ]
+        }
+    </script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="welcome.css">
+</head>
+<body class="welcome-body">
+
+<header class="wl-nav">
+    <a class="wl-brand" href="index.html" aria-label="Aal Sikke home" data-i18n-aria-label="auth.homeAria">
+        <svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg>
+    </a>
+    <nav class="wl-nav-actions" aria-label="Primary" data-i18n-aria-label="wl.nav.aria">
+        <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
+        <select id="lang-select" class="lang-select" aria-label="Language" data-i18n-aria-label="settings.language.title"></select>
+        <a class="wl-link" href="login.html" data-i18n="wl.nav.login">Log in</a>
+        <a class="wl-btn wl-btn-primary" href="register.html" data-i18n="wl.nav.cta">Get started</a>
+    </nav>
+</header>
+
+<main>
+    <section class="wl-hero">
+        <p class="wl-eyebrow" data-i18n="auth.help">Help</p>
+        <h1 data-i18n="help.title">How can we help?</h1>
+        <p class="wl-lead" data-i18n="help.lead">Quick answers about getting started, your tasks and calendar, reminders and your account.</p>
+    </section>
+
+    <section class="wl-section" aria-labelledby="help-start-title">
+        <h2 id="help-start-title" data-i18n="help.start.title">Getting started in four steps</h2>
+        <ol class="help-steps">
+            <li><strong data-i18n="help.s1.title">Create your account</strong><span data-i18n="help.s1.text">Register with your email, pick Student, Work or Dual, and verify the link we send you.</span></li>
+            <li><strong data-i18n="help.s2.title">Add what is on your plate</strong><span data-i18n="help.s2.text">In Tasks, add classes, shifts and deadlines. Repeat the ones that come every week.</span></li>
+            <li><strong data-i18n="help.s3.title">Check your calendar</strong><span data-i18n="help.s3.text">See everything in one calendar. Overlaps are flagged as Conflicts.</span></li>
+            <li><strong data-i18n="help.s4.title">Set your reminders</strong><span data-i18n="help.s4.text">Choose how you want to be reminded in Settings, including email.</span></li>
+        </ol>
+    </section>
+
+    <section class="wl-section wl-faq" id="faq" aria-labelledby="wl-faq-title">
+        <h2 id="wl-faq-title" data-i18n="wl.faq.title">Questions people ask</h2>
+        <div class="wl-faq-list">
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q1">Who is Aal Sikke for?</summary>
+                <p data-i18n="wl.a1">Students, people who work, and people who do both. You choose Student, Work or Dual when you register, and you can change it later in your profile.</p>
+            </details>
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q2">Do I have to verify my email?</summary>
+                <p data-i18n="wl.a2">Yes. After you register we send a verification link. Open it, then log in. If the email does not arrive within a few minutes, check your spam folder, or use the resend button on the login page.</p>
+            </details>
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q3">How do I add a weekly class or shift?</summary>
+                <p data-i18n="wl.a3">Open Tasks and tap New task. Pick the category Class or Shift, tick “Has a start time” and “Repeat weekly”, then choose the days. It shows up on your calendar every week.</p>
+            </details>
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q4">How do reminders work?</summary>
+                <p data-i18n="wl.a4">Tick “Remind me about this task” when you add it. You get a halfway reminder, and you can add your own. Reminders appear under the bell in the top bar, and you can switch on email reminders in Settings.</p>
+            </details>
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q5">What does Conflict mean?</summary>
+                <p data-i18n="wl.a5">Two items overlap in time, for example a class and a shift. Both get an orange Conflict badge so you can move one before the clash happens.</p>
+            </details>
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q6">Can I use it on my phone?</summary>
+                <p data-i18n="wl.a6">Yes. Open the site in your phone’s browser, nothing to install. The menu moves to the bottom of the screen on small devices.</p>
+            </details>
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q7">Can I see my tasks in Google Calendar or my phone’s calendar?</summary>
+                <p data-i18n="wl.a7">Yes. On the Tasks page, choose Export to calendar. It downloads a file that Google Calendar, Apple Calendar and Outlook can import.</p>
+            </details>
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q8">I forgot my password. What now?</summary>
+                <p data-i18n="wl.a8">On the login page choose “Forgot password?” and enter your email. We send you a link to set a new one.</p>
+            </details>
+            <details class="wl-faq-item">
+                <summary data-i18n="wl.q9">Is my data safe, and can I delete it?</summary>
+                <p data-i18n="wl.a9">The site uses HTTPS only. In Settings you can download a copy of your data or delete your account, which removes everything. Aal Sikke is still being tested with real users, so data may be reset if something goes badly wrong.</p>
+            </details>
+        </div>
+    </section>
+
+    <section class="wl-section help-back">
+        <a class="wl-btn wl-btn-secondary wl-btn-lg" href="login.html" data-i18n="help.back">&#8592; Back to log in</a>
+    </section>
+</main>
+
+<footer class="wl-footer">
+    <span data-i18n="login.footnote">Aal Sikke v2.4 &middot; Structured daily focus</span>
+    <span class="wl-footer-links">
+    <a href="index.html" data-i18n="help.home">Home</a>
+    <a href="login.html" data-i18n="wl.nav.login">Log in</a>
+    <a href="register.html" data-i18n="login.registerLink">Register</a>
+  </span>
+</footer>
+
+<script src="theme-toggle.js"></script>
+</body>
+</html>
