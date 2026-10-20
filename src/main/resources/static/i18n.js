@@ -643,6 +643,8 @@ const I18N = {
       "help.s4.text": "Choose how you want to be reminded in Settings, including email.",
       "help.back": "← Back to log in",
       "help.home": "Home",
+      "feedback.label": "Send feedback",
+      "feedback.aria": "Send feedback (opens in a new tab)",
 
         // add one key per hardcoded string as you convert each page
 
@@ -1284,6 +1286,8 @@ const I18N = {
       "help.s4.text": "اختر من الإعدادات كيف تريد أن نذكّرك، بما في ذلك البريد الإلكتروني.",
       "help.back": "→ العودة إلى تسجيل الدخول",
       "help.home": "الرئيسية",
+      "feedback.label": "أرسل ملاحظاتك",
+      "feedback.aria": "أرسل ملاحظاتك (يفتح في تبويب جديد)",
 
   }
 };
