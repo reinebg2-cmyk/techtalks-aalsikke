@@ -12,4 +12,5 @@ import lombok.Setter;
 public class LoginRequest {
     private String email;
     private String password;
+    private boolean rememberMe;   // false when the frontend doesn't send it
 }

@@ -76,10 +76,10 @@
     async function fetchSlots(params) {
         const query = new URLSearchParams(params);
         const response = await fetch(`${API_BASE}/api/schedule-items/free-slots?${query}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
+            headers: { Authorization: `Bearer ${getToken()}` }
         });
         if (response.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
+            clearToken();
             window.location.href = 'login.html';
             throw new Error(t('err.session'));
         }
@@ -237,7 +237,7 @@
     // ---------------- wiring per form ----------------
 
     document.addEventListener('DOMContentLoaded', () => {
-        if (!localStorage.getItem(TOKEN_KEY)) return;
+        if (!getToken()) return;
         if (document.querySelector('.free-slot-panel')) return;   // already set up
 
         // KAN-367: search the day of Start when "Has a start time" is ticked, otherwise Due, otherwise today

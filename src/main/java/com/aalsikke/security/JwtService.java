@@ -21,6 +21,10 @@ public class JwtService {
     @Value("${jwt.expiration-ms}")
     private long jwtExpiration;
 
+    @Value("${jwt.remember-expiration-ms:2592000000}")
+    private long rememberExpiration;
+
+
     private SecretKey getSigningKey() {
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
@@ -36,13 +40,19 @@ public class JwtService {
     }
 
     public String generateToken(String email) {
+        return generateToken(email, false);
+    }
+
+    public String generateToken(String email, boolean rememberMe) {
+        long lifetime = rememberMe ? rememberExpiration : jwtExpiration;
         return Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .expiration(new Date(System.currentTimeMillis() + lifetime))
                 .signWith(getSigningKey())
                 .compact();
     }
+
     public String extractEmail(String token) {
         return extractUsername(token);
     }
