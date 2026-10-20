@@ -3849,6 +3849,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeReminderForm();
       showToast(t('notif.saved'));
       loadDueReminders();   // refreshes both lists
+      window.dispatchEvent(new CustomEvent('aalsikke:bell-changed'));   // KAN-382: calendar redraws its markers
     } catch (error) {
       if (error.sessionExpired) return;
       console.error('Failed to save reminder:', error);
@@ -3879,6 +3880,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (editingReminder && String(editingReminder.id) === String(id)) closeReminderForm();
       showToast(t('notif.deleted'));
+      window.dispatchEvent(new CustomEvent('aalsikke:bell-changed'));   // KAN-382
       loadDueReminders();
     } catch (error) {
       if (error.sessionExpired) return;
