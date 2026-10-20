@@ -32,10 +32,7 @@
     }
 
     function formatWhen(iso) {
-        const lang = (document.documentElement.lang || '').startsWith('ar') ? 'ar' : 'en-GB';   // en-GB = "20 Oct, 15:49"
-        return new Date(iso).toLocaleString(lang, {
-            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', numberingSystem: 'latn'
-        });
+        return formatAppDateTime(new Date(iso));   // KAN-383: same format as the rest of the app
     }
 
     function toLocalInputValue(value) {

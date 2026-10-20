@@ -255,12 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return t('due.invalid');
     }
 
-    return date.toLocaleString(LANGS[lang].locale, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
+    return formatAppDateTime(date);   // KAN-383
   }
 
   function toDateTimeLocal(dateStr) {

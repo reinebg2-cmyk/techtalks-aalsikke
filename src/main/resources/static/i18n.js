@@ -6,6 +6,28 @@ const LANGS = {
   // fr: { dir: "ltr", locale: "fr-FR", label: "Français" }  <- add later
 };
 
+// KAN-383: one time format for the whole app: 12-hour, "5:36 PM" / "5:36 م".
+// en-GB keeps "20 Oct" dates but writes "pm" in lowercase, so English am/pm is uppercased here.
+function appLocale() {
+  return (LANGS[lang] || LANGS.en).locale;
+}
+
+function fixAmPm(text) {
+  return text.replace(/\b(am|pm)\b/g, s => s.toUpperCase());
+}
+
+/** "5:36 PM" / "5:36 م" */
+function formatAppTime(date) {
+  return fixAmPm(date.toLocaleTimeString(appLocale(), { hour: 'numeric', minute: '2-digit', hour12: true }));
+}
+
+/** "20 Oct, 5:36 PM" / "20 تشرين الأول، 5:36 م" */
+function formatAppDateTime(date) {
+  return fixAmPm(date.toLocaleString(appLocale(), {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+  }));
+}
+
 const I18N = {
   en: {
     "nav.calendar": "Calendar",
