@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatTime(date) {
         // 12-hour clock ("11:00 PM"), the same as the Tasks page and the dashboard
-        return date.toLocaleTimeString(loc(), { hour: 'numeric', minute: '2-digit', hour12: true });
+        return formatAppTime(date);   // KAN-383
     }
 
     function formatShortDate(date) {
