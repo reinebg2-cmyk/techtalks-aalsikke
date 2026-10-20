@@ -2250,10 +2250,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showError(t('reminder.afterDue'));
         return null;
       }
-      if (startIso && new Date(remindAt) < new Date(startIso)) {
-        showError(t('reminder.beforeStart'));
-        return null;
-      }
       times.push(new Date(remindAt).getTime());
 
       if (!original) plan.creates.push(remindAt);
