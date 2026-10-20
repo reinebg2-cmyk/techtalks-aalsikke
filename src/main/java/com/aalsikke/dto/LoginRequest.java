@@ -12,5 +12,7 @@ import lombok.Setter;
 public class LoginRequest {
     private String email;
     private String password;
-    private boolean rememberMe;   // false when the frontend doesn't send it
+    // Boolean, not boolean: Jackson builds this class through its all-args constructor,
+    // and a missing primitive there is rejected as a malformed body (400 on every old login).
+    private Boolean rememberMe;   // null when the frontend doesn't send it = not remembered
 }

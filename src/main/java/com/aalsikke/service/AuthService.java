@@ -109,7 +109,7 @@ public class AuthService {
             emailSender.sendWelcomeEmail(user.getEmail(), user.getFullName());
         }
 
-        String jwtToken = jwtService.generateToken(user.getEmail(), request.isRememberMe());
+        String jwtToken = jwtService.generateToken(user.getEmail(), Boolean.TRUE.equals(request.getRememberMe()));
         return new AuthResponse(jwtToken, "User authenticated successfully");
     }
 
