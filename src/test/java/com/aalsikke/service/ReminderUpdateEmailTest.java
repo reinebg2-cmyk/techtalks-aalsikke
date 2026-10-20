@@ -29,7 +29,8 @@ class ReminderUpdateEmailTest {
     void changingTheTime_clearsEmailedAt_soTheNewTimeIsEmailed() {
         ReminderRepository reminders = mock(ReminderRepository.class);
         ScheduleItemRepository items = mock(ScheduleItemRepository.class);
-        ReminderService service = new ReminderService(reminders, items);
+        ReminderService service = new ReminderService(reminders, items,
+                mock(com.aalsikke.repository.UserRepository.class));
 
         ScheduleItem item = new ScheduleItem();
         item.setId(UUID.randomUUID());

@@ -19,18 +19,34 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
     /** Due = not yet triggered and remindAt has passed. Backs GET /api/reminders/due (KAN-235/236). */
     @Query("""
             SELECT r FROM Reminder r
-            WHERE r.scheduleItem.user.email = :email
+            LEFT JOIN FETCH r.scheduleItem i
+            WHERE r.user.email = :email
               AND r.isTriggered = false
               AND r.remindAt <= :now
-              AND r.scheduleItem.reminderEnabled = true
+              AND (i IS NULL OR i.reminderEnabled = true)
             ORDER BY r.remindAt ASC
             """)
     List<Reminder> findDueForUser(@Param("email") String email, @Param("now") OffsetDateTime now);
 
-    /** Ownership derived through the schedule item, same idea as createReminder's check in the service. */
+    /**
+     * KAN-381: everything the bell list shows: upcoming reminders plus due ones not yet dismissed.
+     * Leaves out dismissed past ones, reminders on tasks with reminders switched off, and finished tasks.
+     */
     @Query("""
             SELECT r FROM Reminder r
-            WHERE r.id = :id AND r.scheduleItem.user.email = :email
+            LEFT JOIN FETCH r.scheduleItem i
+            WHERE r.user.email = :email
+              AND (r.isTriggered = false OR r.remindAt > :now)
+              AND (i IS NULL OR (i.reminderEnabled = true
+                   AND (i.status IS NULL OR i.status <> 'COMPLETED' OR i.isRecurring = true)))
+            ORDER BY r.remindAt ASC
+            """)
+    List<Reminder> findAllForUser(@Param("email") String email, @Param("now") OffsetDateTime now);
+
+    /** KAN-381: ownership is stored on the reminder itself, so it works with or without a task. */
+    @Query("""
+            SELECT r FROM Reminder r
+            WHERE r.id = :id AND r.user.email = :email
             """)
     Optional<Reminder> findByIdAndOwner(@Param("id") UUID id, @Param("email") String email);
     List<Reminder> findByScheduleItemId(UUID scheduleItemId);
@@ -44,13 +60,13 @@ public interface ReminderRepository extends JpaRepository<Reminder, UUID> {
      */
     @Query("""
             SELECT r FROM Reminder r
-            JOIN FETCH r.scheduleItem i
-            JOIN FETCH i.user u
+            LEFT JOIN FETCH r.scheduleItem i
+            JOIN FETCH r.user u
             WHERE r.remindAt <= :now
               AND r.isTriggered = false
               AND r.emailedAt IS NULL
-              AND i.reminderEnabled = true
-              AND (i.status IS NULL OR i.status <> 'COMPLETED' OR i.isRecurring = true)
+              AND (i IS NULL OR (i.reminderEnabled = true
+                   AND (i.status IS NULL OR i.status <> 'COMPLETED' OR i.isRecurring = true)))
               AND u.emailVerified = true
               AND NOT EXISTS (
                   SELECT p FROM NotificationPreference p

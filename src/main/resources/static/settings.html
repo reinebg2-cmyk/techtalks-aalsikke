@@ -32,6 +32,21 @@
                     <div class="notif-dropdown-header" data-i18n="notif.header">Reminders</div>
                     <ul class="notif-list" id="notif-list"></ul>
                     <p class="notif-empty" id="notif-empty" data-i18n="notif.empty" hidden>Nothing due right now.</p>
+                    <!-- KAN-381: all upcoming reminders (with or without a task), plus add / edit -->
+                    <div class="notif-dropdown-header notif-subheader" data-i18n="notif.upcoming">Upcoming</div>
+                    <ul class="notif-list" id="notif-upcoming-list"></ul>
+                    <p class="notif-empty" id="notif-upcoming-empty" data-i18n="notif.upcomingEmpty" hidden>No upcoming reminders.</p>
+
+                    <form class="notif-form" id="notif-form" hidden novalidate>
+                        <input type="text" id="notif-form-title" maxlength="200" autocomplete="off">
+                        <input type="datetime-local" id="notif-form-time" dir="ltr">
+                        <p class="notif-form-error" id="notif-form-error" role="alert" hidden></p>
+                        <div class="notif-form-actions">
+                            <button type="button" class="btn-secondary" id="notif-form-cancel" data-i18n="notif.cancel">Cancel</button>
+                            <button type="submit" class="btn-primary" data-i18n="notif.save">Save</button>
+                        </div>
+                    </form>
+                    <button type="button" class="notif-add-btn" id="notif-add-btn" data-i18n="notif.add">+ Add reminder</button>
                 </div>
             </div>
             <div class="profile-menu">
@@ -427,5 +442,6 @@
 <script src="settings.js"></script>
 <script src="account-data.js"></script>
 <script src="feedback.js"></script>
+<script src="reminder-popup.js"></script>
 </body>
 </html>
