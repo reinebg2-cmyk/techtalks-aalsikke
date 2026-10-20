@@ -24,10 +24,10 @@
     async function call(path, options = {}) {
         const response = await fetch(`${API_BASE}${path}`, {
             ...options,
-            headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`, ...(options.headers || {}) }
+            headers: { Authorization: `Bearer ${getToken()}`, ...(options.headers || {}) }
         });
         if (response.status === 401) {
-            localStorage.removeItem(TOKEN_KEY);
+            clearToken();
             window.location.href = 'login.html';
             const expired = new Error(t('data.sessionExpired'));
             expired.sessionExpired = true;
@@ -247,7 +247,7 @@
                 }
 
                 try {
-                    localStorage.removeItem(TOKEN_KEY);
+                    clearToken();
                     localStorage.removeItem('aalsikke_channel_prefs');
                 } catch (_) { /* storage blocked: nothing to clear */ }
                 window.location.href = 'login.html?account-deleted=1';

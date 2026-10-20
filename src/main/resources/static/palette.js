@@ -39,7 +39,7 @@
 
     function authHeaders() {
         return {
-            'Authorization': 'Bearer ' + localStorage.getItem(TOKEN_KEY),
+            'Authorization': 'Bearer ' + getToken(),
             'Content-Type': 'application/json'
         };
     }
@@ -47,7 +47,7 @@
     // ---------- server sync ----------
 
     function loadFromServer() {
-        if (!localStorage.getItem(TOKEN_KEY)) return Promise.resolve(null);
+        if (!getToken()) return Promise.resolve(null);
         return fetch(API_BASE + '/api/users/me/palette', { headers: authHeaders() })
             .then(function (res) { return res.ok ? res.json() : null; })
             .then(function (body) {
@@ -151,7 +151,7 @@
         if (!link) return;
         link.addEventListener('click', function () {
             try {
-                localStorage.removeItem(TOKEN_KEY);
+                clearToken();
                 localStorage.removeItem(PALETTE_KEY);
             } catch (e) { /* non-fatal */ }
         });

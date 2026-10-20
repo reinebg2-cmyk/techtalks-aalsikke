@@ -91,8 +91,15 @@ public class ReminderEmailJob {
         int sent = 0;
         for (Reminder reminder : due) {
             ScheduleItem item = reminder.getScheduleItem();
-            User user = item.getUser();
+            User user = item != null ? item.getUser() : reminder.getUser();
             try {
+                if (item == null) {
+                    // KAN-381: a reminder on its own: its own text, no due time
+                    emailSender.sendReminderEmail(user.getEmail(), user.getFullName(), reminder.getTitle(), null);
+                    reminderRepository.markEmailed(reminder.getId(), OffsetDateTime.now());
+                    sent++;
+                    continue;
+                }
                 OffsetDateTime dueAt = item.getDeadline() != null ? item.getDeadline() : item.getEndTime();
                 if (item.isRecurring()) {
                     // KAN-370: the reminder belongs to one week of a repeating item

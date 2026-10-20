@@ -5,6 +5,7 @@ import com.aalsikke.dto.ReminderResponseDTO;
 import com.aalsikke.model.Reminder;
 import com.aalsikke.repository.ReminderRepository;
 import com.aalsikke.repository.ScheduleItemRepository;
+import com.aalsikke.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.aalsikke.model.ScheduleItem;
@@ -20,11 +21,15 @@ import java.time.Duration;
 public class ReminderService {
     private final ReminderRepository reminderRepository;
     private final ScheduleItemRepository scheduleItemRepository;
+    private final UserRepository userRepository;   // KAN-381: owner of reminders without a task
     private static final Duration MIN_REMINDER_GAP = Duration.ofMinutes(10);
+    private static final int MAX_TITLE_LENGTH = 200;
 
-    public ReminderService(ReminderRepository reminderRepository, ScheduleItemRepository scheduleItemRepository) {
+    public ReminderService(ReminderRepository reminderRepository, ScheduleItemRepository scheduleItemRepository,
+                           UserRepository userRepository) {
         this.reminderRepository = reminderRepository;
         this.scheduleItemRepository = scheduleItemRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -33,6 +38,9 @@ public class ReminderService {
      */
     @Transactional
     public Optional<ReminderResponseDTO> createReminder(CreateReminderRequest request, String email) {
+        if (request.scheduleItemId() == null) {
+            return createStandalone(request, email);   // KAN-381
+        }
         return scheduleItemRepository.findById(request.scheduleItemId())
                 .filter(item -> item.getUser().getEmail().equals(email))
                 .map(item -> {
@@ -44,18 +52,44 @@ public class ReminderService {
                     return toResponse(reminderRepository.save(reminder));
                 });
     }
+    /** KAN-381: a reminder on its own ("22/12 Coco's birthday, buy a gift"). Empty = unknown user. */
+    private Optional<ReminderResponseDTO> createStandalone(CreateReminderRequest request, String email) {
+        if (request.remindAt() == null) {
+            throw new IllegalArgumentException("remindAt is required.");
+        }
+        String title = cleanTitle(request.title());
+        return userRepository.findByEmail(email)
+                .map(user -> {
+                    Reminder reminder = new Reminder();
+                    reminder.setUser(user);
+                    reminder.setTitle(title);
+                    reminder.setRemindAt(request.remindAt());
+                    return toResponse(reminderRepository.save(reminder));
+                });
+    }
+
     /** Change when a reminder fires. Empty = reminder missing or not owned by the caller. */
     @Transactional
     public Optional<ReminderResponseDTO> updateReminder(UUID id, UpdateReminderRequest request, String email) {
         return reminderRepository.findByIdAndOwner(id, email)
                 .map(reminder -> {
                     ScheduleItem item = reminder.getScheduleItem();
-                    validateWithinTimeline(item, request.remindAt());
-                    // The reminder being edited must not clash with itself
-                    List<Reminder> others = reminderRepository.findByScheduleItemId(item.getId()).stream()
-                            .filter(other -> !other.getId().equals(reminder.getId()))
-                            .toList();
-                    validateMinGap(request.remindAt(), others);
+                    if (item == null) {
+                        // KAN-381: no task, so no task window and no 10-minute gap; the title can change
+                        if (request.remindAt() == null) {
+                            throw new IllegalArgumentException("remindAt is required.");
+                        }
+                        if (request.title() != null) {
+                            reminder.setTitle(cleanTitle(request.title()));
+                        }
+                    } else {
+                        validateWithinTimeline(item, request.remindAt());
+                        // The reminder being edited must not clash with itself
+                        List<Reminder> others = reminderRepository.findByScheduleItemId(item.getId()).stream()
+                                .filter(other -> !other.getId().equals(reminder.getId()))
+                                .toList();
+                        validateMinGap(request.remindAt(), others);
+                    }
                     reminder.setRemindAt(request.remindAt());
                     reminder.setTriggered(false);   // a new time means it should fire again
                     reminder.setEmailedAt(null);    // KAN-336: ...and be emailed again at the new time
@@ -87,6 +121,15 @@ public class ReminderService {
                 .toList();
     }
 
+    /** KAN-381: every reminder the bell list shows, with or without a task. */
+    @Transactional(readOnly = true)
+    public List<ReminderResponseDTO> getAllRemindersForCurrentUser(String email) {
+        return reminderRepository.findAllForUser(email, OffsetDateTime.now())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public boolean markTriggered(UUID id, String email) {
         return reminderRepository.findByIdAndOwner(id, email)
@@ -98,21 +141,15 @@ public class ReminderService {
                 .orElse(false);
     }
     /**
-     * KAN-299: a reminder must fall inside the task's window.
-     * Window start = startTime, or createdAt for deadline-only tasks (no startTime).
-     * Window end = deadline, or endTime when there is no deadline.
-     * If the task has neither (start-only, no deadline) there is no upper limit.
+     * KAN-299 / KAN-379: a reminder can be any time up to the task's end.
+     * Before the start is allowed (the evening before, the same morning): that's what reminders are for.
+     * End = deadline, or endTime when there is no deadline. Start-only tasks have no upper limit.
      */
-    private static void validateWithinTimeline(ScheduleItem item, OffsetDateTime remindAt) {
+    static void validateWithinTimeline(ScheduleItem item, OffsetDateTime remindAt) {
         if (remindAt == null) {
             throw new IllegalArgumentException("remindAt is required.");
         }
-        OffsetDateTime from = item.getStartTime() != null ? item.getStartTime() : item.getCreatedAt();
         OffsetDateTime to = item.getDeadline() != null ? item.getDeadline() : item.getEndTime();
-
-        if (from != null && remindAt.isBefore(from)) {
-            throw new IllegalArgumentException("A reminder cannot be set before the task's start time.");
-        }
         // KAN-370: a repeating task's reminders move to later weeks, so only the first date's start limits them
         if (to != null && remindAt.isAfter(to) && !item.isRecurring()) {
             throw new IllegalArgumentException("A reminder cannot be set after the task's deadline.");
@@ -128,11 +165,24 @@ public class ReminderService {
         }
     }
 
+    /** KAN-381: trimmed, 1–200 characters. */
+    static String cleanTitle(String title) {
+        String clean = title == null ? "" : title.trim();
+        if (clean.isEmpty()) {
+            throw new IllegalArgumentException("A reminder needs a title.");
+        }
+        if (clean.length() > MAX_TITLE_LENGTH) {
+            throw new IllegalArgumentException("A reminder title can be at most 200 characters.");
+        }
+        return clean;
+    }
+
     private ReminderResponseDTO toResponse(Reminder reminder) {
+        ScheduleItem item = reminder.getScheduleItem();   // KAN-381: null for a reminder on its own
         return new ReminderResponseDTO(
                 reminder.getId(),
-                reminder.getScheduleItem().getId(),
-                reminder.getScheduleItem().getTitle(),
+                item != null ? item.getId() : null,
+                item != null ? item.getTitle() : reminder.getTitle(),
                 reminder.getRemindAt(),
                 reminder.isTriggered()
         );

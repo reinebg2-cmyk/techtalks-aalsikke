@@ -932,3 +932,23 @@
         height: 2.5rem;
     }
 }
+
+
+/* Titles are typed in any language: each one takes its own direction from its first letter,
+   so in Arabic mode an English title is cut at its end ("Weekly remi…"), not its start. */
+.cal-event-title,
+.cal-multiday-title,
+.cal-more-title,
+.cal-deadline-text,
+.marker-title,
+.cal-preview-title {
+    unicode-bidi: plaintext;
+}
+
+/* KAN-382: standalone reminders in the Due row */
+.cal-reminder-marker::before { content: none; display: none; }   /* no deadline ◆, the 🔔 marks it */
+.cal-reminder-marker {
+    border-inline-start: 3px solid var(--logo-accent);
+    background: var(--amber-bg);
+    cursor: pointer;
+}
