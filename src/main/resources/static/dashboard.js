@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // AUTHENTICATION
   // ============================================================
 
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = getToken();
 
   if (!token) {
     window.location.href = 'login.html';
@@ -35,11 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Read the token on every request: when the user changes their email the
   // backend issues a new JWT and it is stored under the same key.
   function authHeaders() {
-    return { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` };
+    return { Authorization: `Bearer ${getToken()}` };
   }
 
   function redirectToLogin() {
-    localStorage.removeItem(TOKEN_KEY);
+    clearToken();
     window.location.href = 'login.html';
   }
 
@@ -91,6 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const notifList = document.getElementById('notif-list');
   const notifEmpty = document.getElementById('notif-empty');
   const notifBadge = document.getElementById('notif-badge');
+  // KAN-381: upcoming reminders + add/edit form in the bell
+  const notifUpcomingList = document.getElementById('notif-upcoming-list');
+  const notifUpcomingEmpty = document.getElementById('notif-upcoming-empty');
+  const notifForm = document.getElementById('notif-form');
+  const notifFormTitle = document.getElementById('notif-form-title');
+  const notifFormTime = document.getElementById('notif-form-time');
+  const notifFormError = document.getElementById('notif-form-error');
+  const notifFormCancel = document.getElementById('notif-form-cancel');
+  const notifAddBtn = document.getElementById('notif-add-btn');
   const editProfileLink = document.getElementById('edit-profile-link');
   const sidebarProfileBtn =
       document.getElementById('sidebar-profile-btn');
@@ -246,12 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return t('due.invalid');
     }
 
-    return date.toLocaleString(LANGS[lang].locale, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
+    return formatAppDateTime(date);   // KAN-383
   }
 
   function toDateTimeLocal(dateStr) {
@@ -1655,7 +1659,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // The JWT subject is the user's email, so when the email changes the
         // backend issues a fresh token. Swap it in before any further request.
         if (body && body.token) {
-          localStorage.setItem(TOKEN_KEY, body.token);
+          setToken(body.token);
         }
 
         const { token: _ignored, ...updatedProfile } = body || {};
@@ -2248,10 +2252,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (deadlineIso && new Date(remindAt) > new Date(deadlineIso)) {
         showError(t('reminder.afterDue'));
-        return null;
-      }
-      if (startIso && new Date(remindAt) < new Date(startIso)) {
-        showError(t('reminder.beforeStart'));
         return null;
       }
       times.push(new Date(remindAt).getTime());
@@ -3622,6 +3622,8 @@ document.addEventListener('DOMContentLoaded', () => {
     li.remove();
     updateNotifBadge();
     if (notifEmpty) notifEmpty.hidden = notifList.children.length !== 0;
+    loadAllReminders();   // KAN-381: a snoozed reminder shows up under Upcoming
+    window.dispatchEvent(new CustomEvent('aalsikke:bell-changed'));   // the popup drops that card too
   }
 
   function renderNotifList(reminders) {
@@ -3698,6 +3700,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dueReminders = await response.json();
       renderNotifList(dueReminders);
       updateNotifBadge();
+      loadAllReminders();   // KAN-381
 
     } catch (error) {
       if (error.sessionExpired) return;
@@ -3721,6 +3724,170 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast(t('bell.dismissFailed'));
     }
   }
+
+  // ============================================================
+  // KAN-381: ALL REMINDERS IN THE BELL (with or without a task)
+  // GET /api/reminders, POST /api/reminders, PUT/DELETE /api/reminders/{id}
+  // ============================================================
+
+  let editingReminder = null;   // null = the form adds a new reminder
+
+  function toLocalInputValue(value) {
+    const d = new Date(value);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function loadAllReminders() {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/reminders`);
+      if (!response.ok) {
+        throw new Error(`Server responded ${response.status}`);
+      }
+      renderUpcomingList(await response.json());
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Failed to load reminders:', error);
+    }
+  }
+
+  function renderUpcomingList(reminders) {
+    if (!notifUpcomingList) return;
+    notifUpcomingList.innerHTML = '';
+
+    // Due ones are already in the list above (with Snooze / ✓)
+    const upcoming = reminders.filter(r => Date.parse(r.remindAt) > Date.now());
+    if (notifUpcomingEmpty) notifUpcomingEmpty.hidden = upcoming.length !== 0;
+
+    upcoming.forEach(reminder => {
+      const li = document.createElement('li');
+      li.className = 'notif-item';
+      li.dataset.id = reminder.id;
+
+      const title = reminder.scheduleItemTitle || t('bell.reminder');
+      const onTask = Boolean(reminder.scheduleItemId);
+
+      li.innerHTML = `
+        <div class="notif-item-body">
+          <p class="notif-item-title">${escapeHtml(title)}</p>
+          <span class="notif-item-time">${escapeHtml(formatDue(reminder.remindAt))}${onTask ? ` · ${t('notif.onTask')}` : ''}</span>
+        </div>
+        <div class="notif-item-actions">
+          <button type="button" class="notif-edit-btn" aria-label="${t('notif.edit')}" title="${t('notif.edit')}">&#9998;</button>
+          <button type="button" class="notif-delete-btn" aria-label="${t('notif.delete')}" title="${t('notif.delete')}">&#128465;</button>
+        </div>
+      `;
+
+      li.querySelector('.notif-edit-btn').addEventListener('click', () => openReminderForm(reminder));
+      li.querySelector('.notif-delete-btn').addEventListener('click', event => askDeleteReminder(event, li, reminder.id));
+
+      notifUpcomingList.appendChild(li);
+    });
+  }
+
+  function openReminderForm(reminder = null) {
+    if (!notifForm) return;
+    editingReminder = reminder;
+    const onTask = Boolean(reminder && reminder.scheduleItemId);
+
+    notifFormTitle.value = reminder ? (reminder.scheduleItemTitle || '') : '';
+    notifFormTitle.placeholder = t('notif.titlePlaceholder');
+    notifFormTitle.disabled = onTask;   // a task reminder's text is the task's title
+    notifFormTime.value = toLocalInputValue(reminder ? reminder.remindAt : Date.now() + 60 * 60 * 1000);
+    notifFormError.hidden = true;
+
+    notifForm.hidden = false;
+    notifAddBtn.hidden = true;
+    (onTask ? notifFormTime : notifFormTitle).focus();
+  }
+
+  function closeReminderForm() {
+    editingReminder = null;
+    if (notifForm) notifForm.hidden = true;
+    if (notifAddBtn) notifAddBtn.hidden = false;
+  }
+
+  function showReminderFormError(message) {
+    notifFormError.textContent = message;
+    notifFormError.hidden = false;
+  }
+
+  async function saveReminderForm(event) {
+    event.preventDefault();
+    const onTask = Boolean(editingReminder && editingReminder.scheduleItemId);
+    const title = notifFormTitle.value.trim();
+
+    if (!onTask && !title) return showReminderFormError(t('notif.needTitle'));
+    if (!notifFormTime.value) return showReminderFormError(t('notif.needTime'));
+
+    const when = new Date(notifFormTime.value);
+    if (when.getTime() <= Date.now()) return showReminderFormError(t('notif.pastTime'));
+
+    const remindAt = when.toISOString();
+    const body = onTask ? { remindAt } : { remindAt, title };
+    const url = editingReminder
+        ? `${API_BASE}/api/reminders/${editingReminder.id}`
+        : `${API_BASE}/api/reminders`;
+
+    try {
+      const response = await apiFetch(url, {
+        method: editingReminder ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const data = await readJsonSafely(response);
+        return showReminderFormError((data && data.message) || t('notif.saveFailed'));
+      }
+
+      closeReminderForm();
+      showToast(t('notif.saved'));
+      loadDueReminders();   // refreshes both lists
+      window.dispatchEvent(new CustomEvent('aalsikke:bell-changed'));   // KAN-382: calendar redraws its markers
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Failed to save reminder:', error);
+      showReminderFormError(t('notif.saveFailed'));
+    }
+  }
+
+  // KAN-381: confirm inside the row instead of the browser's confirm box
+  function askDeleteReminder(event, li, id) {
+    // The 🗑 button is replaced below; without this, the "click outside" handler
+    // sees a detached button and closes the bell.
+    event.stopPropagation();
+    const actions = li.querySelector('.notif-item-actions');
+    actions.innerHTML = `
+      <span class="notif-confirm-text">${t('notif.confirmDelete')}</span>
+      <button type="button" class="notif-confirm-yes">${t('notif.confirmYes')}</button>
+      <button type="button" class="notif-confirm-no">${t('notif.confirmNo')}</button>
+    `;
+    actions.querySelector('.notif-confirm-yes').addEventListener('click', () => deleteReminder(id));
+    actions.querySelector('.notif-confirm-no').addEventListener('click', () => loadAllReminders());
+  }
+
+  async function deleteReminder(id) {
+    try {
+      const response = await apiFetch(`${API_BASE}/api/reminders/${id}`, { method: 'DELETE' });
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`Server responded ${response.status}`);
+      }
+      if (editingReminder && String(editingReminder.id) === String(id)) closeReminderForm();
+      showToast(t('notif.deleted'));
+      window.dispatchEvent(new CustomEvent('aalsikke:bell-changed'));   // KAN-382
+      loadDueReminders();
+    } catch (error) {
+      if (error.sessionExpired) return;
+      console.error('Failed to delete reminder:', error);
+      showToast(t('notif.deleteFailed'), { type: 'error' });
+    }
+  }
+
+  window.addEventListener('aalsikke:popup-changed', () => loadDueReminders());   // KAN-381
+  notifAddBtn?.addEventListener('click', () => openReminderForm());
+  notifFormCancel?.addEventListener('click', closeReminderForm);
+  notifForm?.addEventListener('submit', saveReminderForm);
 
   if (notifBtn && notifDropdown) {
     notifBtn.addEventListener('click', event => {

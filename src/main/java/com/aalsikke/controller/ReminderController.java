@@ -24,12 +24,19 @@ public class ReminderController {
     @PostMapping
     public ResponseEntity<ReminderResponseDTO> createReminder(@RequestBody CreateReminderRequest request,
                                                               Authentication authentication) {
-        if (request == null || request.scheduleItemId() == null || request.remindAt() == null) {
+        // KAN-381: scheduleItemId may be null now (a reminder on its own); the service then requires a title
+        if (request == null || request.remindAt() == null) {
             return ResponseEntity.badRequest().build();
         }
         return reminderService.createReminder(request, authentication.getName())
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /** KAN-381: the bell list: upcoming reminders plus due ones not dismissed yet, with or without a task. */
+    @GetMapping
+    public List<ReminderResponseDTO> getAllReminders(Authentication authentication) {
+        return reminderService.getAllRemindersForCurrentUser(authentication.getName());
     }
 
     /** KAN-236: bell/panel polls this on app open. */

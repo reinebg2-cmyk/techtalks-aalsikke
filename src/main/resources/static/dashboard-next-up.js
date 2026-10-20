@@ -71,7 +71,7 @@
                 return;
             }
 
-            const time = next.start.toLocaleTimeString(LANGS[lang].locale, { hour: 'numeric', minute: '2-digit' });
+            const time = formatAppTime(next.start);   // KAN-383
             titleEl.textContent = next.item.title;
             metaEl.textContent = `${time} · ${formatCountdown(minutesUntil(next.start, now))}`;
         }

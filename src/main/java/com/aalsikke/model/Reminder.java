@@ -5,6 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
@@ -16,9 +17,19 @@ public class Reminder {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_item_id", nullable = false)
+    @JoinColumn(name = "schedule_item_id")   // KAN-381: null = a reminder on its own, without a task
     @JsonIgnoreProperties({"reminders", "hibernateLazyInitializer", "handler"})
     private ScheduleItem scheduleItem;
+
+    /** KAN-381: the owner. Set directly for reminders without a task, filled from the task otherwise. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
+    private User user;
+
+    /** KAN-381: the reminder's own text, used when there is no task. */
+    @Column(name = "title", length = 200)
+    private String title;
 
     @Column(name = "remind_at", nullable = false)
     private OffsetDateTime remindAt;
@@ -40,11 +51,25 @@ public class Reminder {
 
     public Reminder() {}
 
+    /** KAN-381: task reminders (incl. DefaultReminders) don't set the owner themselves; take it from the task. */
+    @PrePersist
+    public void fillOwnerFromTask() {
+        if (user == null && scheduleItem != null) {
+            user = scheduleItem.getUser();
+        }
+    }
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
     public ScheduleItem getScheduleItem() { return scheduleItem; }
     public void setScheduleItem(ScheduleItem scheduleItem) { this.scheduleItem = scheduleItem; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
     public OffsetDateTime getRemindAt() { return remindAt; }
     public void setRemindAt(OffsetDateTime remindAt) { this.remindAt = remindAt; }

@@ -6,6 +6,28 @@ const LANGS = {
   // fr: { dir: "ltr", locale: "fr-FR", label: "Français" }  <- add later
 };
 
+// KAN-383: one time format for the whole app: 12-hour, "5:36 PM" / "5:36 م".
+// en-GB keeps "20 Oct" dates but writes "pm" in lowercase, so English am/pm is uppercased here.
+function appLocale() {
+  return (LANGS[lang] || LANGS.en).locale;
+}
+
+function fixAmPm(text) {
+  return text.replace(/\b(am|pm)\b/g, s => s.toUpperCase());
+}
+
+/** "5:36 PM" / "5:36 م" */
+function formatAppTime(date) {
+  return fixAmPm(date.toLocaleTimeString(appLocale(), { hour: 'numeric', minute: '2-digit', hour12: true }));
+}
+
+/** "20 Oct, 5:36 PM" / "20 تشرين الأول، 5:36 م" */
+function formatAppDateTime(date) {
+  return fixAmPm(date.toLocaleString(appLocale(), {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+  }));
+}
+
 const I18N = {
   en: {
     "nav.calendar": "Calendar",
@@ -18,6 +40,32 @@ const I18N = {
 
     "notif.header": "Reminders",
     "notif.empty": "Nothing due right now.",
+    'notif.upcoming': 'Upcoming',
+    'notif.upcomingEmpty': 'No upcoming reminders.',
+    'notif.add': '+ Add reminder',
+    'notif.titlePlaceholder': 'What should we remind you about?',
+    'notif.save': 'Save',
+    'notif.cancel': 'Cancel',
+    'notif.edit': 'Edit reminder',
+    'notif.delete': 'Delete reminder',
+    'notif.onTask': 'task reminder',
+    'notif.needTitle': 'Write what the reminder is about.',
+    'notif.needTime': 'Pick a date and time.',
+    'notif.pastTime': 'Pick a time in the future.',
+    'notif.saved': 'Reminder saved.',
+    'notif.saveFailed': 'Could not save the reminder.',
+    'notif.deleted': 'Reminder deleted.',
+    'notif.deleteFailed': 'Could not delete the reminder.',
+    'notif.confirmDelete': 'Delete this reminder?',
+      "popup.title": "Reminder",
+      "popup.dismiss": "Dismiss",
+      "popup.snooze": "Snooze 10 min",
+      "popup.reschedule": "Reschedule",
+      "popup.save": "Save",
+      "popup.close": "Close",
+      "popup.failed": "Could not update the reminder.",
+      "notif.confirmYes": "Delete",
+      "notif.confirmNo": "Keep",
     "menu.editProfile": "Edit Profile",
     "menu.changePassword": "Change password",
     "menu.notificationPrefs": "Notification preferences",
@@ -120,6 +168,22 @@ const I18N = {
             "tasks.new.title": "New task",
             "tasks.new.subtitle": "Add a task to your workspace.",
             "tasks.new.toggle": "+ New task",
+            "guide.title": "Get started in four steps",
+            "guide.subtitle": "Your dashboard fills up as you add things.",
+            "guide.hide": "Hide the guide",
+            "guide.s1.title": "Add your weekly classes or shifts",
+            "guide.s1.text": "Tap New task, choose Class or Shift, tick “Has a start time” and “Repeat weekly”.",
+            "guide.s1.action": "Add one",
+            "guide.s2.title": "Add a task with a reminder",
+            "guide.s2.text": "Give it a due date and tick “Remind me about this task”. Open its ⋮ menu and choose Edit to add checklist steps.",
+            "guide.s2.action": "Add a task",
+            "guide.s3.title": "See your week",
+            "guide.s3.text": "The calendar shows everything in one place, plus your weekly review.",
+            "guide.s3.action": "Open calendar",
+            "guide.s4.title": "Choose how you get reminded",
+            "guide.s4.text": "Pick your colours and notification channels in Settings.",
+            "guide.s4.action": "Open settings",
+            "guide.done": "Done",
             "quick.label": "✨ Quick add with AI",
             "quick.placeholder": "e.g. 3andi exam math bukra se3a 10",
             "quick.button": "Fill the form",
@@ -472,6 +536,7 @@ const I18N = {
                 "cal.prevWeek": "Previous week",
                 "cal.nextWeek": "Next week",
                 "cal.moreN": "+{n} more",
+                "cal.reminderMarker": "Reminder at {time}: {title}. Click to open the bell.",
                 "cal.showFewer": "Show fewer",
                 "cal.am": "AM",
                 "cal.pm": "PM",
@@ -629,6 +694,22 @@ const I18N = {
                                    "wl.cta.text": "It takes about a minute to set up.",
                                    "wl.cta.button": "Get started",
                                    "wl.footer.faq": "FAQ",
+      "page.help": "Help — Aal Sikke",
+      "help.title": "How can we help?",
+      "help.lead": "Quick answers about getting started, your tasks and calendar, reminders and your account.",
+      "help.start.title": "Getting started in four steps",
+      "help.s1.title": "Create your account",
+      "help.s1.text": "Register with your email, pick Student, Work or Dual, and verify the link we send you.",
+      "help.s2.title": "Add what is on your plate",
+      "help.s2.text": "In Tasks, add classes, shifts and deadlines. Repeat the ones that come every week.",
+      "help.s3.title": "Check your calendar",
+      "help.s3.text": "See everything in one calendar. Overlaps are flagged as Conflicts.",
+      "help.s4.title": "Set your reminders",
+      "help.s4.text": "Choose how you want to be reminded in Settings, including email.",
+      "help.back": "← Back to log in",
+      "help.home": "Home",
+      "feedback.label": "Send feedback",
+      "feedback.aria": "Send feedback (opens in a new tab)",
 
         // add one key per hardcoded string as you convert each page
 
@@ -644,6 +725,32 @@ const I18N = {
 
     "notif.header": "التذكيرات",
     "notif.empty": "لا يوجد شيء مستحق الآن.",
+    'notif.upcoming': 'القادمة',
+    'notif.upcomingEmpty': 'لا توجد تذكيرات قادمة.',
+    'notif.add': '+ إضافة تذكير',
+    'notif.titlePlaceholder': 'بماذا نذكّرك؟',
+    'notif.save': 'حفظ',
+    'notif.cancel': 'إلغاء',
+    'notif.edit': 'تعديل التذكير',
+    'notif.delete': 'حذف التذكير',
+    'notif.onTask': 'تذكير مهمة',
+    'notif.needTitle': 'اكتب موضوع التذكير.',
+    'notif.needTime': 'اختر التاريخ والوقت.',
+    'notif.pastTime': 'اختر وقتًا في المستقبل.',
+    'notif.saved': 'تم حفظ التذكير.',
+    'notif.saveFailed': 'تعذّر حفظ التذكير.',
+    'notif.deleted': 'تم حذف التذكير.',
+    'notif.deleteFailed': 'تعذّر حذف التذكير.',
+    'notif.confirmDelete': 'حذف هذا التذكير؟',
+      "popup.title": "تذكير",
+      "popup.dismiss": "تجاهل",
+      "popup.snooze": "تأجيل 10 دقائق",
+      "popup.reschedule": "إعادة الجدولة",
+      "popup.save": "حفظ",
+      "popup.close": "إغلاق",
+      "popup.failed": "تعذّر تحديث التذكير.",
+      "notif.confirmYes": "حذف",
+      "notif.confirmNo": "إبقاء",
     "menu.editProfile": "تعديل الملف الشخصي",
     "menu.changePassword": "تغيير كلمة المرور",
     "menu.notificationPrefs": "تفضيلات الإشعارات",
@@ -746,6 +853,22 @@ const I18N = {
             "tasks.new.title": "مهمة جديدة",
             "tasks.new.subtitle": "أضف مهمة إلى مساحة عملك.",
             "tasks.new.toggle": "+ مهمة جديدة",
+            "guide.title": "ابدأ في أربع خطوات",
+            "guide.subtitle": "تمتلئ لوحة التحكم كلما أضفت شيئًا.",
+            "guide.hide": "إخفاء الدليل",
+            "guide.s1.title": "أضف محاضراتك أو دواماتك الأسبوعية",
+            "guide.s1.text": "اضغط «مهمة جديدة»، واختر «محاضرة» أو «دوام»، وحدّد «لها وقت بدء» و«تكرار أسبوعي».",
+            "guide.s1.action": "أضف واحدة",
+            "guide.s2.title": "أضف مهمة مع تذكير",
+            "guide.s2.text": "حدّد موعدًا نهائيًا وفعّل «ذكّرني بهذه المهمة». افتح قائمة ⋮ واختر «تعديل» لإضافة خطوات.",
+            "guide.s2.action": "أضف مهمة",
+            "guide.s3.title": "شاهد أسبوعك",
+            "guide.s3.text": "يعرض التقويم كل شيء في مكان واحد، مع مراجعتك الأسبوعية.",
+            "guide.s3.action": "افتح التقويم",
+            "guide.s4.title": "اختر طريقة تذكيرك",
+            "guide.s4.text": "اختر ألوانك وقنوات الإشعارات من الإعدادات.",
+            "guide.s4.action": "افتح الإعدادات",
+            "guide.done": "تم",
             "quick.label": "✨ إضافة سريعة بالذكاء الاصطناعي",
             "quick.placeholder": "مثلاً: عندي امتحان رياضيات بكرا الساعة 10",
             "quick.button": "املأ النموذج",
@@ -1099,6 +1222,7 @@ const I18N = {
                 "cal.prevWeek": "الأسبوع السابق",
                 "cal.nextWeek": "الأسبوع التالي",
                 "cal.moreN": "+{n} أخرى",
+                "cal.reminderMarker": "تذكير الساعة {time}: {title}. انقر لفتح الجرس.",
                 "cal.showFewer": "عرض أقل",
                 "cal.am": "ص",
                 "cal.pm": "م",
@@ -1256,6 +1380,22 @@ const I18N = {
                 "wl.cta.text": "يستغرق الإعداد دقيقة تقريبًا.",
                 "wl.cta.button": "ابدأ الآن",
                 "wl.footer.faq": "الأسئلة الشائعة",
+      "page.help": "المساعدة — عالسكة",
+      "help.title": "كيف نساعدك؟",
+      "help.lead": "إجابات سريعة عن البدء، ومهامك وتقويمك، والتذكيرات، وحسابك.",
+      "help.start.title": "ابدأ في أربع خطوات",
+      "help.s1.title": "أنشئ حسابك",
+      "help.s1.text": "سجّل ببريدك الإلكتروني، واختر الدراسة أو العمل أو الاثنين معًا، ثم فعّل الرابط الذي نرسله إليك.",
+      "help.s2.title": "أضف ما عليك إنجازه",
+      "help.s2.text": "في «المهام» أضف المحاضرات والدوامات والمواعيد النهائية، وكرّر ما يأتي كل أسبوع.",
+      "help.s3.title": "تابع تقويمك",
+      "help.s3.text": "شاهد كل شيء في تقويم واحد. تُعلَّم التداخلات بشارة «تعارض».",
+      "help.s4.title": "اضبط تذكيراتك",
+      "help.s4.text": "اختر من الإعدادات كيف تريد أن نذكّرك، بما في ذلك البريد الإلكتروني.",
+      "help.back": "→ العودة إلى تسجيل الدخول",
+      "help.home": "الرئيسية",
+      "feedback.label": "أرسل ملاحظاتك",
+      "feedback.aria": "أرسل ملاحظاتك (يفتح في تبويب جديد)",
 
   }
 };

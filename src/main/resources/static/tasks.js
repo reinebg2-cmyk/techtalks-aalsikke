@@ -65,9 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatDue(date) {
         if (!date) return t('due.none');
-        return date.toLocaleString(LANGS[lang].locale, {
-            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-        });
+        return formatAppDateTime(date);   // KAN-383
     }
 
     function isCompleted(task) {

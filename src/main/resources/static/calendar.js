@@ -44,13 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // AUTHENTICATION (same pattern as dashboard.js)
     // ============================================================
 
-    if (!localStorage.getItem(TOKEN_KEY)) {
+    if (!getToken()) {
         window.location.href = 'login.html';
         return;
     }
 
     function redirectToLogin() {
-        localStorage.removeItem(TOKEN_KEY);
+        clearToken();
         window.location.href = 'login.html';
     }
 
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch(API_BASE + path, {
             ...options,
             headers: {
-                Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
+                Authorization: `Bearer ${getToken()}`,
                 ...(options.headers || {})
             }
         });
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('logout-link').addEventListener('click', () => {
-        localStorage.removeItem(TOKEN_KEY);
+        clearToken();
     });
 
     // ============================================================
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatTime(date) {
         // 12-hour clock ("11:00 PM"), the same as the Tasks page and the dashboard
-        return date.toLocaleTimeString(loc(), { hour: 'numeric', minute: '2-digit', hour12: true });
+        return formatAppTime(date);   // KAN-383
     }
 
     function formatShortDate(date) {
@@ -762,6 +762,35 @@ document.addEventListener('DOMContentLoaded', () => {
             deadlineCells[index].append(marker);
         }
 
+        // KAN-382: standalone reminders as 🔔 markers in the Due row; clicking one opens the bell
+        for (const reminder of (state.reminders || [])) {
+            const at = new Date(reminder.remindAt);
+            const index = days.findIndex(day => sameDay(day, at));
+            if (index === -1) continue;
+            const marker = el('div', 'cal-deadline-marker cal-reminder-marker');
+            marker.append(
+                el('span', 'cal-deadline-text', `🔔 ${reminder.scheduleItemTitle}`),
+                el('span', 'cal-deadline-time', formatTime(at))
+            );
+            const label = t('cal.reminderMarker', { time: formatTime(at), title: reminder.scheduleItemTitle });
+            marker.title = label;
+            marker.setAttribute('aria-label', label);
+            marker.setAttribute('role', 'button');
+            marker.tabIndex = 0;
+            const openBell = event => {
+                event.stopPropagation();   // otherwise the "click outside" handler closes the bell right away
+                document.getElementById('notif-btn')?.click();
+            };
+            marker.addEventListener('click', openBell);
+            marker.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openBell(event);
+                }
+            });
+            deadlineCells[index].append(marker);
+        }
+
         // KAN-354: at most DUE_ROW_LIMIT deadlines per day; the rest behind "+N more" (click again for fewer)
         deadlineCells.forEach(cell => {
             const markers = [...cell.querySelectorAll('.cal-deadline-marker')];
@@ -1119,15 +1148,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const query = `from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
-            const [items, conflicts] = await Promise.all([
+            const [items, conflicts, reminders] = await Promise.all([
                 apiFetch(`/api/schedule-items/range?${query}`),
-                apiFetch('/api/schedule-conflicts/me')
+                apiFetch('/api/schedule-conflicts/me'),
+                apiFetch('/api/reminders').catch(() => [])   // KAN-382: a failed reminder list must not break the calendar
             ]);
 
             // Ignore an older response if the user already clicked next/previous again
             if (requestId !== state.requestId) return;
 
             state.conflicts = buildConflictMap(conflicts);
+            state.reminders = reminders.filter(r => !r.scheduleItemId);   // KAN-382: task reminders are already on their task
             render(days, items, state.conflicts);
             loadWeekSummary(days, requestId);
             openPendingOriginal(items);
@@ -1188,6 +1219,10 @@ document.addEventListener('DOMContentLoaded', () => {
         endField.hidden = startOnlyInput.checked;
     }
     startOnlyInput.addEventListener('change', syncEndField);
+
+    // KAN-382: redraw the reminder markers when reminders change in the bell or the popup
+    window.addEventListener('aalsikke:bell-changed', () => load());
+    window.addEventListener('aalsikke:popup-changed', () => load());
 
     async function loadUnscheduledTasks() {
         const all = await apiFetch('/api/schedule-items/me');
