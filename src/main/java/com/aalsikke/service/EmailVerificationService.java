@@ -9,6 +9,8 @@ import com.aalsikke.util.VerificationTokens;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.aalsikke.exception.CodedException;
+import com.aalsikke.util.EmailLang;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -44,9 +46,13 @@ public class EmailVerificationService {
     /** KAN-272: create a new link for the user's current email and send it. */
     @Transactional
     public void sendVerification(User user) {
-        OffsetDateTime now = OffsetDateTime.now();
-        // KAN-362: earlier links stay valid; a resend no longer cancels them.
+        sendVerification(user, "en");
+    }
 
+    /** KAN-272: create a new link for the user's current email and send it. */
+    @Transactional
+    public void sendVerification(User user, String lang) {
+        OffsetDateTime now = OffsetDateTime.now();
         String rawToken = VerificationTokens.newRawToken();
 
         EmailVerificationToken token = new EmailVerificationToken();
@@ -56,8 +62,11 @@ public class EmailVerificationService {
         token.setExpiresAt(now.plus(LINK_LIFETIME));
         tokenRepository.save(token);
 
-        emailSender.sendVerificationEmail(user.getEmail(), baseUrl + "/verify-email.html?token=" + rawToken);
+        emailSender.sendVerificationEmail(user.getEmail(),
+                baseUrl + "/verify-email.html?token=" + rawToken,
+                EmailLang.normalize(lang));
     }
+
 
     /**
      * KAN-362: used when an unverified user logs in. Sends a link only if they have no valid one
@@ -65,16 +74,20 @@ public class EmailVerificationService {
      */
     @Transactional
     public void sendIfNoOpenLink(User user) {
+        sendIfNoOpenLink(user, "en");
+    }
+
+    @Transactional
+    public void sendIfNoOpenLink(User user, String lang) {
         if (user.isEmailVerified()) {
             return;
         }
         boolean hasOpenLink = tokenRepository.existsByUserIdAndEmailIgnoreCaseAndUsedAtIsNullAndExpiresAtAfter(
                 user.getId(), user.getEmail(), OffsetDateTime.now());
         if (!hasOpenLink) {
-            sendVerification(user);
+            sendVerification(user, lang);
         }
     }
-
     /** KAN-273: the link was opened. Marks the email verified, or throws a 400 with a clear message. */
     @Transactional
     public void verify(String rawToken) {
@@ -112,14 +125,18 @@ public class EmailVerificationService {
      */
     @Transactional
     public void resend(String email) {
+        resend(email, "en");
+    }
+
+    @Transactional
+    public void resend(String email, String lang) {
         if (email == null || email.isBlank()) {
             return;
         }
-
         userRepository.findByEmail(email.trim())
                 .filter(user -> !user.isEmailVerified())
                 .filter(this::cooldownPassed)
-                .ifPresent(this::sendVerification);
+                .ifPresent(user -> sendVerification(user, lang));
     }
 
     private boolean cooldownPassed(User user) {
@@ -130,7 +147,8 @@ public class EmailVerificationService {
     }
 
     private IllegalArgumentException invalidLink() {
-        return new IllegalArgumentException(
+        return new CodedException(
+                "VERIFICATION_LINK_INVALID",
                 "This verification link is invalid or has expired. Request a new one.");
     }
 }

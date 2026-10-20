@@ -16,14 +16,32 @@ public interface EmailSender {
      */
     void sendReminderEmail(String to, String name, String taskTitle, java.time.OffsetDateTime dueAt);
 
+    default void sendReminderEmail(String to, String name, String taskTitle,
+                                   java.time.OffsetDateTime dueAt, String lang) {
+        sendReminderEmail(to, name, taskTitle, dueAt);
+    }
     /**
      * KAN-337: tells the user something sensitive changed on their account (password, email).
      * Never throws: the change itself has already happened and must not fail because of email.
      */
     void sendSecurityAlert(String to, String name, String title, String detail);
-
+    default void sendSecurityAlert(String to, String name, String title, String detail, String lang) {
+        sendSecurityAlert(to, name, title, detail);
+    }
     void sendPasswordResetEmail(String to, String resetLink);
 
-    /** KAN-369: "your account is ready", sent once after the first successful login. Never throws. */
     void sendWelcomeEmail(String to, String name);
+
+    /** KAN-369: "your account is ready", sent once after the first successful login. Never throws. */
+    default void sendWelcomeEmail(String to, String name, String lang) {
+        sendWelcomeEmail(to, name);
+    }
+
+    default void sendVerificationEmail(String to, String verificationLink, String lang) {
+        sendVerificationEmail(to, verificationLink);
+    }
+
+    default void sendPasswordResetEmail(String to, String resetLink, String lang) {
+        sendPasswordResetEmail(to, resetLink);
+    }
 }

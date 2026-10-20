@@ -9,6 +9,16 @@ public class ApiError {
 
     private String field;
     private String message;
+    private String code;
+
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+
+    public static ApiError coded(String code, String field, String message) {
+        ApiError e = new ApiError(field, message);
+        e.code = code;
+        return e;
+    }
 
     public ApiError() {}
 

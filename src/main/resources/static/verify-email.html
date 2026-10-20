@@ -21,35 +21,36 @@
 
     <div class="center-brand">
         <h1><svg class="brand-logo brand-logo--lg" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke"><use href="logo-sprite.svg#aal-logo"/></svg></h1>
-        <p>Adaptive Life Management</p>
+        <p data-i18n="auth.tagline">Adaptive Life Management</p>
     </div>
 
     <!-- KAN-273: the link in the verification email opens this page -->
     <div class="card">
-        <h2 id="verify-title">Verifying your email…</h2>
-        <p class="subtitle" id="verify-message" role="status" aria-live="polite">One moment.</p>
+        <h2 id="verify-title" data-i18n="ve.verifying">Verifying your email…</h2>
+        <p class="subtitle" id="verify-message" role="status" aria-live="polite" data-i18n="ve.oneMoment">One moment.</p>
 
-        <a href="login.html" class="btn-primary verify-login-btn" id="verify-login-btn" hidden>Go to login &#8594;</a>
+        <a href="login.html" class="btn-primary verify-login-btn" id="verify-login-btn" data-i18n="ve.goLogin" hidden>Go to login &#8594;</a>
 
         <!-- Shown when the link is invalid or expired (KAN-275) -->
         <form id="resend-form" novalidate hidden>
             <div class="field">
-                <label for="resend-email">Email</label>
+                <label for="resend-email" data-i18n="ve.email">Email</label>
                 <div class="input-wrap">
                     <input type="email" id="resend-email" placeholder="alex.chen@university.edu" autocomplete="email">
                 </div>
             </div>
-            <button type="submit" class="btn-primary" id="resend-btn">Send a new link</button>
+            <button type="submit" class="btn-primary" id="resend-btn" data-i18n="ve.resend">Send a new link</button>
             <p class="notice-text" id="resend-message" role="status" aria-live="polite"></p>
         </form>
 
-        <div class="link-row"><a href="login.html">Back to login</a></div>
+        <div class="link-row"><a href="login.html" data-i18n="auth.backToLogin">Back to login</a></div>
     </div>
 
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="i18n.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="verify-email.js"></script>
 </body>

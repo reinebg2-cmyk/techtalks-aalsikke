@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import static org.mockito.ArgumentMatchers.eq;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -46,7 +47,7 @@ class EmailVerificationServiceTest {
         service.sendVerification(user);
 
         verify(tokenRepository, never()).invalidateOpenTokens(any(), any());
-        verify(emailSender).sendVerificationEmail(eq("student@test.com"), any());
+        verify(emailSender).sendVerificationEmail(eq("student@test.com"), any(), eq("en"));
     }
 
     @Test
@@ -80,6 +81,9 @@ class EmailVerificationServiceTest {
 
         service.sendIfNoOpenLink(user);
 
-        verify(emailSender).sendVerificationEmail(eq("student@test.com"), any());
+        verify(emailSender).sendVerificationEmail(eq("student@test.com"), any(), eq("en"));
+        service.sendVerification(user, "ar");
+
+        verify(emailSender).sendVerificationEmail(eq("student@test.com"), any(), eq("ar"));
     }
 }

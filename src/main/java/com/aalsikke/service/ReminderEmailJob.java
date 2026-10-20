@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import com.aalsikke.util.EmailLang;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -107,7 +108,8 @@ public class ReminderEmailJob {
                         }
                     }
                 }
-                emailSender.sendReminderEmail(user.getEmail(), user.getFullName(), item.getTitle(), dueAt);
+                emailSender.sendReminderEmail(user.getEmail(), user.getFullName(), item.getTitle(), dueAt,
+                        EmailLang.normalize(user.getPreferredLanguage()));
                 reminderRepository.markEmailed(reminder.getId(), OffsetDateTime.now());
                 sent++;
             } catch (RuntimeException e) {

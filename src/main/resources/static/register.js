@@ -5,6 +5,8 @@
 
 
 const API_BASE = window.location.origin;
+// The verification email is written in the language the page is shown in.
+const pageLang = () => (document.documentElement.lang || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en';
 
 // Non-blocking message (replaces alert). Writes to the page's #toast element.
 let toastTimer = null;
@@ -145,10 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+
       });
     } catch (_) {
       // fetch() throws a TypeError ("Failed to fetch" / "Load failed") when the server can't be reached
-      throw { message: t('auth.network')};
+      throw { message: t('auth.network') };
     }
 
     let body = null;
@@ -156,7 +159,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!res.ok) {
       throw {
-        message: (body && body.message) || (body && body.error) || t('reg.failed') ,
+        // apiError turns the server's error code into a sentence in the page language
+        message: apiError(body) || t('reg.failed'),
+        code: body && !Array.isArray(body) ? body.code : null,
         field: body && !Array.isArray(body) ? body.field : null // KAN-258: server says which field
       };
     }
@@ -188,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
       profileMode: selectedRole.toUpperCase(),
       dateOfBirth: dobInput.value || null,
       phoneNumber: phoneInput.value.trim() || null,
-
+      lang: pageLang(),
     }).then(() => {
       submitBtn.textContent = t('reg.created');
       // KAN-272: the account must be verified before the first login
@@ -202,11 +207,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const usernameHint = usernameField.querySelector('.error-text');
         if (usernameHint) usernameHint.textContent = err.message;
         setState(usernameField, 'is-error');
-      } else if (err.field === 'email' || (err.message && err.message.toLowerCase().includes('email'))) {
+      } else if (err.field === 'email' || /EMAIL/i.test(err.code || '')) {
+        // Was: err.message.includes('email'), which can't work once the message is Arabic.
+        // NOTE: matches the error code names in AuthService (e.g. EMAIL_TAKEN); adjust if they differ.
         if (emailHint) emailHint.textContent = err.message;
         setState(emailField, 'is-error');
       } else {
-        showToast(err.message || t('reg.couldNot') , { type: 'error' });
+        showToast(err.message || t('reg.couldNot'), { type: 'error' });
       }
     });
   });

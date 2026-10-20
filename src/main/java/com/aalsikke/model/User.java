@@ -79,6 +79,10 @@ public class User {
     @Column(name = "welcome_email_sent_at")
     private OffsetDateTime welcomeEmailSentAt;
 
+    /** "en" or "ar". Used for emails sent without a request (reminders, password-reset notice). */
+    @Column(name = "preferred_language", nullable = false, length = 5)
+    private String preferredLanguage = "en";
+
     @PrePersist
     protected void onCreate() {
         if (this.accountStatus == null) {

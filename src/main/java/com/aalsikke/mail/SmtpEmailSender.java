@@ -29,7 +29,10 @@ public class SmtpEmailSender implements EmailSender {
 
     /** KAN-336: reminder times are shown in Lebanon time (the DB stores UTC). */
     private static final ZoneId APP_ZONE = com.aalsikke.config.AppTime.ZONE;
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("EEE d MMM, HH:mm", Locale.ENGLISH);
+    private static final DateTimeFormatter WHEN =
+            DateTimeFormatter.ofPattern("EEE d MMM, HH:mm", Locale.ENGLISH);
+    private static final DateTimeFormatter WHEN_AR =
+            DateTimeFormatter.ofPattern("EEE d MMM. HH:mm", Locale.forLanguageTag("ar-LB-u-nu-latn"));
 
     private final MailTransport transport;
     private final String baseUrl;
@@ -59,6 +62,45 @@ public class SmtpEmailSender implements EmailSender {
         transport.send(to, "Reminder: " + title, reminderText(name, title, due), reminderHtml(name, title, due));
         log.info("[EMAIL] Reminder email sent to {}", to);
     }
+    @Override
+    public void sendReminderEmail(String to, String name, String taskTitle, OffsetDateTime dueAt, String lang) {
+        if (!"ar".equals(lang)) {
+            sendReminderEmail(to, name, taskTitle, dueAt);
+            return;
+        }
+        // Thrown on failure (MailException is not caught): the reminder job retries next minute.
+        String title = taskTitle.replaceAll("[\\r\\n]+", " ");
+        String due = dueAt == null ? null : WHEN_AR.format(dueAt.atZoneSameInstant(APP_ZONE));
+        transport.send(to, "تذكير: " + title, reminderTextAr(name, title, due), reminderHtmlAr(name, title, due));
+        log.info("[EMAIL] Arabic reminder email sent to {}", to);
+    }
+
+    private String reminderTextAr(String name, String title, String due) {
+        String dueLine = due == null ? "" : "الموعد: " + due + "\n";
+        return """
+            مرحبًا %s،
+
+            تذكير بمهمتك: «%s»
+            %s
+            افتح عالسكة: %s/dashboard.html
+            """.formatted(name, title, dueLine, baseUrl);
+    }
+
+    private String reminderHtmlAr(String name, String title, String due) {
+        String dueHtml = due == null ? "" : "<p>الموعد: " + HtmlUtils.htmlEscape(due) + "</p>";
+        return """
+            <div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1f2937;text-align:right">
+              <h2 style="color:#2C6E9E">تذكير بمهمتك</h2>
+              <p>مرحبًا %s،</p>
+              <p><strong>%s</strong></p>
+              %s
+              <p style="margin:24px 0">
+                <a href="%s/dashboard.html" style="background:#2C6E9E;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">افتح عالسكة</a>
+              </p>
+            </div>
+            """.formatted(HtmlUtils.htmlEscape(name), HtmlUtils.htmlEscape(title),
+                dueHtml, HtmlUtils.htmlEscape(baseUrl));
+    }
 
     @Override
     public void sendSecurityAlert(String to, String name, String title, String detail) {
@@ -71,6 +113,52 @@ public class SmtpEmailSender implements EmailSender {
             // KAN-337: the change already happened; a failed alert must not undo or block it.
             log.error("[EMAIL] Could not send security alert to {}: {}", to, e.getMessage());
         }
+    }
+    @Override
+    public void sendWelcomeEmail(String to, String name, String lang) {
+        if (!"ar".equals(lang)) {
+            sendWelcomeEmail(to, name);
+            return;
+        }
+        try {
+            transport.send(to, "أهلًا بك في عالسكة، حسابك جاهز", welcomeTextAr(name), welcomeHtmlAr(name));
+            log.info("[EMAIL] Arabic welcome email sent to {}", to);
+        } catch (MailException e) {
+            log.error("[EMAIL] Could not send welcome email to {}: {}", to, e.getMessage());
+        }
+    }
+
+    private String welcomeTextAr(String name) {
+        return """
+            مرحبًا %s،
+
+            أهلًا بك في عالسكة! حسابك جاهز.
+
+            بعض الطرق لتبدأ بشكل جيد:
+            - أضف محاضراتك ودوامك ومواعيدك النهائية، واضبط التكرار الأسبوعي.
+            - استخدم «اقترح وقتًا» لإيجاد وقت فارغ حول بقية جدولك.
+            - راجع مراجعتك الأسبوعية لترى ما أنجزته.
+
+            افتح عالسكة: %s/dashboard.html
+            """.formatted(name, baseUrl);
+    }
+
+    private String welcomeHtmlAr(String name) {
+        return """
+            <div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1f2937;text-align:right">
+              <h2 style="color:#2C6E9E">أهلًا بك في عالسكة!</h2>
+              <p>مرحبًا %s، حسابك جاهز.</p>
+              <p>بعض الطرق لتبدأ بشكل جيد:</p>
+              <ul style="padding-right:20px;color:#374151">
+                <li>أضف محاضراتك ودوامك ومواعيدك النهائية، واضبط التكرار الأسبوعي.</li>
+                <li>استخدم <strong>اقترح وقتًا</strong> لإيجاد وقت فارغ حول بقية جدولك.</li>
+                <li>راجع <strong>مراجعتك الأسبوعية</strong> لترى ما أنجزته.</li>
+              </ul>
+              <p style="margin:24px 0">
+                <a href="%s/dashboard.html" style="background:#2C6E9E;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">افتح عالسكة</a>
+              </p>
+            </div>
+            """.formatted(HtmlUtils.htmlEscape(name), HtmlUtils.htmlEscape(baseUrl));
     }
 
     private String securityText(String name, String title, String detail, String when) {
@@ -245,6 +333,84 @@ public class SmtpEmailSender implements EmailSender {
                   If you didn't ask for this, you can ignore this email. Your password will not change.</p>
                 </div>
                 """.formatted(safe, safe);
+    }
+
+    @Override
+    public void sendVerificationEmail(String to, String verificationLink, String lang) {
+        if (!"ar".equals(lang)) {
+            sendVerificationEmail(to, verificationLink);
+            return;
+        }
+        try {
+            EmailTemplates.Content c = EmailTemplates.arabicVerification(verificationLink);
+            transport.send(to, c.subject(), c.text(), c.html());
+            log.info("[EMAIL] Arabic verification email sent to {}", to);
+        } catch (MailException e) {
+            log.error("[EMAIL] Could not send verification email to {}: {}", to, e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendPasswordResetEmail(String to, String resetLink, String lang) {
+        if (!"ar".equals(lang)) {
+            sendPasswordResetEmail(to, resetLink);
+            return;
+        }
+        try {
+            EmailTemplates.Content c = EmailTemplates.arabicPasswordReset(resetLink);
+            transport.send(to, c.subject(), c.text(), c.html());
+            log.info("[EMAIL] Arabic password reset email sent to {}", to);
+        } catch (MailException e) {
+            log.error("[EMAIL] Could not send password reset email to {}: {}", to, e.getMessage());
+        }
+    }
+    @Override
+    public void sendSecurityAlert(String to, String name, String title, String detail, String lang) {
+        if (!"ar".equals(lang)) {
+            sendSecurityAlert(to, name, title, detail);
+            return;
+        }
+        try {
+            String when = WHEN_AR.format(OffsetDateTime.now().atZoneSameInstant(APP_ZONE));
+            transport.send(to, "تنبيه أمني: " + title,
+                    securityTextAr(name, title, detail, when), securityHtmlAr(name, title, detail, when));
+            log.info("[EMAIL] Arabic security alert sent to {}", to);
+        } catch (MailException e) {
+            log.error("[EMAIL] Could not send security alert to {}: {}", to, e.getMessage());
+        }
+    }
+
+    private String securityTextAr(String name, String title, String detail, String when) {
+        return """
+            مرحبًا %s،
+
+            %s
+            %s
+            الوقت: %s (بتوقيت بيروت)
+
+            إذا كنت أنت من فعل ذلك، يمكنك تجاهل هذه الرسالة.
+            إذا لم تكن أنت، غيّر كلمة المرور فورًا: %s/settings.html
+            """.formatted(name, title, detail, when, baseUrl);
+    }
+
+    private String securityHtmlAr(String name, String title, String detail, String when) {
+        return """
+            <div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1f2937;text-align:right">
+              <h2 style="color:#b42318">تنبيه أمني</h2>
+              <p>مرحبًا %s،</p>
+              <div style="border-right:4px solid #b42318;padding:8px 12px;background:#fdf3f2;border-radius:4px">
+                <p style="margin:0;font-size:16px"><strong>%s</strong></p>
+                <p style="margin:4px 0 0;color:#6b7280">%s</p>
+                <p style="margin:4px 0 0;color:#6b7280">الوقت: %s (بتوقيت بيروت)</p>
+              </div>
+              <p>إذا كنت أنت من فعل ذلك، يمكنك تجاهل هذه الرسالة.</p>
+              <p style="margin:24px 0">
+                <a href="%s/settings.html" style="background:#b42318;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold">لم أكن أنا</a>
+              </p>
+              <p style="font-size:13px;color:#6b7280">يفتح الزر صفحة الإعدادات حيث يمكنك تغيير كلمة المرور.</p>
+            </div>
+            """.formatted(HtmlUtils.htmlEscape(name), HtmlUtils.htmlEscape(title), HtmlUtils.htmlEscape(detail),
+                HtmlUtils.htmlEscape(when), HtmlUtils.htmlEscape(baseUrl));
     }
 
 }

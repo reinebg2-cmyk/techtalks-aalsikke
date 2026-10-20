@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
+import com.aalsikke.util.EmailLang;
 /**
  * KAN-338: users control their own data.
  * - exportData: everything the user has stored, as one JSON document (never the password hash or tokens)
@@ -236,8 +236,19 @@ public class AccountService {
      * Deletes the account after checking the password and the confirmation word.
      * Nothing is deleted when either check fails.
      */
+
+    /** Same as below, without a language: the language stored on the account is used. */
     @Transactional
     public void deleteAccount(String email, String currentPassword, String confirmation) {
+        deleteAccount(email, currentPassword, confirmation, null);
+    }
+
+    /**
+     * Deletes the account after checking the password and the confirmation word.
+     * Nothing is deleted when either check fails.
+     */
+    @Transactional
+    public void deleteAccount(String email, String currentPassword, String confirmation, String lang) {
         User user = findUser(email);
 
         if (currentPassword == null || currentPassword.isBlank()
@@ -250,14 +261,19 @@ public class AccountService {
 
         String to = user.getEmail();
         String name = user.getFullName();
+        // the language from the request if there is one, otherwise the one stored on the account
+        String l = EmailLang.normalize(lang != null && !lang.isBlank() ? lang : user.getPreferredLanguage());
+        boolean ar = "ar".equals(l);
 
         userRepository.delete(user);
         userRepository.flush();   // a database problem shows up here, before the email is sent
 
         emailSender.sendSecurityAlert(to, name,
-                "Your Aal Sikke account was deleted",
-                "Your Aal Sikke account and all of its data were permanently deleted. "
-                        + "If you didn't do this, reply to this email right away.");
+                ar ? "تم حذف حسابك في عالسكة" : "Your Aal Sikke account was deleted",
+                ar ? "تم حذف حسابك في عالسكة وجميع بياناته نهائيًا. إذا لم تقم بذلك، قم بالرد على هذه الرسالة فورًا."
+                        : "Your Aal Sikke account and all of its data were permanently deleted. "
+                        + "If you didn't do this, reply to this email right away.",
+                l);
     }
 
     /** The user typed the confirmation word exactly (spaces around it are ignored; it must be in capitals). */

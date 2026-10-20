@@ -17,7 +17,6 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class PasswordResetController {
 
-    public record ForgotPasswordRequest(@NotBlank @Email String email) {}
 
     // max 72: BCrypt ignores everything past 72 bytes.
     // TODO: replace with the same password rules your registration uses.
@@ -34,7 +33,7 @@ public class PasswordResetController {
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, String>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request) {
-        service.requestReset(request.email());
+        service.requestReset(request.email(), request.lang());
         // identical answer whether or not the email exists
         return ResponseEntity.ok(Map.of("message",
                 "If that email is registered, we've sent a reset link."));
@@ -47,4 +46,5 @@ public class PasswordResetController {
         return ResponseEntity.ok(Map.of("message",
                 "Your password has been reset. You can log in now."));
     }
+    public record ForgotPasswordRequest(@NotBlank @Email String email, String lang) {}
 }
