@@ -1415,7 +1415,17 @@ select:focus-visible {
 .notif-form input { width: 100%; box-sizing: border-box; }
 .notif-form-error { color: #dc2626; font-size: 0.85rem; margin: 0; }
 .notif-form-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-
+.notif-item-actions { flex-wrap: wrap; justify-content: flex-end; }
+.notif-confirm-text { font-size: 0.8rem; color: var(--slate-light); }
+.notif-confirm-yes,
+.notif-confirm-no {
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.notif-confirm-yes { background: var(--prio-high); color: #fff; border: 1px solid var(--prio-high); }
+.notif-confirm-no { background: none; color: inherit; border: 1px solid var(--border); }
 /* KAN-381: due-reminder popup, bottom corner (inline-end = right in English, left in Arabic) */
 .reminder-popups {
   position: fixed;

@@ -3784,7 +3784,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       li.querySelector('.notif-edit-btn').addEventListener('click', () => openReminderForm(reminder));
-      li.querySelector('.notif-delete-btn').addEventListener('click', () => deleteReminder(reminder.id));
+      li.querySelector('.notif-delete-btn').addEventListener('click', event => askDeleteReminder(event, li, reminder.id));
 
       notifUpcomingList.appendChild(li);
     });
@@ -3856,8 +3856,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // KAN-381: confirm inside the row instead of the browser's confirm box
+  function askDeleteReminder(event, li, id) {
+    // The 🗑 button is replaced below; without this, the "click outside" handler
+    // sees a detached button and closes the bell.
+    event.stopPropagation();
+    const actions = li.querySelector('.notif-item-actions');
+    actions.innerHTML = `
+      <span class="notif-confirm-text">${t('notif.confirmDelete')}</span>
+      <button type="button" class="notif-confirm-yes">${t('notif.confirmYes')}</button>
+      <button type="button" class="notif-confirm-no">${t('notif.confirmNo')}</button>
+    `;
+    actions.querySelector('.notif-confirm-yes').addEventListener('click', () => deleteReminder(id));
+    actions.querySelector('.notif-confirm-no').addEventListener('click', () => loadAllReminders());
+  }
+
   async function deleteReminder(id) {
-    if (!confirm(t('notif.confirmDelete'))) return;
     try {
       const response = await apiFetch(`${API_BASE}/api/reminders/${id}`, { method: 'DELETE' });
       if (!response.ok && response.status !== 204) {
