@@ -26,13 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
     identifierField.classList.toggle('is-success', identifierInput.value.trim().length > 3);
   });
 
-  async function loginUser(email, password) {
+  async function loginUser(email, password, rememberMe) {
     let res;
     try {
       res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }), // matches real LoginRequest DTO
+        body: JSON.stringify({ email, password, rememberMe }), // matches real LoginRequest DTO
       });
     } catch (_) {
       // fetch() throws a TypeError ("Failed to fetch" / "Load failed") when the server can't be reached
@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const email = identifierInput.value.trim();
     const password = passwordInput.value;
+    const rememberMe = document.getElementById('remember-device')?.checked ?? false;
 
     if (!email || !password) {
       loginError.textContent =t('login.enterBoth');
@@ -116,10 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.disabled = true;
     loginBtn.textContent =t('login.loggingIn');
 
-    loginUser(email, password)
+    loginUser(email, password, rememberMe)
         .then((auth) => {
           loginBtn.textContent = t('login.welcomeBack');
-          localStorage.setItem(TOKEN_KEY, auth.token); // store the REAL JWT
+          localStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(TOKEN_KEY);
+          (rememberMe ? localStorage : sessionStorage).setItem(TOKEN_KEY, auth.token);
           window.location.href = 'dashboard.html';
         })
         .catch((err) => {

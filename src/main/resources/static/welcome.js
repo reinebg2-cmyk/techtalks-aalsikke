@@ -7,7 +7,7 @@
 
     function hasSession() {
         try {
-            return !!localStorage.getItem(TOKEN_KEY);
+            return !!getToken();
         } catch (e) {
             return false;
         }

@@ -44,13 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // AUTHENTICATION (same pattern as dashboard.js)
     // ============================================================
 
-    if (!localStorage.getItem(TOKEN_KEY)) {
+    if (!getToken()) {
         window.location.href = 'login.html';
         return;
     }
 
     function redirectToLogin() {
-        localStorage.removeItem(TOKEN_KEY);
+        clearToken();
         window.location.href = 'login.html';
     }
 
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await fetch(API_BASE + path, {
             ...options,
             headers: {
-                Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}`,
+                Authorization: `Bearer ${getToken()}`,
                 ...(options.headers || {})
             }
         });
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('logout-link').addEventListener('click', () => {
-        localStorage.removeItem(TOKEN_KEY);
+        clearToken();
     });
 
     // ============================================================

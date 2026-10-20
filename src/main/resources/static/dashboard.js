@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // AUTHENTICATION
   // ============================================================
 
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = getToken();
 
   if (!token) {
     window.location.href = 'login.html';
@@ -35,11 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Read the token on every request: when the user changes their email the
   // backend issues a new JWT and it is stored under the same key.
   function authHeaders() {
-    return { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` };
+    return { Authorization: `Bearer ${getToken()}` };
   }
 
   function redirectToLogin() {
-    localStorage.removeItem(TOKEN_KEY);
+    clearToken();
     window.location.href = 'login.html';
   }
 
@@ -1655,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // The JWT subject is the user's email, so when the email changes the
         // backend issues a fresh token. Swap it in before any further request.
         if (body && body.token) {
-          localStorage.setItem(TOKEN_KEY, body.token);
+          setToken(body.token);
         }
 
         const { token: _ignored, ...updatedProfile } = body || {};
