@@ -95,7 +95,8 @@ public class ReminderEmailJob {
             try {
                 if (item == null) {
                     // KAN-381: a reminder on its own: its own text, no due time
-                    emailSender.sendReminderEmail(user.getEmail(), user.getFullName(), reminder.getTitle(), null);
+                    emailSender.sendReminderEmail(user.getEmail(), user.getFullName(), reminder.getTitle(), null,
+                            EmailLang.normalize(user.getPreferredLanguage()));
                     reminderRepository.markEmailed(reminder.getId(), OffsetDateTime.now());
                     sent++;
                     continue;
