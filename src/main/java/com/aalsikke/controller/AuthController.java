@@ -49,7 +49,7 @@ public class AuthController {
     /** KAN-275: body {"email": "..."}. Always the same answer, so it can't be used to find accounts. */
     @PostMapping("/resend-verification")
     public ResponseEntity<Map<String, String>> resendVerification(@RequestBody Map<String, String> body) {
-        emailVerificationService.resend(body.get("email"));
+        emailVerificationService.resend(body.get("email"), body.get("lang"));
         return ResponseEntity.accepted().body(Map.of(
                 "message", "If this account still needs verifying, a new link is on its way."));
     }

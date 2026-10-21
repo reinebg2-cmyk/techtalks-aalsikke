@@ -7,6 +7,8 @@ const MIN_LENGTH = 8;   // TODO: keep in sync with the registration rules
 const MAX_LENGTH = 72;  // BCrypt only uses the first 72 bytes
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.title = t('rp.pageTitle');
+
   document.querySelector('.back-btn')?.addEventListener('click', () => {
     window.location.href = 'login.html';
   });
@@ -50,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // No token in the address: the link was cut off when it was copied.
   if (!token) {
     fields.hidden = true;
-    showNotice('This reset link is incomplete. Please request a new one.', { requestNew: true });
+    showNotice(t('rp.incomplete'), { requestNew: true });
     return;
   }
 
@@ -87,20 +89,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirm = confirmInput.value;
 
     if (password.length < MIN_LENGTH) {
-      setError(newField, newError, `Use at least ${MIN_LENGTH} characters.`);
+      setError(newField, newError, t('rp.tooShort').replace('{n}', MIN_LENGTH));
       return;
     }
     if (password.length > MAX_LENGTH) {
-      setError(newField, newError, `Use at most ${MAX_LENGTH} characters.`);
+      setError(newField, newError, t('rp.tooLong').replace('{n}', MAX_LENGTH));
       return;
     }
     if (password !== confirm) {
-      setError(confirmField, confirmError, 'The two passwords do not match.');
+      setError(confirmField, confirmError, t('rp.mismatch'));
       return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Resetting…';
+    btn.textContent = t('rp.submitting');
 
     try {
       const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
@@ -113,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try { body = await res.json(); } catch (_) { /* empty body */ }
 
       if (!res.ok) {
-        throw new Error((body && (body.message || body.error)) || 'Could not reset your password. Please try again.');
+        throw { message: apiError(body) || t('rp.failed'), code: body && body.code };
       }
 
       // Success: clear the form, hide it and point to the login page.
@@ -122,16 +124,17 @@ document.addEventListener('DOMContentLoaded', () => {
       fields.hidden = true;
       backRow.hidden = true;
       goLogin.hidden = false;
-      showNotice((body && body.message) || 'Your password has been reset. You can log in now.');
+      showNotice(t('rp.success'));
     } catch (err) {
       btn.disabled = false;
-      btn.textContent = 'Reset password';
+      btn.textContent = t('rp.submit');
 
       if (err instanceof TypeError) {
         // fetch() throws a TypeError when the server can't be reached
-        showNotice('Could not reach the server. Please try again.');
-      } else if (/reset link/i.test(err.message)) {
-        // expired, already used, or replaced by a newer link: the form can't work any more
+        showNotice(t('auth.network'));
+      } else if (/(LINK|TOKEN)/i.test(err.code || '')) {
+        // expired, already used, or replaced by a newer link: the form can't work any more.
+        // NOTE: matches the error code names in PasswordResetService; adjust if they differ.
         fields.hidden = true;
         showNotice(err.message, { requestNew: true });
       } else {

@@ -65,7 +65,7 @@ class AuthServiceWelcomeEmailTest {
     void firstLogin_sendsTheWelcomeEmail_andRemembersIt() {
         service.login(request);
 
-        verify(emailSender).sendWelcomeEmail(EMAIL, "Rami");
+        verify(emailSender).sendWelcomeEmail(EMAIL, "Rami", "en");
         assertNotNull(user.getWelcomeEmailSentAt());
         verify(users).save(user);
     }
@@ -76,7 +76,7 @@ class AuthServiceWelcomeEmailTest {
 
         service.login(request);
 
-        verify(emailSender, never()).sendWelcomeEmail(any(), any());
+        verify(emailSender, never()).sendWelcomeEmail(any(), any(),any());
     }
 
     @Test
@@ -85,6 +85,6 @@ class AuthServiceWelcomeEmailTest {
 
         assertThrows(EmailNotVerifiedException.class, () -> service.login(request));
 
-        verify(emailSender, never()).sendWelcomeEmail(any(), any());
+        verify(emailSender, never()).sendWelcomeEmail(any(), any(), any());
     }
 }

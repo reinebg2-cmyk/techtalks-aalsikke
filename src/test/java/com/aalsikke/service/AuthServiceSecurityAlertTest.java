@@ -73,7 +73,16 @@ class AuthServiceSecurityAlertTest {
     void passwordChanged_alertsTheAccountEmail() {
         service.changePassword("ahmad@gmail.com", passwordChange("right"));
         verify(emailSender).sendSecurityAlert(eq("ahmad@gmail.com"), eq("Ahmad"),
-                eq("Your password was changed"), anyString());
+                eq("Your password was changed"), anyString(), eq("en"));
+    }
+
+    @Test
+    void passwordChanged_inArabic_alertsInArabic() {
+        ChangePasswordRequest r = passwordChange("right");
+        r.setLang("ar");
+        service.changePassword("ahmad@gmail.com", r);
+        verify(emailSender).sendSecurityAlert(eq("ahmad@gmail.com"), eq("Ahmad"),
+                eq("تم تغيير كلمة المرور"), anyString(), eq("ar"));
     }
 
     @Test
@@ -87,7 +96,14 @@ class AuthServiceSecurityAlertTest {
     void emailChanged_alertsTheOldAddress_withTheNewOneMasked() {
         service.updateProfile("ahmad@gmail.com", profile("new.mail@outlook.com", "right"));
         verify(emailSender).sendSecurityAlert(eq("ahmad@gmail.com"), eq("Ahmad"),
-                eq("Your account email was changed"), contains("n***l@outlook.com"));
+                eq("Your account email was changed"), contains("n***l@outlook.com"), eq("en"));
+    }
+
+    @Test
+    void sameEmail_noAlert() {
+        service.updateProfile("ahmad@gmail.com", profile("ahmad@gmail.com", null));
+        verify(emailSender, never()).sendSecurityAlert(any(), any(), any(), any());
+        verify(emailSender, never()).sendSecurityAlert(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -96,12 +112,6 @@ class AuthServiceSecurityAlertTest {
         assertThrows(RuntimeException.class,
                 () -> service.updateProfile("ahmad@gmail.com", profile("taken@outlook.com", "right")));
         verifyNoInteractions(emailSender);
-    }
-
-    @Test
-    void sameEmail_noAlert() {
-        service.updateProfile("ahmad@gmail.com", profile("ahmad@gmail.com", null));
-        verify(emailSender, never()).sendSecurityAlert(any(), any(), any(), any());
     }
 
     @Test

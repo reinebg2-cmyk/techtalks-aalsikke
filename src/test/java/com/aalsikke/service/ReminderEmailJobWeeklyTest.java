@@ -99,7 +99,8 @@ class ReminderEmailJobWeeklyTest {
 
         // Due = the end of THIS week's class (Oct 23, 11:00 Beirut), not the first one's (Oct 16)
         verify(emailSender).sendReminderEmail(eq("a@test.com"), eq("Rami"), eq("Java class"),
-                argThat((OffsetDateTime due) -> due.toInstant().equals(at("2026-10-23T08:00:00Z").toInstant())));
+                argThat((OffsetDateTime due) -> due.toInstant().equals(at("2026-10-23T08:00:00Z").toInstant())),
+                eq("en"));
     }
 
     @Test
@@ -111,7 +112,7 @@ class ReminderEmailJobWeeklyTest {
 
         job.sendDueReminderEmails(at("2026-10-23T06:31:00Z"));
 
-        verify(emailSender, never()).sendReminderEmail(any(), any(), any(), any());
+        verify(emailSender, never()).sendReminderEmail(any(), any(), any(), any(), any());
         verify(reminders).markEmailed(eq(reminder.getId()), any());   // handled; it moves on after the class
     }
 
@@ -123,7 +124,7 @@ class ReminderEmailJobWeeklyTest {
 
         job.sendDueReminderEmails(at("2026-10-23T06:31:00Z"));
 
-        verify(emailSender).sendReminderEmail(eq("a@test.com"), any(), any(), any());
+        verify(emailSender).sendReminderEmail(eq("a@test.com"), any(), any(), any(),any());
     }
 
     private static OffsetDateTime at(String iso) {

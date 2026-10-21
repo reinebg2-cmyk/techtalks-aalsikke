@@ -76,7 +76,7 @@ class ReminderEmailJobTest {
         when(reminders.findDueForEmail(NOW)).thenReturn(List.of(r));
 
         assertEquals(1, job.sendDueReminderEmails(NOW));
-        verify(emailSender).sendReminderEmail("a@test.com", "Test a@test.com", "Essay", NOW.plusDays(1));
+        verify(emailSender).sendReminderEmail("a@test.com", "Test a@test.com", "Essay", NOW.plusDays(1), "en");
         verify(reminders).markEmailed(eq(r.getId()), any(OffsetDateTime.class));
     }
 
@@ -86,10 +86,10 @@ class ReminderEmailJobTest {
         Reminder working = reminderFor("ok@test.com", "Shift", NOW.plusDays(2), null);
         when(reminders.findDueForEmail(NOW)).thenReturn(List.of(failing, working));
         doThrow(new MailSendException("SMTP down"))
-                .when(emailSender).sendReminderEmail(eq("down@test.com"), any(), any(), any());
+                .when(emailSender).sendReminderEmail(eq("down@test.com"), any(), any(), any(), any());
 
         assertEquals(1, job.sendDueReminderEmails(NOW));
-        verify(emailSender).sendReminderEmail(eq("ok@test.com"), any(), any(), any());
+        verify(emailSender).sendReminderEmail(eq("ok@test.com"), any(), any(), any(), any());
         verify(reminders).markEmailed(eq(working.getId()), any(OffsetDateTime.class));
         verify(reminders, never()).markEmailed(eq(failing.getId()), any(OffsetDateTime.class));   // retried next run
     }
@@ -100,6 +100,7 @@ class ReminderEmailJobTest {
         when(reminders.findDueForEmail(NOW)).thenReturn(List.of(r));
 
         job.sendDueReminderEmails(NOW);
-        verify(emailSender).sendReminderEmail("a@test.com", "Test a@test.com", "Work shift", NOW.plusHours(8));
+
+        verify(emailSender).sendReminderEmail("a@test.com", "Test a@test.com", "Work shift", NOW.plusHours(8),"en");
     }
 }

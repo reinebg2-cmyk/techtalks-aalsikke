@@ -236,7 +236,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         currentPassword: passwordInput.value,
-                        confirmation: confirmInput.value.trim()
+                        confirmation: confirmInput.value.trim(),
+                        lang: document.documentElement.lang === 'ar' ? 'ar' : 'en'
                     })
                 });
                 if (response.status !== 204 && !response.ok) {

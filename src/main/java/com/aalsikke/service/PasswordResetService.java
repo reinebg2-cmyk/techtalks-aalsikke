@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.aalsikke.util.EmailLang;
+import com.aalsikke.exception.CodedException;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -51,15 +53,15 @@ public class PasswordResetService {
 
     /** Step 1: send a reset link if the account exists. Silent otherwise. */
     @Transactional
-    public void requestReset(String email) {
+    public void requestReset(String email, String lang) {
         if (email == null || email.isBlank()) {
             return;
         }
-
+        String l = EmailLang.normalize(lang);
         userRepository.findByEmail(email.trim())
                 .filter(user -> user.getDeletedAt() == null)
                 .filter(this::cooldownPassed)
-                .ifPresent(this::sendResetLink);
+                .ifPresent(user -> sendResetLink(user, l));
     }
 
     /** Step 2: the user opened the link and chose a new password. Throws a 400 if the link is bad. */
@@ -92,14 +94,17 @@ public class PasswordResetService {
 
         // marks this link (and any other open one) as used: single use
         tokenRepository.invalidateOpenTokens(user.getId(), now);
-
-        // never throws (see EmailSender), so a failed notice cannot undo the change
+        String lang = EmailLang.normalize(user.getPreferredLanguage());
+        boolean ar = "ar".equals(lang);
         emailSender.sendSecurityAlert(user.getEmail(), user.getFullName(),
-                "Your password was changed",
-                "Your password was reset using the Forgot password link.");
+                ar ? "تم تغيير كلمة المرور" : "Your password was changed",
+                ar ? "تمت إعادة تعيين كلمة المرور عبر رابط «نسيت كلمة المرور»."
+                        : "Your password was reset using the Forgot password link.",
+                lang);
     }
 
-    private void sendResetLink(User user) {
+
+    private void sendResetLink(User user, String lang) {
         OffsetDateTime now = OffsetDateTime.now();
         tokenRepository.invalidateOpenTokens(user.getId(), now);
 
@@ -114,7 +119,7 @@ public class PasswordResetService {
 
         try {
             emailSender.sendPasswordResetEmail(user.getEmail(),
-                    baseUrl + "/reset-password.html?token=" + rawToken);
+                    baseUrl + "/reset-password.html?token=" + rawToken, lang);
         } catch (Exception e) {
             // never let a mail failure change the response: that would reveal the account exists
             log.warn("Could not send the password reset email", e);
@@ -129,7 +134,7 @@ public class PasswordResetService {
     }
 
     private IllegalArgumentException invalidLink() {
-        return new IllegalArgumentException(
+        return new CodedException("RESET_LINK_INVALID",
                 "This reset link is invalid or has expired. Request a new one.");
     }
 }

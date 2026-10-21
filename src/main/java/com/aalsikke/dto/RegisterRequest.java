@@ -36,4 +36,5 @@ public class RegisterRequest {
 
     private String dateOfBirth;
     private String phoneNumber;
+    private String lang;
 }
