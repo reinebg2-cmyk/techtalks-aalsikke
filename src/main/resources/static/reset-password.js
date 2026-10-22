@@ -55,6 +55,31 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  // KAN-386: check the link as soon as the page opens, so a used, expired or replaced link
+  // shows the notice right away instead of after typing a new password.
+  fields.hidden = true;
+  fetch(`${API_BASE}/api/auth/reset-password/check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token })
+  })
+      .then(async (res) => {
+        if (res.ok) {
+          fields.hidden = false;
+          return;
+        }
+        let body = null;
+        try { body = await res.json(); } catch (_) { /* empty body */ }
+        if (/(LINK|TOKEN)/i.test((body && body.code) || '')) {
+          showNotice(apiError(body) || t('rp.failed'), { requestNew: true });
+        } else {
+          fields.hidden = false;   // any other problem: keep the old behaviour, submitting will report it
+        }
+      })
+      .catch(() => {
+        fields.hidden = false;     // server unreachable: show the form, submitting shows the network message
+      });
+
   // 0 = empty, 1 = weak, 2 = okay, 3 = strong
   function strengthOf(password) {
     if (!password) return 0;
