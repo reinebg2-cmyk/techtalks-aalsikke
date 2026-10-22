@@ -1352,9 +1352,16 @@ document.addEventListener('DOMContentLoaded', () => {
             setModalMessage(t(startOnly ? 'cal.sched.pickStart' : 'cal.sched.pickAll'), 'error');
             return;
         }
+         const start = fromInputs(dateInput.value, startInput.value);
+        let end = startOnly ? null : fromInputs(dateInput.value, endInput.value);
 
-        const start = fromInputs(dateInput.value, startInput.value);
-        const end = startOnly ? null : fromInputs(dateInput.value, endInput.value);
+        // KAN-387: the box has one date, so an end earlier than the start means the next day
+        // (night shift 21:15 -> 02:00). Only up to 12 hours: 14:00 -> 13:00 is a typo, not a 23-hour task.
+        if (end && end < start) {
+            const nextDay = new Date(end);
+            nextDay.setDate(nextDay.getDate() + 1);
+            if (nextDay - start <= 12 * 60 * 60 * 1000) end = nextDay;
+        }
 
         // Client-side check required by S3-12 (the backend checks it too)
         if (end && end <= start) {
@@ -1384,7 +1391,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             if (!response.ok) {
-                setModalMessage(errorMessageFrom(body, t('cal.sched.saveFailed')), 'error');
+                // KAN-387: errors with a known code are shown in the page language (e.g. REPEAT_TOO_LONG)
+                const known = body && body.code && API_ERROR_KEYS[body.code];
+                setModalMessage(known ? apiError(body) : errorMessageFrom(body, t('cal.sched.saveFailed')), 'error');
                 saveButton.disabled = false;
                 return;
             }

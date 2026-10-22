@@ -37,7 +37,7 @@
             return t('repeat.needStart');
         }
         // KAN-373: longer than a day and the weekly copies overlap (the server refuses it too)
-        if (new Date(endTime) - new Date(startTime) > 24 * 60 * 60 * 1000) {
+        if (new Date(endTime) - new Date(startTime) > 8 * 60 * 60 * 1000) {   // KAN-387: max 8 hours
             return t('repeat.tooLong');
         }
         if (!settings.days.length) return t('repeat.pickDay');

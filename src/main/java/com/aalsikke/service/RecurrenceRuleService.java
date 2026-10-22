@@ -9,6 +9,7 @@ import com.aalsikke.model.User;
 import com.aalsikke.repository.RecurrenceRuleRepository;
 import com.aalsikke.repository.ScheduleItemRepository;
 import com.aalsikke.repository.UserRepository;
+import com.aalsikke.exception.CodedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +58,7 @@ public class RecurrenceRuleService {
         }
         // KAN-373: longer than a day and the weekly copies overlap (mark done, calendar and clock change break)
         if (!shortEnoughToRepeat(item.getStartTime(), item.getEndTime())) {
-            throw new IllegalArgumentException("A repeating task can last at most 24 hours.");
+            throw repeatTooLong();
         }
         if (request.untilDate() != null) {
             var firstDay = item.getStartTime().atZoneSameInstant(AppTime.ZONE).toLocalDate();
@@ -79,13 +80,19 @@ public class RecurrenceRuleService {
         return RecurrenceRuleResponse.from(recurrenceRuleRepository.save(rule));
     }
 
-    /** KAN-373: the longest a repeating task may last. A repeat happens at most once a day, so copies never overlap. */
-    static final Duration MAX_REPEAT_LENGTH = Duration.ofHours(24);
+    /** KAN-373 / KAN-387: the longest a weekly repeating task may last. */
+    static final Duration MAX_REPEAT_LENGTH = Duration.ofHours(8);
 
     static boolean shortEnoughToRepeat(OffsetDateTime start, OffsetDateTime end) {
         return start != null && end != null
                 && Duration.between(start, end).compareTo(MAX_REPEAT_LENGTH) <= 0;
     }
+
+    /** KAN-387: one error for both paths (creating the repeat and rescheduling the task), translated on the page. */
+    static CodedException repeatTooLong() {
+        return new CodedException("REPEAT_TOO_LONG", "A repeating task can last at most 8 hours.");
+    }
+
 
     /**
      * KAN-353: stop a task repeating. The task itself stays.
