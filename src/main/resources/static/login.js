@@ -3,6 +3,7 @@
 
 const API_BASE = window.location.origin;
 const TOKEN_KEY = 'aalsikke_token'; // dashboard.js will read this to authenticate requests
+const pageLang = () => (document.documentElement.lang || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en';
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.back-btn')?.addEventListener('click', () => {
@@ -15,12 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordInput = document.getElementById('login-password');
   const loginError = document.getElementById('login-error');
   const loginBtn = document.getElementById('login-btn');
-  const togglePassword = document.getElementById('toggle-login-password');
-
-  togglePassword.addEventListener('click', () => {
-    const isHidden = passwordInput.type === 'password';
-    passwordInput.type = isHidden ? 'text' : 'password';
-  });
 
   identifierInput.addEventListener('input', () => {
     identifierField.classList.toggle('is-success', identifierInput.value.trim().length > 3);
@@ -32,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
       res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, rememberMe }), // matches real LoginRequest DTO
+        body: JSON.stringify({ email, password, rememberMe, lang: pageLang()}), // matches real LoginRequest DTO
       });
     } catch (_) {
       // fetch() throws a TypeError ("Failed to fetch" / "Load failed") when the server can't be reached
@@ -44,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!res.ok) {
       throw {
-        message: (body && body.message) || (body && body.error) || t('login.failed'),
+        message: apiError(body, 'login.failed'),
         code: body && body.code,     // KAN-274: 'EMAIL_NOT_VERIFIED'
         email: body && body.email
       };
@@ -85,11 +80,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: unverifiedEmail })
+          body: JSON.stringify({ email: unverifiedEmail,  lang: pageLang() })
         });
         let body = null;
         try { body = await res.json(); } catch (_) { /* empty body */ }
-        showNotice((body && body.message) || t('login.resendDone'));
+        if (res.ok) {
+          showNotice(t('login.resendDone'));
+        } else {
+          showNotice(apiError(body, 'login.failed'), { withResend: true });
+        }
       } catch (_) {
         showNotice(t('login.serverUnreachable'), { withResend: true });
       } finally {
@@ -132,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // KAN-274: right password, email not verified yet
           if (err.code === 'EMAIL_NOT_VERIFIED') {
             unverifiedEmail = err.email || null;
-            showNotice(err.message, { withResend: Boolean(unverifiedEmail) });
+            showNotice(t('err.emailNotVerified'), { withResend: Boolean(unverifiedEmail) });
             return;
           }
 

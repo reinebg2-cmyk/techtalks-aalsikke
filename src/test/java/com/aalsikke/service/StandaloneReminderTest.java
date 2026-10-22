@@ -185,8 +185,19 @@ class StandaloneReminderTest {
         when(reminders.findDueForEmail(NOW)).thenReturn(List.of(r));
 
         assertEquals(1, job.sendDueReminderEmails(NOW));
-        verify(emailSender).sendReminderEmail(EMAIL, "Lara Haddad", "Coco's birthday, buy a gift", null);
+        verify(emailSender).sendReminderEmail(EMAIL, "Lara Haddad", "Coco's birthday, buy a gift", null, "en");
         verify(reminders).markEmailed(eq(r.getId()), any(OffsetDateTime.class));
+    }
+
+
+    @Test
+    void email_standalone_usesTheUsersLanguage() {
+        lara.setPreferredLanguage("ar");
+        Reminder r = standalone("Coco's birthday, buy a gift", NOW.minusMinutes(1));
+        when(reminders.findDueForEmail(NOW)).thenReturn(List.of(r));
+
+        assertEquals(1, job.sendDueReminderEmails(NOW));
+        verify(emailSender).sendReminderEmail(EMAIL, "Lara Haddad", "Coco's birthday, buy a gift", null, "ar");
     }
 
     // ---------- owner filled from the task (covers DefaultReminders) ----------

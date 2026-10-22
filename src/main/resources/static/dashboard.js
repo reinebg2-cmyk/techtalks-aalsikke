@@ -1453,7 +1453,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const message = item.message || item.error;
+      const message = (item.code && API_ERROR_KEYS[item.code])
+        ? t(API_ERROR_KEYS[item.code])
+        : (item.message || item.error);
 
       if (!message) {
         return;
@@ -1646,7 +1648,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const response = await apiFetch(`${API_BASE}/api/auth/profile`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values)
+          body: JSON.stringify({ ...values, lang })
         });
 
         const body = await readJsonSafely(response);
@@ -3265,7 +3267,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     items.forEach(item => {
       if (!item || typeof item !== 'object') return;
-      const message = item.message || item.error;
+      const message = (item.code && API_ERROR_KEYS[item.code])
+        ? t(API_ERROR_KEYS[item.code])
+        : (item.message || item.error);
       if (!message) return;
 
       if (item.field && PASSWORD_FIELD_IDS[item.field]) {
@@ -3398,7 +3402,8 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             currentPassword: values.currentPassword,
-            newPassword: values.newPassword
+            newPassword: values.newPassword,
+            lang: lang
           })
         });
 

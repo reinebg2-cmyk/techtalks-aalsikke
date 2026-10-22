@@ -7,5 +7,7 @@ public record DeleteAccountRequest(
         @NotBlank(message = "Current password is required.")
         String currentPassword,
 
-        String confirmation
+        String confirmation,
+
+        String lang
 ) {}

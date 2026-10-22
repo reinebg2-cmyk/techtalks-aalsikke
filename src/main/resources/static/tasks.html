@@ -359,7 +359,7 @@
             </div>
             <div class="field" id="field-profile-current-password">
                 <label for="profile-current-password"><span data-i18n="form.currentPassword">Current password</span> <span class="role-hint" data-i18n="form.currentPasswordNote">(only needed to change your name, email or phone)</span></label>
-                <div class="input-wrap"><input id="profile-current-password" type="password" autocomplete="current-password"></div>
+                <div class="input-wrap"><input id="profile-current-password" type="password" autocomplete="current-password"><button type="button" class="icon-toggle" id="toggle-profile-current-password" data-toggle-for="profile-current-password" data-i18n-aria-label="rp.showPassword" aria-label="Show password">&#128065;</button></div>
                 <p class="hint error-text" role="alert"></p>
             </div>
             <p class="modal-message" id="profile-message" role="status" aria-live="polite"></p>
@@ -387,7 +387,7 @@
             <div class="field" id="field-current-password">
                 <label for="current-password" data-i18n="form.currentPassword">Current password</label>
                 <div class="input-wrap">
-                    <input id="current-password" type="password" autocomplete="current-password">
+                    <input id="current-password" type="password" autocomplete="current-password"><button type="button" class="icon-toggle" id="toggle-current-password" data-toggle-for="current-password" data-i18n-aria-label="rp.showPassword" aria-label="Show password">&#128065;</button>
                 </div>
                 <p class="hint error-text" role="alert"></p>
             </div>
@@ -396,6 +396,7 @@
                 <label for="new-password" data-i18n="form.newPassword">New password</label>
                 <div class="input-wrap">
                     <input id="new-password" type="password" autocomplete="new-password">
+                    <button type="button" class="icon-toggle" id="toggle-new-password" data-toggle-for="new-password" data-i18n-aria-label="rp.showPassword" aria-label="Show password">&#128065;</button>
                 </div>
                 <div class="strength-meter" id="password-strength-meter"><span></span><span></span><span></span></div>
                 <p class="hint" id="new-password-strength-hint" style="display:none;"></p>
@@ -405,7 +406,7 @@
             <div class="field" id="field-confirm-new-password">
                 <label for="confirm-new-password" data-i18n="form.confirmNewPassword">Confirm new password</label>
                 <div class="input-wrap">
-                    <input id="confirm-new-password" type="password" autocomplete="new-password">
+                    <input id="confirm-new-password" type="password" autocomplete="new-password"><button type="button" class="icon-toggle" id="toggle-confirm-new-password" data-toggle-for="confirm-new-password" data-i18n-aria-label="rp.showPassword" aria-label="Show password">&#128065;</button>
                 </div>
                 <p class="hint error-text" role="alert"></p>
             </div>
@@ -604,7 +605,7 @@
 <script src="auth-token.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="palette.js"></script>
-<script src="dashboard.js"></script>
+<script src="password-toggle.js"></script><script src="dashboard.js"></script>
 <script src="tasks.js"></script>
 <script src="repeat.js"></script>
 <script src="free-slots.js"></script>

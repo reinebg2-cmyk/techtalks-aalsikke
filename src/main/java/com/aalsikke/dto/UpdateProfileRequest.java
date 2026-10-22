@@ -28,4 +28,6 @@ public class UpdateProfileRequest {
 
     /** Required only when the email or phone number is being changed (KAN-257). */
     private String currentPassword;
+    /** Optional: "en" or "ar". Picks the language of the emails sent after this change. */
+    private String lang;
 }

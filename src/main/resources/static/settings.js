@@ -69,11 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Safety net: the primary channel has to be switched on
     if (primary.value === 'WHATSAPP' && !whatsapp.checked) {
-      showMessage('Turn on WhatsApp notifications, or choose a different primary channel.', 'error');
+      showMessage(t('settings.notif.needWhatsapp'), 'error');
       return;
     }
     if (primary.value === 'SMS' && !sms.checked) {
-      showMessage('Turn on SMS notifications, or choose a different primary channel.', 'error');
+      showMessage(t('settings.notif.needSms'), 'error');
       return;
     }
 
@@ -83,10 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
       primaryChannel: primary.value
     });
     if (!ok) {
-      showMessage('Could not save in this browser. Check that storage is allowed.', 'error');
+      showMessage(t('settings.notif.storageFailed'), 'error');
       return;
     }
     showMessage('');
-    window.AalSikke.showToast('Notification channels saved.');
+    window.AalSikke.showToast(t('settings.notif.saved'));
   });
 });

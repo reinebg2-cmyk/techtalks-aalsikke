@@ -39,27 +39,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleEmailExists(EmailAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiError.of("email", ex.getMessage()));
+                .body(ApiError.coded("EMAIL_TAKEN", "email", ex.getMessage()));
     }
 
     @ExceptionHandler(PhoneAlreadyExistsException.class)
     public ResponseEntity<ApiError> handlePhoneExists(PhoneAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiError.of("phoneNumber", ex.getMessage()));
+                .body(ApiError.coded("PHONE_TAKEN", "phoneNumber", ex.getMessage()));
     }
 
     // KAN-258: taken username → 409 on the username field (was a generic 400)
     @ExceptionHandler(UsernameAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleUsernameExists(UsernameAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiError.of("username", ex.getMessage()));
+                .body(ApiError.coded("USERNAME_TAKEN", "username", ex.getMessage()));
     }
 
     // KAN-258: wrong current password → 400 on the currentPassword field
     @ExceptionHandler(InvalidCurrentPasswordException.class)
     public ResponseEntity<ApiError> handleInvalidCurrentPassword(InvalidCurrentPasswordException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiError.of("currentPassword", ex.getMessage()));
+                .body(ApiError.coded("CURRENT_PASSWORD_WRONG", "currentPassword", ex.getMessage()));
     }
 
     // KAN-274: right password, email not verified yet. The email is included (the user has
@@ -77,7 +77,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({InvalidCredentialsException.class, BadCredentialsException.class})
     public ResponseEntity<ApiError> handleInvalidCredentials(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiError.of("Invalid login details or password."));
+                .body(ApiError.coded("INVALID_CREDENTIALS", null, "Invalid login details or password."));
     }
 
     // KAN-372: AI quick-add could not understand the text, or the AI is unavailable.
@@ -99,8 +99,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+        String code = ex instanceof CodedException ce ? ce.getCode() : null;
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiError.of(ex.getMessage()));
+                .body(ApiError.coded(code, null, ex.getMessage()));
     }
 
     // ---- Request problems: build our own message, never echo the framework's ----
@@ -129,7 +130,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<List<ApiError>> handleValidation(MethodArgumentNotValidException ex) {
         List<ApiError> errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(fieldError -> ApiError.of(fieldError.getField(), fieldError.getDefaultMessage()))
+                .map(fe -> ApiError.coded(fe.getField() + "." + fe.getCode(), fe.getField(), fe.getDefaultMessage()))
                 .collect(Collectors.toList());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }

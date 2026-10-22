@@ -6,23 +6,22 @@
     <script src="theme-init.js"></script>
     <script src="i18n.js"></script>
     <link rel="icon" type="image/svg+xml" href="logo-mark.svg">
-    <title>Aal Sikke — Settings</title>
+    <title data-i18n="page.settings">Aal Sikke — Settings</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="dashboard-body">
 
 <div class="app-shell">
-
     <!-- Top bar -->
     <header class="topbar dash-topbar">
-        <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard">
+        <a class="brand" href="dashboard.html" aria-label="Aal Sikke dashboard" data-i18n-aria-label="aria.brandDashboard">
             <svg class="brand-logo" viewBox="0 0 1476 240" role="img" aria-label="Aal Sikke">
                 <use href="logo-sprite.svg#aal-logo"/>
             </svg>
         </a>
         <div class="topbar-actions">
-            <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme"></button>
+            <button class="icon-btn" id="theme-toggle-btn" aria-label="Toggle theme" data-i18n-aria-label="aria.toggleTheme"></button>
             <div class="profile-menu" id="notif-menu">
                 <button class="icon-btn" id="notif-btn" aria-label="Notifications">
                     &#128276;
@@ -212,7 +211,7 @@
                     <h2 data-i18n="settings.palette.title">Color palette</h2>
                     <p class="card-subtitle" data-i18n="settings.palette.subtitle">Pick the accent colors Aal Sikke uses everywhere. Works with both light and dark mode.</p>
                 </div>
-                <div class="palette-grid" id="palette-grid" role="radiogroup" aria-label="Color palette"></div>
+                <div class="palette-grid" id="palette-grid" role="radiogroup" aria-label="Color palette" data-i18n-aria-label="aria.colorPalette"></div>
                 <p class="modal-message is-error" id="palette-message" role="alert"></p>
             </section>
 
@@ -238,7 +237,7 @@
                 <h2 id="profile-modal-title" data-i18n="settings.profile.edit">Edit profile</h2>
                 <p id="profile-modal-subtitle" data-i18n="modal.profile.subtitle">Update your details and how you use Aal Sikke.</p>
             </div>
-            <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close">&#10005;</button>
+            <button type="button" class="modal-close" id="close-profile-modal" aria-label="Close" data-i18n-aria-label="common.close">&#10005;</button>
         </div>
 
         <form id="profile-form" novalidate>
@@ -246,7 +245,7 @@
 
             <fieldset class="role-field" id="field-profile-mode">
                 <legend class="field-label" data-i18n="modal.profile.roleLegend">I use Aal Sikke primarily for</legend>
-                <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role">
+                <div class="segmented segmented--a11y" role="radiogroup" aria-label="Workspace role" data-i18n-aria-label="aria.workspaceRole">
                     <input type="radio" name="profile-role" id="profile-role-student" value="STUDENT">
                     <label for="profile-role-student" data-i18n="role.student">Student</label>
                     <input type="radio" name="profile-role" id="profile-role-work" value="WORK">
@@ -295,7 +294,7 @@
             <div class="field" id="field-profile-current-password">
                 <label for="profile-current-password"><span data-i18n="form.currentPassword">Current password</span> <span class="role-hint" data-i18n="form.currentPasswordNote">(only needed to change your name, email or phone)</span></label>
                 <div class="input-wrap"><input id="profile-current-password" type="password"
-                                               autocomplete="current-password"></div>
+                                               autocomplete="current-password"><button type="button" class="icon-toggle" id="toggle-profile-current-password" data-toggle-for="profile-current-password" data-i18n-aria-label="rp.showPassword" aria-label="Show password">&#128065;</button></div>
                 <p class="hint error-text" role="alert"></p>
             </div>
 
@@ -317,14 +316,14 @@
                 <h2 id="password-modal-title" data-i18n="menu.changePassword">Change password</h2>
                 <p data-i18n="modal.password.subtitle">Choose a new password for your account.</p>
             </div>
-            <button type="button" class="modal-close" id="close-password-modal" aria-label="Close">&#10005;</button>
+            <button type="button" class="modal-close" id="close-password-modal" aria-label="Close" data-i18n-aria-label="common.close">&#10005;</button>
         </div>
 
         <form id="password-form" novalidate>
             <div class="field" id="field-current-password">
                 <label for="current-password" data-i18n="form.currentPassword">Current password</label>
                 <div class="input-wrap">
-                    <input id="current-password" type="password" autocomplete="current-password">
+                    <input id="current-password" type="password" autocomplete="current-password"><button type="button" class="icon-toggle" id="toggle-current-password" data-toggle-for="current-password" data-i18n-aria-label="rp.showPassword" aria-label="Show password">&#128065;</button>
                 </div>
                 <p class="hint error-text" role="alert"></p>
             </div>
@@ -333,6 +332,7 @@
                 <label for="new-password" data-i18n="form.newPassword">New password</label>
                 <div class="input-wrap">
                     <input id="new-password" type="password" autocomplete="new-password">
+                    <button type="button" class="icon-toggle" id="toggle-new-password" data-toggle-for="new-password" data-i18n-aria-label="rp.showPassword" aria-label="Show password">&#128065;</button>
                 </div>
                 <div class="strength-meter" id="password-strength-meter"><span></span><span></span><span></span></div>
                 <p class="hint" id="new-password-strength-hint" style="display:none;"></p>
@@ -342,7 +342,7 @@
             <div class="field" id="field-confirm-new-password">
                 <label for="confirm-new-password" data-i18n="form.confirmNewPassword">Confirm new password</label>
                 <div class="input-wrap">
-                    <input id="confirm-new-password" type="password" autocomplete="new-password">
+                    <input id="confirm-new-password" type="password" autocomplete="new-password"><button type="button" class="icon-toggle" id="toggle-confirm-new-password" data-toggle-for="confirm-new-password" data-i18n-aria-label="rp.showPassword" aria-label="Show password">&#128065;</button>
                 </div>
                 <p class="hint error-text" role="alert"></p>
             </div>
@@ -365,7 +365,7 @@
                 <h2 id="notif-prefs-modal-title" data-i18n="menu.notificationPrefs">Notification preferences</h2>
                 <p data-i18n="modal.prefs.subtitle">Choose which activity alerts Aal Sikke sends you.</p>
             </div>
-            <button type="button" class="modal-close" id="close-notif-prefs-modal" aria-label="Close">&#10005;</button>
+            <button type="button" class="modal-close" id="close-notif-prefs-modal" aria-label="Close" data-i18n-aria-label="common.close">&#10005;</button>
         </div>
 
         <form id="notif-prefs-form">
@@ -438,7 +438,7 @@
 <script src="auth-token.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="palette.js"></script>
-<script src="dashboard.js"></script>
+<script src="password-toggle.js"></script><script src="dashboard.js"></script>
 <script src="settings.js"></script>
 <script src="account-data.js"></script>
 <script src="feedback.js"></script>

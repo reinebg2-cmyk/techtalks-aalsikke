@@ -80,7 +80,7 @@ public class UserController {
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteMyAccount(@Valid @RequestBody DeleteAccountRequest request,
                                                 Authentication authentication) {
-        accountService.deleteAccount(authentication.getName(), request.currentPassword(), request.confirmation());
+        accountService.deleteAccount(authentication.getName(), request.currentPassword(), request.confirmation(), request.lang());
         return ResponseEntity.noContent().build();
     }
     private User findCurrentUser(Authentication authentication) {

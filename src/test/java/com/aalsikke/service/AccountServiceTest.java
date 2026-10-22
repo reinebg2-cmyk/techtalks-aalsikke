@@ -79,7 +79,7 @@ class AccountServiceTest {
 
         verify(users).delete(user);
         verify(emailSender).sendSecurityAlert(eq("ahmad@gmail.com"), eq("Ahmad"),
-                eq("Your Aal Sikke account was deleted"), anyString());
+                anyString(), anyString(), eq("en"));
     }
 
     @Test
@@ -88,7 +88,7 @@ class AccountServiceTest {
                 () -> service.deleteAccount("ahmad@gmail.com", "wrong", "DELETE"));
 
         verify(users, never()).delete(any(User.class));
-        verify(emailSender, never()).sendSecurityAlert(anyString(), anyString(), anyString(), anyString());
+        verify(emailSender, never()).sendSecurityAlert(anyString(), anyString(), anyString(), anyString(),anyString());
     }
 
     @Test
@@ -106,7 +106,7 @@ class AccountServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.deleteAccount("ahmad@gmail.com", "right", "yes"));
 
         verify(users, never()).delete(any(User.class));
-        verify(emailSender, never()).sendSecurityAlert(anyString(), anyString(), anyString(), anyString());
+        verify(emailSender, never()).sendSecurityAlert(anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test

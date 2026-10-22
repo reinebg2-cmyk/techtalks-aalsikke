@@ -5,8 +5,12 @@
 
 const API_BASE = window.location.origin;
 const COOLDOWN_SECONDS = 60; // the server sends at most one new link per minute
+// The email is written in the language the page is shown in.
+const pageLang = () => (document.documentElement.lang || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en';
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.title = t('fp.pageTitle');
+
   document.querySelector('.back-btn')?.addEventListener('click', () => {
     window.location.href = 'login.html';
   });
@@ -43,10 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const tick = () => {
       if (left <= 0) {
         btn.disabled = false;
-        btn.textContent = 'Send a new link';
+        btn.textContent = t('fp.sendAgain');
         return;
       }
-      btn.textContent = `Send again in ${left}s`;
+      btn.textContent = t('fp.sendAgainIn').replace('{s}', left);
       left -= 1;
       setTimeout(tick, 1000);
     };
@@ -60,37 +64,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const email = emailInput.value.trim();
     if (!looksLikeEmail(email)) {
-      showFieldError('Enter a valid email address.');
+      showFieldError(t('fp.invalidEmail'));
       return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Sending…';
+    btn.textContent = t('fp.sending');
 
     try {
       const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, lang: pageLang() })
       });
 
       let body = null;
       try { body = await res.json(); } catch (_) { /* empty body */ }
 
       if (!res.ok) {
-        throw new Error((body && (body.message || body.error)) || 'Something went wrong. Please try again.');
+        throw { message: apiError(body) || t('fp.generic') };
       }
 
-      showNotice(((body && body.message) || "If that email is registered, we've sent a reset link.")
-        + ' If you don\'t see it in a few minutes, check your spam folder.');
+      // Our own text, not the server's, so it is always in the page language.
+      showNotice(t('fp.sent') + ' ' + t('fp.spam'));
       startCooldown();
     } catch (err) {
       btn.disabled = false;
-      btn.textContent = 'Send reset link';
+      btn.textContent = t('fp.send');
       // fetch() throws a TypeError when the server can't be reached
-      showFieldError(err instanceof TypeError
-        ? 'Could not reach the server. Please try again.'
-        : err.message);
+      showFieldError(err instanceof TypeError ? t('auth.network') : err.message);
     }
   });
 });

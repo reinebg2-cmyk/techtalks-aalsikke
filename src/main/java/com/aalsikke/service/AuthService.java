@@ -22,6 +22,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.aalsikke.exception.CodedException;
+import com.aalsikke.util.EmailLang;
 
 @Service
 public class AuthService {
@@ -69,6 +71,7 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setProfileMode(request.getProfileMode() != null ? request.getProfileMode() : "STUDENT");
+        user.setPreferredLanguage(EmailLang.normalize(request.getLang()));
 
         if (request.getDateOfBirth() != null && !request.getDateOfBirth().isBlank()) {
             user.setDateOfBirth(java.time.LocalDate.parse(request.getDateOfBirth()));
@@ -79,7 +82,7 @@ public class AuthService {
 
         // KAN-272: new accounts start unverified and get a verification link.
         // No token is returned: the user can log in once the email is verified (KAN-274).
-        emailVerificationService.sendVerification(user);
+        emailVerificationService.sendVerification(user, EmailLang.normalize(request.getLang()));
         return new AuthResponse(null, "Account created. Check your email for a verification link, then log in.");
     }
 
@@ -96,8 +99,16 @@ public class AuthService {
 
         // KAN-274: checked after the password, so this never reveals anything to someone
         // who doesn't know the password.
+        if (request.getLang() != null && !request.getLang().isBlank()) {
+            String lang = EmailLang.normalize(request.getLang());
+            if (!lang.equals(user.getPreferredLanguage())) {
+                user.setPreferredLanguage(lang);
+                userRepository.save(user);
+            }
+        }
+
         if (!user.isEmailVerified()) {
-            emailVerificationService.sendIfNoOpenLink(user);
+            emailVerificationService.sendIfNoOpenLink(user, EmailLang.normalize(request.getLang()));
             throw new EmailNotVerifiedException(user.getEmail());
         }
 
@@ -106,7 +117,8 @@ public class AuthService {
         if (user.getWelcomeEmailSentAt() == null) {
             user.setWelcomeEmailSentAt(java.time.OffsetDateTime.now());
             userRepository.save(user);
-            emailSender.sendWelcomeEmail(user.getEmail(), user.getFullName());
+            emailSender.sendWelcomeEmail(user.getEmail(), user.getFullName(),
+                    EmailLang.normalize(request.getLang()));
         }
 
         String jwtToken = jwtService.generateToken(user.getEmail(), Boolean.TRUE.equals(request.getRememberMe()));
@@ -136,16 +148,20 @@ public class AuthService {
         }
 
         if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("New password must be different from your current password.");
+            throw new CodedException("NEW_PASSWORD_SAME", "New password must be different from your current password.");
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
         // KAN-337: tell the owner, so a change they didn't make doesn't go unnoticed
+        String lang = "ar".equalsIgnoreCase(request.getLang()) ? "ar" : "en";
+        boolean ar = lang.equals("ar");
         emailSender.sendSecurityAlert(user.getEmail(), user.getFullName(),
-                "Your password was changed",
-                "The password for your Aal Sikke account was just changed.");
+                ar ? "تم تغيير كلمة المرور" : "Your password was changed",
+                ar ? "تم تغيير كلمة المرور الخاصة بحسابك في عالسكة للتو."
+                        : "The password for your Aal Sikke account was just changed.",
+                lang);
     }
 
     /**
@@ -159,6 +175,11 @@ public class AuthService {
     public ProfileUpdateResponse updateProfile(String currentEmail, UpdateProfileRequest request) {
         User user = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Language: the request's if it sent one, otherwise the one stored on the account
+        boolean langGiven = request.getLang() != null && !request.getLang().isBlank();
+        String lang = EmailLang.normalize(langGiven ? request.getLang() : user.getPreferredLanguage());
+        boolean ar = "ar".equals(lang);
 
         String oldEmail = user.getEmail();   // KAN-337: the alert goes here, not to the new address
         String newEmail = request.getEmail().trim();
@@ -195,24 +216,30 @@ public class AuthService {
             user.setEmailVerified(false);
         }
 
+        if (langGiven) {
+            user.setPreferredLanguage(lang);
+        }
+
         user.setFullName(newFullName);
         user.setProfileMode(request.getProfileMode());
         userRepository.save(user);
 
         // KAN-262: a new email starts unverified, so send a link to the new address right away.
         if (emailChanged) {
-            emailVerificationService.sendVerification(user);
+            emailVerificationService.sendVerification(user, lang);
             // KAN-337: warn the old address; if the change wasn't the owner, that's where they'll see it
+            String masked = maskEmail(newEmail);
             emailSender.sendSecurityAlert(oldEmail, user.getFullName(),
-                    "Your account email was changed",
-                    "Your Aal Sikke account now uses " + maskEmail(newEmail)
-                            + ". This address will no longer receive account emails.");
+                    ar ? "تم تغيير البريد الإلكتروني لحسابك" : "Your account email was changed",
+                    ar ? "يستخدم حسابك في عالسكة الآن " + masked + ". لن يستقبل هذا العنوان رسائل الحساب بعد الآن."
+                            : "Your Aal Sikke account now uses " + masked
+                            + ". This address will no longer receive account emails.",
+                    lang);
         }
 
         String newToken = emailChanged ? jwtService.generateToken(user.getEmail()) : null;
         return toProfileUpdateResponse(user, newToken);
     }
-
     /** KAN-257: removing a phone is deliberate, needs the password, and is blocked while 2FA is on. */
     @Transactional
     public ProfileUpdateResponse removePhone(String email, RemovePhoneRequest request) {
@@ -222,7 +249,7 @@ public class AuthService {
         requireCurrentPassword(user, request.currentPassword());
 
         if (user.isTwoFactorEnabled()) {
-            throw new IllegalArgumentException("Turn off two-factor authentication before removing your phone number.");
+            throw new CodedException("TWO_FACTOR_ON", "Turn off two-factor authentication before removing your phone number.");
         }
 
         user.setPhoneNumber(null);
@@ -234,10 +261,10 @@ public class AuthService {
 
     private void requireCurrentPassword(User user, String currentPassword) {
         if (currentPassword == null || currentPassword.isBlank()) {
-            throw new IllegalArgumentException("Current password is required to change your name, email or phone number.");
+            throw new CodedException("CURRENT_PASSWORD_REQUIRED", "Current password is required to change your name, email or phone number.");
         }
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            throw new IllegalArgumentException("Current password is incorrect.");
+            throw new CodedException("CURRENT_PASSWORD_WRONG", "Current password is incorrect.");
         }
     }
 
