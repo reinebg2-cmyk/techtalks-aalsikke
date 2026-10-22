@@ -41,14 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const strengthMeter = document.getElementById('strength-meter');
   const passwordHint = document.getElementById('password-hint');
   const submitBtn = document.getElementById('submit-btn');
-  const togglePassword = document.getElementById('toggle-password');
   const emailHint = emailField.querySelector('.error-text');
   const defaultEmailHint = emailHint ? emailHint.textContent : '';
 
-  togglePassword.addEventListener('click', () => {
-    const isHidden = passwordInput.type === 'password';
-    passwordInput.type = isHidden ? 'text' : 'password';
-  });
+
 
   function setState(fieldEl, state) {
     fieldEl.classList.remove('is-success', 'is-warning', 'is-error');

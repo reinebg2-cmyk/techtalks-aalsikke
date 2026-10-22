@@ -3989,26 +3989,3 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!document.hidden) loadDueReminders();
   });
 });
-// ---- Show / hide the new password (Change password modal, every page) ----
-     document.addEventListener('DOMContentLoaded', () => {
-       const newPwInput = document.getElementById('new-password');
-       const toggleNewPw = document.getElementById('toggle-new-password');
-       const passwordModal = document.getElementById('password-modal');
-       if (!newPwInput || !toggleNewPw) return;
-
-       function hideNewPassword() {
-         newPwInput.type = 'password';
-         toggleNewPw.setAttribute('aria-pressed', 'false');
-       }
-
-       toggleNewPw.addEventListener('click', () => {
-         const showing = newPwInput.type === 'text';
-         newPwInput.type = showing ? 'password' : 'text';
-         toggleNewPw.setAttribute('aria-pressed', String(!showing));
-       });
-
-       if (passwordModal) {
-         new MutationObserver(() => { if (passwordModal.hidden) hideNewPassword(); })
-           .observe(passwordModal, { attributes: true, attributeFilter: ['hidden'] });
-       }
-     });
