@@ -310,6 +310,22 @@ body {
   font-size: 0.9375rem;
 }
 
+/* KAN-385: our .icon-toggle is the only eye. Hide Edge's built-in one,
+   which shows only one field at a time and disappears after one use. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* KAN-385: when a field has both the eye and a status icon (✓),
+   move the status icon next to the eye and leave room for both. */
+.input-wrap:has(.icon-toggle) .icon-status {
+  inset-inline-end: 2.5rem;
+}
+.input-wrap:has(.icon-toggle):has(.icon-status) input {
+  padding-inline-end: 4.25rem;
+}
+
 /* Validation states, toggled via JS by adding a class to .field */
 .field.is-success .input-wrap input { border-color: var(--success); background: var(--success-bg); }
 .field.is-success .icon-status.success { display: inline; color: var(--success); }

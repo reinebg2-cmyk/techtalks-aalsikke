@@ -24,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmInput = document.getElementById('confirm-password');
   const confirmError = document.getElementById('confirm-error');
   const meter = document.getElementById('strength-meter');
-  const toggle = document.getElementById('toggle-new-password');
   const btn = document.getElementById('reset-btn');
   const notice = document.getElementById('reset-notice');
   const noticeText = document.getElementById('reset-notice-text');
@@ -55,12 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     showNotice(t('rp.incomplete'), { requestNew: true });
     return;
   }
-
-  toggle.addEventListener('click', () => {
-    const hide = newInput.type === 'text';
-    newInput.type = hide ? 'password' : 'text';
-    confirmInput.type = hide ? 'password' : 'text';
-  });
 
   // 0 = empty, 1 = weak, 2 = okay, 3 = strong
   function strengthOf(password) {

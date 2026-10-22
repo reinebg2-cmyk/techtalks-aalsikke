@@ -62,7 +62,7 @@
       </div>
       <div class="input-wrap">
         <input type="password" dir="ltr" id="login-password" name="login-password" placeholder="Enter your password" data-i18n-placeholder="login.passwordPlaceholder" autocomplete="current-password" required>
-        <button type="button" class="icon-toggle" id="toggle-login-password" aria-label="Show password" data-i18n-aria-label="auth.showPassword">&#128065;</button>
+        <button type="button" class="icon-toggle" id="toggle-login-password" data-toggle-for="login-password" aria-label="Show password" data-i18n-aria-label="auth.showPassword">&#128065;</button>
       </div>
       <p class="hint error-text" id="login-error"></p>
     </div>
@@ -85,6 +85,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="theme-toggle.js"></script>
+<script src="password-toggle.js"></script>
 <script src="login.js"></script>
 </body>
 </html>

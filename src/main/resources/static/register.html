@@ -105,7 +105,7 @@
       <label for="password" data-i18n="auth.password">Password</label>
       <div class="input-wrap">
         <input type="password" dir="ltr" id="password" name="password" placeholder="Create a password" data-i18n-placeholder="reg.passwordPlaceholder" autocomplete="new-password" required>
-        <button type="button" class="icon-toggle" id="toggle-password" aria-label="Show password" data-i18n-aria-label="auth.showPassword">&#128065;</button>
+        <button type="button" class="icon-toggle" id="toggle-password" data-toggle-for="password" aria-label="Show password" data-i18n-aria-label="auth.showPassword">&#128065;</button>
       </div>
       <div class="strength-meter" id="strength-meter">
         <span></span><span></span><span></span><span></span>
@@ -117,6 +117,7 @@
       <label for="confirm-password" data-i18n="auth.confirmPassword">Confirm password</label>
       <div class="input-wrap">
         <input type="password" dir="ltr" id="confirm-password" name="confirm-password" placeholder="Re-enter your password" data-i18n-placeholder="reg.confirmPlaceholder" autocomplete="new-password" required>
+        <button type="button" class="icon-toggle" id="toggle-confirm-password" data-toggle-for="confirm-password" aria-label="Show password" data-i18n-aria-label="auth.showPassword">&#128065;</button>
         <span class="icon-status success">&#10003;</span>
       </div>
     </div>
@@ -133,6 +134,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="theme-toggle.js"></script>
+<script src="password-toggle.js"></script>
 <script src="register.js"></script>
 </body>
 </html>

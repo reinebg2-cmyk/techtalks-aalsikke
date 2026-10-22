@@ -16,12 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordInput = document.getElementById('login-password');
   const loginError = document.getElementById('login-error');
   const loginBtn = document.getElementById('login-btn');
-  const togglePassword = document.getElementById('toggle-login-password');
-
-  togglePassword.addEventListener('click', () => {
-    const isHidden = passwordInput.type === 'password';
-    passwordInput.type = isHidden ? 'text' : 'password';
-  });
 
   identifierInput.addEventListener('input', () => {
     identifierField.classList.toggle('is-success', identifierInput.value.trim().length > 3);
