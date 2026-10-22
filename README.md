@@ -3,12 +3,13 @@
 **TechTalks Summer Internship 2026 — Team Java D**
 
 An adaptive management platform that organizes a user's Student and Work life in one place — one account, connected planning across both contexts.
+**Live demo:** https://app-production-eea3.up.railway.app
 
 ## Team
 - Reine Bou Ghanem
 - Ashraf Rasbieh
 - Yara Abou Ezzeddine
-- Zeinab Kassir
+- Zeinab Kassir (left the team in week 1)
 
 **Mentor:** Khaled Frayji
 
@@ -19,7 +20,7 @@ AAl sikke is designed as a shared-core platform that can activate different life
 
 **Positioning:** An adaptive management platform that organizes a user's personal, academic, professional, business, and travel life in one place — one user, multiple roles, one connected platform.
 
-## Approved V1 Scope
+## Original V1 Scope (approved at the start of the internship)
 - Secure authentication (each user sees only their own data)
 - Student and Work as **planning contexts** within one account (not separate permission roles)
 - Task categories with deadlines, priorities, completion status, and reminders
@@ -31,19 +32,56 @@ AAl sikke is designed as a shared-core platform that can activate different life
 **Explicitly excluded from V1:** profession-specific modules, finance management, document storage, AI features, payments, full offline sync, business-owner tools, travel planning.
 
 ## Tech Stack
-- **Backend:** Java, Spring Boot, Spring Security, JWT authentication, role-based authorization
-- **API:** REST
-- **Database:** PostgreSQL, Spring Data JPA, Hibernate, Flyway migrations
-- **Other:** File upload/management, scheduled tasks (planned for later phases)
+- **Backend:** Java 17, Spring Boot 4.1, Spring Security, JWT authentication (with "keep me signed in"), Spring scheduled jobs
+- **Database:** PostgreSQL, Spring Data JPA / Hibernate, Flyway migrations
+- **Frontend:** HTML, CSS and vanilla JavaScript served by Spring Boot; English and Arabic (RTL) translations
+- **Email:** Brevo in production; SMTP with Mailpit for local testing
+- **AI:** Google Gemini for quick-add (natural-language task entry)
+- **Deployment:** Docker, Railway
+- **Testing:** JUnit 5 and Mockito (236 automated tests)
+- **Workflow:** GitHub (one branch and pull request per Jira ticket), Jira Scrum
+
+## Main features
+**Completed**
+- Accounts: register, email verification, login with "keep me signed in", password reset, security alert emails, edit profile, delete account
+- Student, Work or Dual mode in one account
+- Tasks and schedule items with deadlines, priorities, status and checklists; weekly recurring items
+- Calendar view and dashboard; scheduling-conflict warnings; free-slot suggestions; weekly review
+- Reminders: automatic reminders before tasks and classes, standalone reminders, reminder bell, in-app popup (Dismiss / Snooze 10 min / Reschedule) and email reminders
+- AI quick-add: type a task in plain words (English, Arabic or Arabizi) and the form is filled in
+- English and Arabic interface (right-to-left) and Arabic emails
+- Light and dark theme, help page, feedback form, show/hide on every password field
+
+**Not completed (future work)**
+- SMS notifications and a French interface
+- Own email domain (DKIM/DMARC) so emails don't land in spam
+- AI that edits or moves existing tasks
+- Past reminders on the calendar; repeats included in conflict detection
 
 ## Differentiation
 Competitor products (e.g. Tarteeb) already offer many life categories, calendars, and offline support. Aal Sikke's differentiation is not module count but **connected cross-role planning** — a clearer, more coherent experience specifically for working students juggling both academic and job commitments in one view.
 
-## Process & Status
-- Assignment 1 (Product Discovery & Market Validation) submitted, revised per mentor feedback, and **approved for implementation**.
-- Still required alongside development: ~5 focused interviews with the target segment, and a tested clickable Student+Work flow with 10 target users (anonymized notes + a brief summary of findings, no recordings needed).
-- Team workflow: shared GitHub repo + Jira Scrum. Sprint 1 focuses on adding Student and Work commitments and viewing them together.
-- Each team member should have a specific assigned contribution (tracked in project docs, not "All Tasks" for everyone).
+### Process & Status
+- Product discovery and market validation approved by the mentor; real-user testing with friends from the target segment in the final week.
+- Built in Scrum sprints tracked in Jira. Every change goes on its own branch, is reviewed in a pull request into `feature/initial-setup`, then released to `main` and deployed to Railway.
+- Status: MVP feature-complete (feature freeze Oct 22, 2026); final demo Oct 25, 2026.
+
+## Run locally
+
+**Prerequisites:** Java 17, PostgreSQL (tested with 18), Git. Maven is included through the wrapper (`mvnw`).
+
+1. **Clone the repository** and open it in your IDE.
+2. **Create the database:** in pgAdmin or psql, create a database named `productivity_db`.
+3. **Local settings:** copy `src/main/resources/application.properties.example` to `src/main/resources/application-local.properties` (this file is git-ignored, so your passwords never get committed) and fill in your PostgreSQL password and a JWT secret of at least 32 characters.
+4. **Run the app:**
+    - Windows (PowerShell): `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"`
+    - macOS / Linux: `./mvnw spring-boot:run -Dspring-boot.run.profiles=local`
+
+   Flyway creates all the tables on the first start.
+5. **Open** http://localhost:8080 and register. By default emails are not sent: the verification link is printed in the console (see *Testing emails locally* below to see real emails in Mailpit).
+6. **Run the tests:** `.\mvnw.cmd test` (Windows) or `./mvnw test` (macOS / Linux).
+
+**Optional:** set `GEMINI_API_KEY` to enable AI quick-add. The variables needed in production are listed in *Running with Docker / production* below.
 
 ---
 

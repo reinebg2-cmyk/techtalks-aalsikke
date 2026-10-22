@@ -67,28 +67,8 @@ public class PasswordResetService {
     /** Step 2: the user opened the link and chose a new password. Throws a 400 if the link is bad. */
     @Transactional
     public void resetPassword(String rawToken, String newPassword) {
-        if (rawToken == null || rawToken.isBlank()) {
-            throw invalidLink();
-        }
-
-        PasswordResetToken token = tokenRepository
-                .findByTokenHash(VerificationTokens.sha256Hex(rawToken.trim()))
-                .orElseThrow(this::invalidLink);
-
         OffsetDateTime now = OffsetDateTime.now();
-        if (token.getUsedAt() != null || token.getExpiresAt().isBefore(now)) {
-            throw invalidLink();
-        }
-
-        User user = userRepository.findById(token.getUserId()).orElseThrow(this::invalidLink);
-
-        // The account was deleted, or the user changed their email after this link was sent.
-        if (user.getDeletedAt() != null
-                || user.getEmail() == null
-                || !user.getEmail().equalsIgnoreCase(token.getEmail())) {
-            throw invalidLink();
-        }
-
+        User user = requireUsableLink(rawToken, now);
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
@@ -103,6 +83,36 @@ public class PasswordResetService {
                 lang);
     }
 
+    /** Opening the link: tells the page whether the link can still be used. Changes nothing. */
+    @Transactional(readOnly = true)
+    public void checkResetLink(String rawToken) {
+        requireUsableLink(rawToken, OffsetDateTime.now());
+    }
+
+    /** One set of rules for opening and for resetting: the link exists, is unused and not expired, and the account didn't change. */
+    private User requireUsableLink(String rawToken, OffsetDateTime now) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw invalidLink();
+        }
+
+        PasswordResetToken token = tokenRepository
+                .findByTokenHash(VerificationTokens.sha256Hex(rawToken.trim()))
+                .orElseThrow(this::invalidLink);
+
+        if (token.getUsedAt() != null || token.getExpiresAt().isBefore(now)) {
+            throw invalidLink();
+        }
+
+        User user = userRepository.findById(token.getUserId()).orElseThrow(this::invalidLink);
+
+        // The account was deleted, or the user changed their email after this link was sent.
+        if (user.getDeletedAt() != null
+                || user.getEmail() == null
+                || !user.getEmail().equalsIgnoreCase(token.getEmail())) {
+            throw invalidLink();
+        }
+        return user;
+    }
 
     private void sendResetLink(User user, String lang) {
         OffsetDateTime now = OffsetDateTime.now();

@@ -293,6 +293,12 @@ public class ScheduleItemService {
                 .map(existing -> {
                     applyPartialUpdateToItem(existing, request);
                     validateTimes(existing);
+                    // KAN-387: a weekly task can't be rescheduled past 8 hours (checked at creation too)
+                    if (existing.getStartTime() != null && existing.getEndTime() != null
+                            && !RecurrenceRuleService.shortEnoughToRepeat(existing.getStartTime(), existing.getEndTime())
+                            && recurrenceRuleRepository.findByScheduleItemId(existing.getId()).isPresent()) {
+                        throw RecurrenceRuleService.repeatTooLong();
+                    }
                     // KAN-352: add/remove the halfway reminder if asked; otherwise move it with the task's times
                     DefaultReminders.sync(existing, request.getDefaultReminder(), OffsetDateTime.now());
                     ScheduleItem saved = scheduleItemRepository.save(existing);
