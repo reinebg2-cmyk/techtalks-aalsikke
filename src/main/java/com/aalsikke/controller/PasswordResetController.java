@@ -46,5 +46,14 @@ public class PasswordResetController {
         return ResponseEntity.ok(Map.of("message",
                 "Your password has been reset. You can log in now."));
     }
+    /** Opening the link: 200 if it can still be used, 400 RESET_LINK_INVALID if not. Changes nothing. */
+    @PostMapping("/reset-password/check")
+    public ResponseEntity<Map<String, String>> checkResetLink(
+            @RequestBody ResetLinkCheckRequest request) {
+        service.checkResetLink(request.token());
+        return ResponseEntity.ok(Map.of("message", "This reset link can be used."));
+    }
+
+    public record ResetLinkCheckRequest(String token) {}
     public record ForgotPasswordRequest(@NotBlank @Email String email, String lang) {}
 }
